@@ -1,0 +1,188 @@
+# LedProjector AI Assistant
+
+Полное техническое задание: [TECHNICAL_SPECIFICATION.md](./TECHNICAL_SPECIFICATION.md).
+
+Комплексный аудит архитектуры, безопасности, API, доступности и производительности: [AUDIT_REPORT_2026-07-20.md](./AUDIT_REPORT_2026-07-20.md).
+
+Плавающий AI-консультант для `ledprojector.com.ua` с двумя режимами:
+
+- `cli` — локальное тестирование через текущую авторизацию Codex CLI/ChatGPT;
+- `api` — production через серверный OpenAI Responses API.
+
+CLI-режим всегда слушает только `127.0.0.1` и не предназначен для публичного доступа.
+
+## Быстрый запуск через CLI
+
+Требования: Node.js 20+, установленный Codex CLI и успешный `codex login status`.
+
+```powershell
+cd C:\AI Advisor
+Copy-Item .env.example .env
+npm run start:cli
+```
+
+Откройте `http://127.0.0.1:8787`.
+
+## Переключение на API
+
+После безопасного добавления `OPENAI_API_KEY` в локальный `.env`:
+
+```powershell
+npm run start:api
+```
+
+Для локального фонового API на штатном порту `8788` с readiness-проверкой и логами:
+
+```powershell
+npm run start:api:background
+```
+
+### Постоянный локальный runtime на Windows
+
+Рабочая копия API размещена в `F:\Services\AI Advisor`; исходная папка `C:\AI Advisor` сохранена как rollback-копия. Логи API находятся в `F:\Services\AI Advisor\logs`.
+
+Перед любым переносом проверяйте release-кандидат: `npm test`, затем `npm run release:active:dry-run`. Только после явного решения о production-release применяйте `pwsh -NoProfile -File scripts\release-active-runtime.ps1 -Apply`, сверяйте hashes в выводе и отдельно перезапускайте API host в согласованное окно. Скрипт не переносит `.env`, логи, архивы или node_modules и не удаляет файлы из active runtime.
+
+Для текущего пользователя настроены два recovery-механизма:
+
+- Задача `AI Advisor API Host` запускает API от `SYSTEM` при старте Windows, до входа пользователя, и автоматически перезапускается после сбоя.
+- Задача `AI Advisor Health Monitor` работает от `SYSTEM`, проверяет API каждые пять минут и перезапускает задачу API при сбое.
+- Прежний `AI Advisor API.cmd` отключён как `AI Advisor API.cmd.disabled`, чтобы не создавать второй процесс после входа пользователя.
+- Воспроизводимая установка задач: `scripts\install-local-host-tasks.ps1`; активация: `scripts\activate-local-host-tasks.ps1`; recovery-smoke: `scripts\test-api-task-recovery.ps1`; elevated-диагностика: `scripts\inspect-api-task.ps1`. Эти операции требуют elevated PowerShell.
+- В Windows PowerShell 5.1 stderr Node нельзя запускать под завершающим `$ErrorActionPreference='Stop'`: штатные catalog-warning превращаются в `NativeCommandError` и останавливают host-задачу. `run-api-task.ps1` сохраняет strict-режим для setup, но переводит только долгоживущий Node-процесс в non-terminating stderr-режим.
+
+Компьютер не должен переходить в сон при питании от сети. Именованный Cloudflare Tunnel `ai-advisor-ledprojector` установлен как автоматически запускаемая Windows-служба `Cloudflared` с восстановлением после сбоя. Постоянный публичный адрес API — `https://ai.ledprojector.com.ua`; локальный монитор проверяет и локальный `/health`, и этот публичный endpoint.
+
+### Telegram-уведомления
+
+- `AI Advisor Health Monitor` выполняется от `SYSTEM` каждую минуту и хранит переходное состояние в `logs\ai-advisor-monitor-state.json`.
+- Оповещения `DOWN`, `RECOVERED`, `AUTO_RECOVERED` и `HOST_ONLINE` дедуплицируются: здоровый повторный цикл не создаёт новое сообщение.
+- Отправка выполняется только через `scripts\send-telegram-notification.ps1` → `codex-tg notify`. Проект не читает и не копирует Telegram bot token.
+- Пользовательский bridge запускается после входа в Windows через `AI Advisor Telegram Bridge.cmd` в Startup и `scripts\start-telegram-bridge.ps1`. SYSTEM-monitor пишет в его локальную allowlisted-очередь; если bridge временно не работает, очередь остаётся до следующего запуска.
+- Контролируемый smoke: `scripts\test-monitor-notifications.ps1` кратко останавливает `Cloudflared`, проверяет по одному событию `DOWN` и `RECOVERED`, затем обязательно возвращает службу.
+- Ограничение локального контура: полностью выключенный ПК не может отправить событие в момент отключения. Для немедленного оповещения о потере всего хоста нужен отдельный внешний uptime-monitor.
+
+### Retention runtime-логов
+
+- `AI Advisor Health Monitor` раз в минуту запускает `scripts\rotate-runtime-logs.ps1`.
+- Если один из API/monitor логов достигает 10 МБ, helper копирует его в `logs\archive` с timestamp и очищает активный файл без перезапуска API.
+- Удаляются только архивы AI Advisor старше 14 дней; Telegram-логи и Windows Event Log не затрагиваются.
+- Isolated smoke: `npm run test:log-rotation`.
+
+### Журнал обучения
+
+- По умолчанию журнал выключен. После отдельного решения по приватности включите `LEARNING_LOG_ENABLED=true` в server-side `.env`.
+- Успешный диалог записывается в `logs\ai-advisor-learning.log` как JSONL: очищенные последняя реплика пользователя и ответ, ID использованных knowledge-карточек и техническая диагностическая метка. Полная история, HTML страницы, IP-адреса и секреты не сохраняются; email и телефонные номера маскируются.
+- Это не автоматическое переобучение и не автоматическая правка базы знаний. Если подходящей карточки не было или ответ направил к менеджеру, запись получает кандидата `pending`.
+- Для просмотра кандидатов используйте `npm run learning:review`. Перед добавлением факта проверьте официальный источник и применяйте существующий `npm run knowledge:upsert -- --apply ...`.
+- Файл входит в штатную ротацию: 10 МБ на активный лог и 14 дней хранения архивов.
+
+### Внешний uptime-monitor
+
+- В Better Stack создан монитор `ai.ledprojector.com.ua/health` (ID `4715620`): `https://ai.ledprojector.com.ua/health`, проверка раз в три минуты. На текущем Free-плане нет расписания on-call: при инциденте сервис уведомляет всю команду.
+- При инциденте сначала проверить карточку инцидента Better Stack, затем локальный и публичный health: `Invoke-WebRequest http://127.0.0.1:8788/health` и `Invoke-WebRequest https://ai.ledprojector.com.ua/health`.
+- Для диагностики Tunnel в elevated PowerShell: `Get-Service Cloudflared`. Управлять службой только после диагностики и только elevated-командой; не останавливать её ради обычной проверки.
+- Безопасный внешний smoke: временно заменить URL монитора в Better Stack на `https://ai.ledprojector.com.ua/__ai_advisor_smoke_404`, дождаться `Down`, сразу вернуть точный `/health` URL и дождаться `Up`. Это проверяет внешний монитор без остановки сайта или Tunnel.
+- Rollback настройки монитора: в Better Stack вернуть URL ровно `https://ai.ledprojector.com.ua/health`; не менять DNS, Cloudflare Tunnel или cPanel-файлы. Контролируемый smoke 2026-07-23 зафиксировал `Down`, затем `Up`; Cloudflared при этом не прерывался.
+- Не полагаться на ссылку `Send test alert`: 2026-07-23 её встроенный маршрут вернул Better Stack `404` и не отправил письмо. Для проверки канала использовать только контролируемый temporary-404 smoke выше.
+
+Модель по умолчанию — `gpt-5.6-terra`: баланс качества, задержки и стоимости для консультаций. Её можно заменить переменной `OPENAI_MODEL` без изменения кода.
+
+## Встраивание виджета
+
+На странице магазина нужны CSS и один скрипт:
+
+```html
+<link rel="stylesheet" href="https://ai.ledprojector.com.ua/widget.css">
+<script
+  src="https://ai.ledprojector.com.ua/widget.js"
+  data-endpoint="https://ai.ledprojector.com.ua/api/chat"
+></script>
+```
+
+Для production сохраняйте `ALLOWED_ORIGINS=https://ledprojector.com.ua`. Не размещайте `OPENAI_API_KEY` в HTML или `widget.js`.
+
+В `widget.js` сохранён абсолютный fallback на `https://ai.ledprojector.com.ua/api/chat`: оптимизатор Lightning может объединять внешний скрипт и удалять его атрибут `data-endpoint`. Для принудительного обновления объединённого скрипта production footer использует `widget.js?v=20260723c`.
+
+### Защита API от перегрузки
+
+Локальные production-параметры:
+
+```dotenv
+RATE_LIMIT_PER_MINUTE=20
+AI_MAX_CONCURRENT=4
+AI_MAX_QUEUE=16
+SHUTDOWN_TIMEOUT_MS=30000
+```
+
+Одновременно выполняются не более `AI_MAX_CONCURRENT` запросов к AI. Ещё `AI_MAX_QUEUE` запросов ожидают; сверх этого сервер отвечает `503` с кодом `AI_QUEUE_FULL`. При rate limit сервер отвечает `429` с кодом `RATE_LIMITED` и целочисленным заголовком `Retry-After`.
+
+Все HTTP-ошибки имеют один JSON-контракт:
+
+```json
+{
+  "error": "Понятное сообщение",
+  "code": "RATE_LIMITED",
+  "requestId": "UUID"
+}
+```
+
+Тот же `requestId` возвращается в заголовке `X-Request-Id` и добавляется в серверный лог ошибки. При `SIGTERM` или `SIGINT` сервер прекращает принимать новые соединения, отклоняет очередь, очищает rate-limit buckets и даёт активным запросам до `SHUTDOWN_TIMEOUT_MS` на завершение.
+
+Локальный live-smoke 2026-07-23 без вызовов OpenAI подтвердил 20 `400 INVALID_JSON`, затем `429 RATE_LIMITED` с `Retry-After: 60` и одинаковым `requestId` в JSON/заголовке. После 60 секунд новый запрос снова получил `400`, а `/health` остался `200`.
+
+Полный HTTP-smoke очереди запускается только тестовым provider: при `NODE_ENV=test` допустим `--provider=test`, он слушает только loopback, не использует `OPENAI_API_KEY`, не обращается к каталогу и отвечает с контролируемой задержкой. Тест доказывает `1 active + 1 queued + 1 rejected` → `503 AI_QUEUE_FULL`, `Retry-After: 1`, единый error-contract и последующий `/health 200`. В обычном runtime `AI_PROVIDER=test` отклоняется.
+
+## База знаний консультанта
+
+Редактируйте `knowledge/store-faq.json`. Каждая запись содержит заголовок, ключевые слова, проверенный текст, URL источника и дату проверки. Перед ответом сервер выбирает до четырёх релевантных записей и передаёт их модели вместе с текущей страницей и результатами поиска по каталогу.
+
+Добавляйте отдельные короткие записи для доставки, оплаты, гарантии, возвратов, совместимости аксессуаров и правил подбора. Для изменяемых данных — цен, наличия, акций и сроков — не создавайте статичные записи: они должны оставаться данными живого каталога или подтверждаться менеджером.
+
+Проверяйте файл перед использованием:
+
+```powershell
+npm run check:knowledge
+```
+
+Команда валидирует структуру, дубликаты и официальные ссылки LedProjector.
+
+Чтобы быстро понять, какие карточки уже покрывают вопрос, используйте:
+
+```powershell
+npm run knowledge:find -- "как выбрать проектор для дома"
+```
+
+Чтобы добавить или обновить карточку из отдельного JSON-файла, используйте:
+
+```powershell
+npm run knowledge:upsert -- path\to\entry.json
+```
+
+По умолчанию команда делает dry-run и ничего не пишет. Для записи добавьте `--apply`.
+
+```powershell
+npm run knowledge:upsert -- --apply path\to\entry.json
+```
+
+При записи команда делает резервную копию `store-faq.json` перед изменением файла.
+
+## Безопасная установка на OpenCart
+
+Публичный исходный код OpenCart отсутствует на этом компьютере. До изменения production:
+
+1. получить авторизованный доступ к cPanel/FTP/OpenCart Admin;
+2. сделать резервные копии файлов и БД;
+3. проверить целостность архивов;
+4. установить виджет сначала на тестовую копию;
+5. выполнить мобильный и desktop smoke-test.
+
+## Проверки
+
+```powershell
+npm test
+npm run test:cli
+curl.exe http://127.0.0.1:8787/health
+```
+
+`npm test` не расходует лимит моделей. `npm run test:cli` выполняет один реальный запрос через текущую учётную запись Codex и поэтому зависит от доступного лимита.

@@ -1,0 +1,226 @@
+:root {
+  --lp-agent-blue: #2563eb;
+  --lp-agent-cyan: #22d3ee;
+  --lp-agent-ink: #0f172a;
+  --lp-agent-muted: #475569;
+  --lp-agent-surface: #ffffff;
+  --lp-agent-border: #dbeafe;
+  --lp-agent-z: 1200;
+}
+
+.lp-agent-root,
+.lp-agent-root * {
+  box-sizing: border-box;
+}
+
+.lp-agent-root {
+  position: fixed;
+  z-index: var(--lp-agent-z);
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  font-family: "Nunito Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--lp-agent-ink);
+  transition: right 900ms cubic-bezier(.22, .8, .22, 1);
+}
+
+.lp-agent-root[data-position="center"] { right: calc(50vw - 48px); }
+.lp-agent-root[data-position="left"] { right: calc(100vw - 116px); }
+.lp-agent-root[data-open="true"] { right: max(18px, env(safe-area-inset-right)); }
+
+.lp-agent-mascot-button {
+  width: 96px;
+  min-height: 96px;
+  padding: 0;
+  border: 0;
+  border-radius: 28px;
+  background: transparent;
+  cursor: pointer;
+  filter: drop-shadow(0 10px 12px rgb(15 23 42 / 22%));
+  transition: transform 200ms ease-out, filter 200ms ease-out;
+}
+
+.lp-agent-mascot-button:hover { transform: translateY(-4px) scale(1.03); }
+.lp-agent-mascot-button:active { transform: translateY(0) scale(.98); }
+.lp-agent-mascot-button:focus-visible,
+.lp-agent-icon-button:focus-visible,
+.lp-agent-send:focus-visible,
+.lp-agent-suggestion:focus-visible,
+.lp-agent-input:focus-visible {
+  outline: 3px solid var(--lp-agent-cyan);
+  outline-offset: 3px;
+}
+
+.lp-agent-mascot {
+  display: block;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  animation: lp-agent-idle 2.8s ease-in-out 3;
+}
+
+.lp-agent-bubble {
+  position: absolute;
+  right: 78px;
+  bottom: 74px;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 132px));
+  padding: 10px 14px;
+  border: 1px solid var(--lp-agent-border);
+  border-radius: 18px 18px 6px 18px;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 14px 35px rgb(15 23 42 / 16%);
+  color: #1e293b;
+  font-size: 14px;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+.lp-agent-panel {
+  position: absolute;
+  right: 0;
+  bottom: 108px;
+  width: min(380px, calc(100vw - 28px));
+  height: min(590px, calc(100vh - 150px));
+  display: none;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+  border: 1px solid var(--lp-agent-border);
+  border-radius: 24px;
+  background: var(--lp-agent-surface);
+  box-shadow: 0 24px 60px rgb(15 23 42 / 24%);
+}
+
+.lp-agent-root[data-open="true"] .lp-agent-panel { display: grid; animation: lp-agent-panel-in 220ms ease-out; }
+.lp-agent-root[data-open="true"] .lp-agent-bubble { display: none; }
+
+.lp-agent-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  color: #fff;
+  background: linear-gradient(135deg, #1e3a8a, var(--lp-agent-blue) 68%, #0891b2);
+}
+
+.lp-agent-header-mark {
+  width: 42px;
+  height: 42px;
+  padding: 5px;
+  border-radius: 14px;
+  background: rgb(255 255 255 / 16%);
+}
+
+.lp-agent-header-copy { flex: 1; min-width: 0; }
+.lp-agent-title { margin: 0; font: 700 16px/1.2 Rubik, system-ui, sans-serif; }
+.lp-agent-status { margin: 3px 0 0; color: #e2e8f0; font-size: 12px; }
+
+.lp-agent-icon-button {
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 14px;
+  color: inherit;
+  background: rgb(255 255 255 / 12%);
+  cursor: pointer;
+}
+
+.lp-agent-messages {
+  overflow-y: auto;
+  padding: 16px;
+  background: linear-gradient(#f8fafc, #fff);
+}
+
+.lp-agent-message {
+  max-width: 88%;
+  margin: 0 0 10px;
+  padding: 11px 13px;
+  border-radius: 17px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.lp-agent-message[data-role="assistant"] {
+  border: 1px solid var(--lp-agent-border);
+  border-bottom-left-radius: 6px;
+  color: var(--lp-agent-ink);
+  background: #fff;
+}
+
+.lp-agent-message[data-role="user"] {
+  margin-left: auto;
+  border-bottom-right-radius: 6px;
+  color: #fff;
+  background: var(--lp-agent-blue);
+}
+
+.lp-agent-suggestions { display: flex; flex-wrap: wrap; gap: 7px; margin: 6px 0 14px; }
+.lp-agent-suggestion {
+  min-height: 40px;
+  padding: 8px 11px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  color: #1d4ed8;
+  background: #eff6ff;
+  font: 600 12px/1.2 inherit;
+  cursor: pointer;
+}
+
+.lp-agent-composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.lp-agent-input {
+  min-width: 0;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 15px;
+  color: var(--lp-agent-ink);
+  background: #fff;
+  font: 14px inherit;
+}
+
+.lp-agent-send {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 15px;
+  color: #fff;
+  background: var(--lp-agent-blue);
+  cursor: pointer;
+}
+
+.lp-agent-send:disabled { cursor: wait; opacity: .55; }
+.lp-agent-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+
+@keyframes lp-agent-idle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes lp-agent-panel-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 560px) {
+  .lp-agent-root { right: 12px; bottom: 12px; }
+  .lp-agent-root[data-position="center"], .lp-agent-root[data-position="left"] { right: 12px; }
+  .lp-agent-panel { position: fixed; inset: 10px 10px calc(112px + env(safe-area-inset-bottom)) 10px; width: auto; height: auto; }
+  .lp-agent-bubble { right: 70px; }
+}
+
+/* Leave clear space for LedProjector’s persistent call button on desktop. */
+@media (min-width: 561px) {
+  .lp-agent-root,
+  .lp-agent-root[data-open="true"] { right: max(132px, env(safe-area-inset-right)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-agent-root, .lp-agent-mascot-button, .lp-agent-mascot { transition: none; animation: none; }
+  .lp-agent-root[data-position="center"], .lp-agent-root[data-position="left"] { right: max(18px, env(safe-area-inset-right)); }
+}

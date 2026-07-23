@@ -1,0 +1,9 @@
+.env
+node_modules/
+*.log
+.tmp/
+.codex/
+logs/
+*.zip
+.tmp-terminal-output.png
+public/assets/*-chroma.png

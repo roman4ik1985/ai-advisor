@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LedProjector — демо AI-консультанта</title>
+  <link rel="stylesheet" href="/widget.css" />
+  <style>
+    body { margin: 0; color: #172033; background: #f6f8fb; font-family: system-ui, sans-serif; }
+    header { padding: 18px max(24px, calc((100vw - 1180px)/2)); color: white; background: #172b4d; }
+    main { max-width: 1180px; margin: 42px auto; padding: 0 24px; }
+    h1 { margin-bottom: 8px; font-size: clamp(28px, 5vw, 48px); }
+    .lead { max-width: 660px; color: #5b6577; font-size: 18px; line-height: 1.6; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 22px; margin-top: 36px; }
+    .card { padding: 20px; border: 1px solid #e0e7ef; border-radius: 18px; background: white; box-shadow: 0 8px 25px rgb(23 43 77 / 8%); }
+    .projector { height: 155px; display: grid; place-items: center; border-radius: 13px; color: #64748b; background: linear-gradient(135deg, #eaf2ff, #f8fafc); }
+    .price { color: #e54b31; font-size: 22px; font-weight: 750; }
+  </style>
+</head>
+<body>
+  <header><strong>LEDPROJECTOR</strong> · локальное демо</header>
+  <main>
+    <h1>Проектори для дому, навчання та бізнесу</h1>
+    <p class="lead">Це тестова сторінка віджета. Натисніть на персонажа, поставте питання або попросіть підібрати модель.</p>
+    <section class="grid" aria-label="Приклади товарів">
+      <article class="card"><div class="projector">LedProjector CinemaLux</div><h2>LedProjector CinemaLux</h2><p class="product-model">LS718</p><p class="price">13 350 грн.</p></article>
+      <article class="card"><div class="projector">Xiaomi Wanbo T6 Max</div><h2>Xiaomi Wanbo T6 Max</h2><p class="product-model">T6 Max</p><p class="price">12 499 грн.</p></article>
+      <article class="card"><div class="projector">LedProjector YG270</div><h2>LedProjector YG270 Wi‑Fi</h2><p class="product-model">YG271</p><p class="price">2 899 грн.</p></article>
+    </section>
+  </main>
+  <script src="/widget.js" data-endpoint="/api/chat"></script>
+</body>
+</html>

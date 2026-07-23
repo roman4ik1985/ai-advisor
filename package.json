@@ -1,0 +1,24 @@
+{
+  "name": "ledprojector-ai-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dual-mode AI consultant widget for ledprojector.com.ua",
+  "scripts": {
+    "start": "node server.mjs",
+    "start:cli": "node --env-file-if-exists=.env server.mjs --provider=cli",
+    "start:api": "node --env-file-if-exists=.env server.mjs --provider=api",
+    "start:api:background": "pwsh -NoProfile -File scripts/start-api-background.ps1",
+    "test:log-rotation": "pwsh -NoProfile -File scripts/test-log-rotation.ps1",
+    "learning:review": "node scripts/review-learning-log.mjs",
+    "release:active:dry-run": "pwsh -NoProfile -File scripts/release-active-runtime.ps1",
+    "test": "node --test test/*.test.mjs",
+    "test:cli": "node test/cli-smoke.mjs",
+    "check:knowledge": "node scripts/check-knowledge.mjs",
+    "knowledge:find": "node scripts/knowledge-find.mjs",
+    "knowledge:upsert": "node scripts/knowledge-upsert.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
