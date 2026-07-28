@@ -14,6 +14,7 @@ import { askViaApi } from './src/providers/api-provider.mjs';
 import { askViaTest } from './src/providers/test-provider.mjs';
 import { BackpressureError, ConcurrencyLimiter, FixedWindowRateLimiter } from './src/runtime-guards.mjs';
 import { getRateLimitClientId } from './src/client-identity.mjs';
+import { validateAssistantAnswer } from './response-validator.mjs';
 
 const config = readConfig();
 const publicDir = fileURLToPath(new URL('./public/', import.meta.url));
@@ -87,18 +88,18 @@ const server = createServer(async (request, response) => {
           .update(`${safetySalt}:${clientId}:${request.headers['user-agent'] || ''}`)
           .digest('hex')
           .slice(0, 32);
-        const answer = config.provider === 'cli'
-          ? await askViaCli(prompt, config)
-          : config.provider === 'api'
-            ? await askViaApi({
-              instructions: trustedInstructions(),
-              input: buildAssistantInput({ messages, page: body.page, catalog, knowledge }),
-            }, config, safetyIdentifier)
-            : await askViaTest(config);
+        const answer = await askAssistant({ prompt, messages, page: body.page, catalog, knowledge, safetyIdentifier });
+        const validation = validateAssistantAnswer({
+          answer,
+          catalog,
+          knowledge,
+          question: latestQuestion,
+        });
+        console.info(`[validation:${requestId}] accepted=${validation.accepted} reasons=${validation.reasons.join(',') || 'NONE'}`);
         if (catalog.length === 0 && config.provider !== 'test') {
           console.warn(`[catalog:${requestId}] ${catalogDiagnostics.code}`, catalogDiagnostics);
         }
-        return { answer, catalog, catalogDiagnostics, knowledge };
+        return { answer: validation.answer, catalog, catalogDiagnostics, knowledge };
       });
 
       if (config.learningLogEnabled) {
@@ -248,6 +249,18 @@ function json(response, status, payload) {
 function sendError(response, status, error, code, requestId, retryAfterSeconds) {
   if (retryAfterSeconds) response.setHeader('Retry-After', String(retryAfterSeconds));
   return json(response, status, { error, code, requestId });
+}
+
+async function askAssistant({ prompt, messages, page, catalog, knowledge, safetyIdentifier }) {
+  if (config.provider === 'cli') return askViaCli(prompt, config);
+  if (config.provider === 'api') {
+    return askViaApi({
+      instructions: trustedInstructions(),
+      input: buildAssistantInput({ messages, page, catalog, knowledge }),
+    }, config, safetyIdentifier);
+  }
+  const testAnswer = String(process.env.AI_TEST_PROVIDER_RESPONSE || '').trim();
+  return testAnswer || askViaTest(config);
 }
 
 async function shutdown(signal) {
