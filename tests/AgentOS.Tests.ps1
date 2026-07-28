@@ -354,3 +354,17 @@ Describe "v0.8 operation identity" {
         }
     }
 }
+
+Describe "Evidence-only operational completion" {
+    It "requires explicit switches for an empty staged set and completion" {
+        (Get-Command Test-AgentOsCommit).Parameters.Keys | Should -Contain "AllowNoStagedFiles"
+        (Get-Command Complete-AgentOsTask).Parameters.Keys | Should -Contain "EvidenceOnly"
+    }
+
+    It "documents the bounded evidence-only completion contract" {
+        $document = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot "..\docs\agent-os-negative-completion-guard.md")
+        $document | Should -Match "commit check -AllowNoStagedFiles"
+        $document | Should -Match "task-baseline-hash"
+        $document | Should -Match "SOURCE_CHANGE"
+    }
+}
