@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "release": "agent-os-v1.0.0",
-  "generated_at": "2026-07-29T00:47:37.1898531+03:00",
+  "generated_at": "2026-07-29T00:57:30.2375468+03:00",
   "algorithm": "SHA256",
   "content_normalization": "UTF-8 LF",
   "files": [
@@ -47,8 +47,8 @@
     },
     {
       "path": "modules/AgentOS/Private/Fingerprint.ps1",
-      "size": 1708,
-      "sha256": "b809e9928b4684be28a09aa5889b6f35fa69e1b93d5ee2ce4f5ffc321a898d5e"
+      "size": 3608,
+      "sha256": "18687a64155eb6c91433f4e76785efaa9a70d334ccfbf066a544bde3f0fc2303"
     },
     {
       "path": "modules/AgentOS/Private/Git.ps1",
@@ -82,8 +82,8 @@
     },
     {
       "path": "modules/AgentOS/Private/Scope.ps1",
-      "size": 7502,
-      "sha256": "4512e87f34b3c87ccab0b467ffac05b0d131f8cd1364ef17a32a9a08f2cf80bb"
+      "size": 9730,
+      "sha256": "4f2ab92f554c3b9916b9d219604bcce0652c71f7c446dc1982a9d8dc6d839e6b"
     },
     {
       "path": "modules/AgentOS/Private/State.ps1",
@@ -152,8 +152,8 @@
     },
     {
       "path": "modules/AgentOS/Public/Task.ps1",
-      "size": 4336,
-      "sha256": "9f5920d105a523a71577714e8e7e43abebe3dcaec65301302b6d391a0f618b9d"
+      "size": 4532,
+      "sha256": "ef07ab77256c39bd72ae637fe3b9b650d8d623aaaaba230c1c4a2676f38477c0"
     },
     {
       "path": "modules/AgentOS/Public/Verification.ps1",

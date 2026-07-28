@@ -37,6 +37,63 @@ function Add-AgentOsSnapshotFingerprints {
     $Snapshot
 }
 
+function Get-AgentOsProtectedFileInventory {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$RepositoryRoot,
+        [AllowEmptyCollection()][string[]]$Patterns = @()
+    )
+
+    if (@($Patterns).Count -eq 0) {
+        return @()
+    }
+
+    $root = (Resolve-Path -LiteralPath $RepositoryRoot).Path.TrimEnd([char[]]@('\', '/'))
+    $directories = New-Object 'System.Collections.Generic.Stack[string]'
+    $directories.Push($root)
+    $inventory = @()
+    $agentOsInternalPatterns = @(
+        '.agent-os/*',
+        '.agent-os/evidence/**',
+        '.agent-os/state/**',
+        '.agent-os/manifests/**',
+        '.agent-os/tasks/**',
+        '.agent-os/logs/**',
+        '.agent-os/savepoints/**'
+    )
+
+    while ($directories.Count -gt 0) {
+        $directory = $directories.Pop()
+        foreach ($item in @(Get-ChildItem -LiteralPath $directory -Force -ErrorAction Stop)) {
+            $relativePath = $item.FullName.Substring($root.Length).TrimStart([char[]]@('\', '/')).Replace('\', '/')
+
+            if ($relativePath -eq '.git' -or $relativePath.StartsWith('.git/')) {
+                continue
+            }
+
+            if (Test-AgentOsPathMatch -Path $relativePath -Patterns $agentOsInternalPatterns) {
+                continue
+            }
+
+            if ($item.PSIsContainer) {
+                if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) {
+                    $directories.Push($item.FullName)
+                }
+                continue
+            }
+
+            if (Test-AgentOsPathMatch -Path $relativePath -Patterns $Patterns) {
+                $inventory += [pscustomobject]@{
+                    Path        = $relativePath
+                    Fingerprint = Get-AgentOsFileFingerprint -RepositoryRoot $root -RelativePath $relativePath
+                }
+            }
+        }
+    }
+
+    return @($inventory | Sort-Object Path)
+}
+
 function Test-AgentOsFingerprintEqual {
     [CmdletBinding()]
     param($Baseline,$Current)

@@ -42,6 +42,9 @@
 
     $baseline = Get-AgentOsGitSnapshot -RepositoryRoot $RepositoryRoot
     $baseline = Add-AgentOsSnapshotFingerprints -RepositoryRoot $RepositoryRoot -Snapshot $baseline
+    $baseline | Add-Member -NotePropertyName protected_files -NotePropertyValue @(
+        Get-AgentOsProtectedFileInventory -RepositoryRoot $RepositoryRoot -Patterns $ProtectedScope
+    ) -Force
     $effectiveParked = @($ParkedFiles)
 
     if ($AutoParkUnrelatedBaseline) {

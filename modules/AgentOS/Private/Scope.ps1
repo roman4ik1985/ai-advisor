@@ -114,6 +114,68 @@ function Get-AgentOsParkedPaths {
     )
 }
 
+function Get-AgentOsProtectedFilesystemDrift {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$RepositoryRoot,
+        [Parameter(Mandatory)]$Task,
+        [AllowEmptyCollection()][string[]]$GitPaths = @()
+    )
+
+    $baselineProperty = $Task.baseline.PSObject.Properties['protected_files']
+    if ($null -eq $baselineProperty) {
+        return @()
+    }
+
+    $baseline = @{}
+    foreach ($entry in @($baselineProperty.Value)) {
+        $baseline[[string]$entry.Path] = $entry.Fingerprint
+    }
+
+    $current = @{}
+    foreach ($entry in @(Get-AgentOsProtectedFileInventory -RepositoryRoot $RepositoryRoot -Patterns @($Task.protected_scope))) {
+        $current[[string]$entry.Path] = $entry.Fingerprint
+    }
+
+    $drift = @()
+    foreach ($path in @($baseline.Keys + $current.Keys | Sort-Object -Unique)) {
+        if (@($GitPaths) -contains $path) {
+            continue
+        }
+
+        $change = if (-not $baseline.ContainsKey($path)) {
+            'CREATED'
+        }
+        elseif (-not $current.ContainsKey($path)) {
+            'DELETED'
+        }
+        elseif (-not (Test-AgentOsFingerprintEqual $baseline[$path] $current[$path])) {
+            'MODIFIED'
+        }
+        else {
+            $null
+        }
+
+        if ($null -ne $change) {
+            $drift += [pscustomobject]@{
+                Code                 = 'FS'
+                BaselineCode         = $null
+                Path                 = $path
+                Staged               = $false
+                Worktree             = $false
+                Untracked            = $false
+                WasDirtyAtStart      = $baseline.ContainsKey($path)
+                IsParked             = $false
+                FingerprintUnchanged = $false
+                FilesystemDrift      = $change
+                Classification       = 'PROTECTED'
+            }
+        }
+    }
+
+    return @($drift)
+}
+
 function Get-AgentOsScopeClassification {
     [CmdletBinding()]
     param(
@@ -159,6 +221,7 @@ function Get-AgentOsScopeClassification {
                 WasDirtyAtStart      = $false
                 IsParked             = $false
                 FingerprintUnchanged = $null
+                FilesystemDrift      = $null
                 Classification       = 'AGENT_INTERNAL'
             }
             continue
@@ -238,8 +301,16 @@ function Get-AgentOsScopeClassification {
             WasDirtyAtStart      = $wasDirty
             IsParked             = $isParked
             FingerprintUnchanged = $fingerprintUnchanged
+            FilesystemDrift      = $null
             Classification       = $classification
         }
+    }
+
+    if ($repositoryRootWasProvided) {
+        Get-AgentOsProtectedFilesystemDrift `
+            -RepositoryRoot $RepositoryRoot `
+            -Task $Task `
+            -GitPaths @($Entries | ForEach-Object { [string]$_.Path })
     }
 }
 
