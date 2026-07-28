@@ -106,7 +106,20 @@ function Test-AgentOsManifestObject {
     if([string]$Manifest.kind -ne 'agent-os-task-manifest'){$errors+='kind must be agent-os-task-manifest'}
     foreach($name in @('id','title','created_at')){if([string]::IsNullOrWhiteSpace([string]$Manifest.metadata.$name)){$errors+="metadata.$name is required"}}
     if([string]::IsNullOrWhiteSpace([string]$Manifest.spec.goal)){$errors+='spec.goal is required'}
-    if(@($Manifest.spec.allowed_scope).Count -eq 0){$errors+='spec.allowed_scope must not be empty'}
+    $allowedScope = @($Manifest.spec.allowed_scope)
+    if($allowedScope.Count -eq 0){
+        $errors+='spec.allowed_scope must not be empty'
+    }
+    else {
+        foreach($patternValue in $allowedScope){
+            $pattern = [string]$patternValue
+            $normalized = $pattern.Replace('\','/').Trim().TrimStart('.','/')
+            $firstSegment = if([string]::IsNullOrWhiteSpace($normalized)){''}else{($normalized -split '/',2)[0]}
+            if([string]::IsNullOrWhiteSpace($normalized) -or $firstSegment -match '[*?]'){
+                $errors+="spec.allowed_scope contains broad or repository-root pattern '$pattern'"
+            }
+        }
+    }
     foreach($e in @($Manifest.spec.baseline.entries)){if($null -eq $e.fingerprint){$errors+="baseline entry '$($e.Path)' has no fingerprint"}}
     [pscustomobject]@{Valid=($errors.Count -eq 0);Errors=$errors}
 }
