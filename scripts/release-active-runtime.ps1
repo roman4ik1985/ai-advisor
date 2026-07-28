@@ -8,6 +8,7 @@ $sourceRoot = Split-Path -Parent $PSScriptRoot
 $releaseItems = @(
   'server.mjs',
   'response-validator.mjs',
+  'intent-router.mjs',
   'package.json',
   'README.md',
   'TECHNICAL_SPECIFICATION.md',
