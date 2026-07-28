@@ -15,6 +15,7 @@ import { askViaTest } from './src/providers/test-provider.mjs';
 import { BackpressureError, ConcurrencyLimiter, FixedWindowRateLimiter } from './src/runtime-guards.mjs';
 import { getRateLimitClientId } from './src/client-identity.mjs';
 import { validateAssistantAnswer } from './response-validator.mjs';
+import { buildFreshnessEvidence, classifyIntent, getRoutePolicy, routeInstruction } from './intent-router.mjs';
 
 const config = readConfig();
 const publicDir = fileURLToPath(new URL('./public/', import.meta.url));
@@ -79,11 +80,16 @@ const server = createServer(async (request, response) => {
       }
 
       const result = await aiLimiter.run(async () => {
-        const { products: catalog, diagnostics: catalogDiagnostics } = config.provider === 'test'
-          ? { products: [], diagnostics: { code: 'TEST_PROVIDER', message: 'Catalog lookup skipped in test mode.' } }
-          : await searchCatalog(config.storeUrl, latestQuestion);
-        const knowledge = await searchKnowledge({ messages, page: body.page });
-        const prompt = buildAssistantPrompt({ messages, page: body.page, catalog, knowledge });
+        const intent = classifyIntent({ question: latestQuestion, messages });
+        const route = getRoutePolicy(intent);
+        const { products: catalog, diagnostics: catalogDiagnostics } = route.catalog
+          ? (config.provider === 'test'
+            ? { products: [], diagnostics: { code: 'TEST_PROVIDER', message: 'Catalog lookup skipped in test mode.' } }
+            : await searchCatalog(config.storeUrl, latestQuestion))
+          : { products: [], diagnostics: { code: 'SKIPPED_BY_ROUTE', message: `Catalog lookup skipped for ${intent}.` } };
+        const knowledge = route.knowledge ? await searchKnowledge({ messages, page: body.page }) : [];
+        const freshness = buildFreshnessEvidence({ intent, catalogDiagnostics, knowledge });
+        const prompt = `${buildAssistantPrompt({ messages, page: body.page, catalog, knowledge })}\n${routeInstruction(intent)}`;
         const safetyIdentifier = createHash('sha256')
           .update(`${safetySalt}:${clientId}:${request.headers['user-agent'] || ''}`)
           .digest('hex')
@@ -94,7 +100,9 @@ const server = createServer(async (request, response) => {
           catalog,
           knowledge,
           question: latestQuestion,
+          freshness,
         });
+        console.info(`[route:${requestId}] intent=${intent} catalog=${catalogDiagnostics.code} knowledgeReviewedAt=${freshness.knowledge.reviewedAt.join('|') || 'NONE'}`);
         console.info(`[validation:${requestId}] accepted=${validation.accepted} reasons=${validation.reasons.join(',') || 'NONE'}`);
         if (catalog.length === 0 && config.provider !== 'test') {
           console.warn(`[catalog:${requestId}] ${catalogDiagnostics.code}`, catalogDiagnostics);
