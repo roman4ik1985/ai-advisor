@@ -3,6 +3,7 @@
 param(
     [Parameter(Position=0)][string]$Area = "help",
     [Parameter(Position=1)][string]$Action,
+    [string]$RepositoryRoot,
     [string]$Title,
     [string]$Goal,
     [string[]]$AllowedScope = @(),
@@ -26,22 +27,30 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$repoRoot = (& git rev-parse --show-toplevel 2>$null)
-if ($LASTEXITCODE -ne 0 -or -not $repoRoot) {
-    throw "Run this command inside a Git repository."
+$repoRoot = if ($RepositoryRoot) {
+    (Resolve-Path -LiteralPath $RepositoryRoot -ErrorAction Stop).Path
 }
-$repoRoot = $repoRoot.Trim()
+else {
+    (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+}
+
+$gitRoot = (& git -C $repoRoot rev-parse --show-toplevel 2>$null)
+if ($LASTEXITCODE -ne 0 -or -not $gitRoot) {
+    throw "Agent OS repository root is not a Git repository: $repoRoot"
+}
+$repoRoot = $gitRoot.Trim()
 
 Import-Module (Join-Path $repoRoot "modules\AgentOS\AgentOS.psd1") -Force
 
 function Show-AgentOsHelp {
 @"
-Agent OS CLI v0.8
+Agent OS CLI v1.0.0
 
 Commands:
   agent-os init
   agent-os task new
   agent-os task status
+  agent-os task validate
   agent-os task manifest
   agent-os park add -Path <files> [-Reason <text>]
   agent-os park remove -Path <files>
@@ -54,7 +63,7 @@ Commands:
   agent-os task complete -CommitHash <hash> [-EvidenceOnly]
   agent-os system status
   agent-os system recover [-Force]
-  agent-os system cleanup -OlderThanDays 14
+  agent-os system cleanup [-OlderThanDays <days>]
   agent-os doctor run
   agent-os audit show -Last 50
   agent-os release verify
@@ -70,6 +79,7 @@ Task creation:
 Scope classes:
   PREEXISTING_PARKED
   PREEXISTING_ALLOWED
+  PREEXISTING_UNCHANGED
   PREEXISTING_UNCLASSIFIED
   NEW_ALLOWED
   NEW_UNEXPECTED
@@ -117,7 +127,8 @@ switch ("$Area $Action".Trim()) {
     "park remove" {
         Remove-AgentOsParkedFile `
             -RepositoryRoot $repoRoot `
-            -Path $Path | Format-Table path,reason,added_at -AutoSize
+            -Path $Path `
+            -Force:$Force | Format-Table path,reason,added_at -AutoSize
     }
 
     "park check" { Test-AgentOsParkedDrift -RepositoryRoot $repoRoot | Format-List }

@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.1",
+  "kind": "agent-os-task-manifest",
+  "metadata": {
+    "id": "",
+    "title": "",
+    "created_at": ""
+  },
+  "spec": {
+    "goal": "",
+    "risk_level": "MEDIUM",
+    "repository_root": "",
+    "allowed_scope": [],
+    "protected_scope": [],
+    "parked_files": [],
+    "baseline": {
+      "captured_at": "",
+      "branch": "",
+      "head": "",
+      "entries": []
+    },
+    "required_gates": [
+      "manifest_validation",
+      "scope_check",
+      "parked_drift_check",
+      "verification",
+      "commit_check"
+    ]
+  },
+  "status": {
+    "phase": "SCOPED",
+    "quality_gates": {
+      "manifest_validation": "PASSED",
+      "scope_check": "PENDING",
+      "parked_drift_check": "PENDING",
+      "verification": "PENDING",
+      "commit_check": "PENDING",
+      "completion": "PENDING"
+    },
+    "evidence": [],
+    "notes": []
+  }
+}

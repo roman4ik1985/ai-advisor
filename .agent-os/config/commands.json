@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "verification_profiles": {
+    "default": {
+      "lint": null,
+      "typecheck": null,
+      "test": "npm test",
+      "build": null,
+      "smoke": null
+    },
+    "frontend-fast": {
+      "lint": null,
+      "typecheck": null,
+      "test": "npm test",
+      "build": null,
+      "smoke": null
+    },
+    "frontend-full": {
+      "lint": null,
+      "typecheck": null,
+      "test": "npm test",
+      "build": null,
+      "smoke": null
+    },
+    "product-picker": {
+      "lint": null,
+      "typecheck": null,
+      "test": "npm test",
+      "build": null,
+      "smoke": null
+    },
+    "ai-advisor": {
+      "lint": null,
+      "typecheck": null,
+      "test": "npm test",
+      "build": null,
+      "smoke": null
+    }
+  }
+}

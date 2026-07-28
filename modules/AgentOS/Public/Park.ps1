@@ -8,7 +8,8 @@
 
     $paths = Get-AgentOsPaths -RepositoryRoot $RepositoryRoot
     $task = Get-AgentOsTask -RepositoryRoot $RepositoryRoot
-    $baselineMap = Get-AgentOsBaselineMap -Task $task
+    $policy = Get-AgentOsPolicy -RepositoryRoot $RepositoryRoot
+    $baselineMap = Get-AgentOsBaselineEntryMap -Task $task
 
     foreach ($item in $Path) {
         $normalized = $item.Replace("\","/")
@@ -28,6 +29,7 @@
                     path = $normalized
                     reason = $Reason
                     added_at = [DateTimeOffset]::Now.ToString("o")
+                    immutable = [bool]$policy.parked_files.immutable_during_task
                 }
             )
         }
@@ -41,11 +43,13 @@ function Remove-AgentOsParkedFileCore {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$RepositoryRoot,
-        [Parameter(Mandatory)][string[]]$Path
+        [Parameter(Mandatory)][string[]]$Path,
+        [switch]$Force
     )
 
     $paths = Get-AgentOsPaths -RepositoryRoot $RepositoryRoot
     $task = Get-AgentOsTask -RepositoryRoot $RepositoryRoot
+    $policy = Get-AgentOsPolicy -RepositoryRoot $RepositoryRoot
     $removeSet = @{}
 
     foreach ($item in $Path) {
@@ -58,7 +62,12 @@ function Remove-AgentOsParkedFileCore {
                 if ($_ -is [string]) { [string]$_ }
                 else { [string]$_.path }
 
-            -not $removeSet.ContainsKey($candidate)
+            $isRemoval = $removeSet.ContainsKey($candidate)
+            if ($isRemoval -and $policy.parked_files.immutable_during_task -and $_ -isnot [string] -and [bool]$_.immutable -and -not $Force) {
+                throw "Cannot remove immutable parked file '$candidate' without -Force."
+            }
+
+            -not $isRemoval
         }
     )
 

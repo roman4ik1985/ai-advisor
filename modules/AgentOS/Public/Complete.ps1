@@ -25,6 +25,7 @@
     }
 
     $task = Get-AgentOsTask -RepositoryRoot $RepositoryRoot
+    $policy = Get-AgentOsPolicy -RepositoryRoot $RepositoryRoot
 
     Assert-AgentOsRequiredGates -Task $task -GateNames @("manifest_validation","scope_check","parked_drift_check","verification","commit_check")
 
@@ -75,7 +76,7 @@
     }
     $invalid = @(
         $classified | Where-Object {
-            $_.Classification -notin @("NEW_ALLOWED","PREEXISTING_ALLOWED")
+            $_.Classification -notin @($policy.commit.allowed_classes)
         }
     )
 

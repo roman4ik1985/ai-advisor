@@ -137,8 +137,6 @@ function Get-AgentOsScopeClassification {
         '.agent-os/manifests/**',
         '.agent-os/tasks/**',
         '.agent-os/logs/**',
-        '.agent-os/config/**',
-        '.agent-os/templates/**',
         '.agent-os/savepoints/**'
     )
 
@@ -194,7 +192,18 @@ function Get-AgentOsScopeClassification {
             $null
         }
 
-        $classification = if ($protected) {
+        $classification = if ($wasDirty -and $fingerprintUnchanged -and -not $entry.Staged) {
+            if ($isParked) {
+                'PREEXISTING_PARKED'
+            }
+            elseif ($allowed) {
+                'PREEXISTING_ALLOWED'
+            }
+            else {
+                'PREEXISTING_UNCHANGED'
+            }
+        }
+        elseif ($protected) {
             'PROTECTED'
         }
         elseif ($isParked -and $wasDirty -and $fingerprintUnchanged) {
@@ -235,19 +244,14 @@ function Test-AgentOsScopePass {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        [object[]]$Classified
+        [object[]]$Classified,
+        [Parameter(Mandatory)]$Policy
     )
 
-    $blocking = @(
-        $Classified | Where-Object {
-            $_.Classification -in @(
-                'PROTECTED',
-                'PARKED_DRIFT',
-                'NEW_UNEXPECTED',
-                'PREEXISTING_UNCLASSIFIED'
-            )
-        }
-    )
+    $blockingClasses = @('PROTECTED')
+    if ([bool]$Policy.parked_files.block_on_drift) { $blockingClasses += 'PARKED_DRIFT' }
+    $blockingClasses += @('NEW_UNEXPECTED', 'PREEXISTING_UNCLASSIFIED')
+    $blocking = @($Classified | Where-Object { $_.Classification -in $blockingClasses })
 
     return [pscustomobject]@{
         Passed   = ($blocking.Count -eq 0)

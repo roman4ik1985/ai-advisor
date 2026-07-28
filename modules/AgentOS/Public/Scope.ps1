@@ -4,10 +4,11 @@
 
     $paths = Get-AgentOsPaths -RepositoryRoot $RepositoryRoot
     $task = Get-AgentOsTask -RepositoryRoot $RepositoryRoot
+    $policy = Get-AgentOsPolicy -RepositoryRoot $RepositoryRoot
     $snapshot = Get-AgentOsGitSnapshot -RepositoryRoot $RepositoryRoot
 
     $classified = @(Get-AgentOsScopeClassification -RepositoryRoot $RepositoryRoot -Entries $snapshot.entries -Task $task)
-    $gate = Test-AgentOsScopePass -Classified $classified
+    $gate = Test-AgentOsScopePass -Classified $classified -Policy $policy
     $status = if ($gate.Passed) { "PASSED" } else { "FAILED" }
 
     $summary = [ordered]@{}
@@ -31,7 +32,7 @@
 
     $task.quality_gates.scope_check = $status
     $drift = @($classified | Where-Object Classification -eq "PARKED_DRIFT")
-    $task.quality_gates.parked_drift_check = if ($drift.Count -eq 0) { "PASSED" } else { "FAILED" }
+    $task.quality_gates.parked_drift_check = if ($drift.Count -eq 0 -or -not [bool]$policy.parked_files.block_on_drift) { "PASSED" } else { "FAILED" }
     $task.status = if ($status -eq "PASSED") { "READY" } else { "BLOCKED" }
     $task.evidence = @($task.evidence) + @($path)
     Save-AgentOsTaskAndManifest -Paths $paths -Task $task

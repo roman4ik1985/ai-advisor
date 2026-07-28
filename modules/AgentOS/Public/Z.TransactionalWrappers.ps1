@@ -46,7 +46,7 @@ function Remove-AgentOsParkedFile {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$RepositoryRoot,[Parameter(Mandatory)][string[]]$Path,[switch]$Force)
     Invoke-AgentOsTransactionalOperation -RepositoryRoot $RepositoryRoot -Operation "park-remove" -Force:$Force -ScriptBlock {
-        Remove-AgentOsParkedFileCore -RepositoryRoot $RepositoryRoot -Path $Path
+        Remove-AgentOsParkedFileCore -RepositoryRoot $RepositoryRoot -Path $Path -Force:$Force
     }
 }
 

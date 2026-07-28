@@ -16,6 +16,7 @@ function Enter-AgentOsLock {
     param(
         [Parameter(Mandatory)][System.Collections.IDictionary]$Paths,
         [Parameter(Mandatory)][string]$Operation,
+        [Parameter(Mandatory)][int]$LockTimeoutMinutes,
         [switch]$Force
     )
 
@@ -26,13 +27,22 @@ function Enter-AgentOsLock {
             $alive = Test-AgentOsProcessAlive -ProcessId ([int]$lock.process_id)
         }
 
+        $createdAt = [DateTimeOffset]::MinValue
+        $parsedCreatedAt = $false
+        if ($lock -and $lock.created_at) {
+            $parsedCreatedAt = [DateTimeOffset]::TryParse([string]$lock.created_at, [ref]$createdAt)
+        }
+        $isExpired = -not $parsedCreatedAt -or ([DateTimeOffset]::Now - $createdAt).TotalMinutes -ge $LockTimeoutMinutes
+
         if ($alive -and -not $Force) {
             throw "Agent OS is locked by PID $($lock.process_id): $($lock.operation)."
         }
 
-        if (-not $Force) {
+        if (-not $Force -and -not $isExpired) {
             throw "Agent OS has an orphan lock. Run system recover or retry with -Force."
         }
+
+        Remove-Item -LiteralPath $Paths.LockFile -Force
     }
 
     Save-AgentOsJsonRaw -Value ([ordered]@{
@@ -176,6 +186,12 @@ function Invoke-AgentOsTransactionalOperation {
 
     $paths = Get-AgentOsPaths -RepositoryRoot $RepositoryRoot
     Initialize-AgentOsDirectories -Paths $paths
+    $policy = if ($Operation -eq 'init' -and -not (Test-Path -LiteralPath $paths.PolicyConfig -PathType Leaf)) {
+        [pscustomobject]@{ transactions = [pscustomobject]@{ lock_timeout_minutes = 30 } }
+    }
+    else {
+        Get-AgentOsPolicy -RepositoryRoot $RepositoryRoot
+    }
 
     if (-not $SkipLifecycleCheck) {
         Assert-AgentOsOperationAllowed `
@@ -189,7 +205,7 @@ function Invoke-AgentOsTransactionalOperation {
         -Operation $Operation `
         -Identity $Identity
 
-    Enter-AgentOsLock -Paths $paths -Operation $Operation -Force:$Force
+    Enter-AgentOsLock -Paths $paths -Operation $Operation -LockTimeoutMinutes ([int]$policy.transactions.lock_timeout_minutes) -Force:$Force
     $tx = New-AgentOsTransaction -Paths $paths -Operation $Operation
     $script:AgentOsCurrentTransaction = $tx
 

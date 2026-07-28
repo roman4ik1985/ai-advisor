@@ -3,6 +3,12 @@ node_modules/
 *.log
 .tmp/
 .codex/
+.agent-os/evidence/
+.agent-os/logs/
+.agent-os/manifests/
+.agent-os/savepoints/
+.agent-os/state/
+.agent-os/tasks/
 logs/
 *.zip
 .tmp-terminal-output.png

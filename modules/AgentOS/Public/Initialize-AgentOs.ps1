@@ -24,12 +24,25 @@
     if (-not (Test-Path -LiteralPath $paths.PolicyConfig)) {
         @{
             schema_version = "1.0"
-            scope = @{
-                allow_preexisting_allowed = $true
-                allow_preexisting_parked = $true
-                block_preexisting_unclassified = $true
-                block_new_unexpected = $true
-                block_protected = $true
+            parked_files = @{
+                immutable_during_task = $true
+                fingerprint_algorithm = "SHA256"
+                block_on_drift = $true
+            }
+            commit = @{
+                allowed_classes = @("NEW_ALLOWED", "PREEXISTING_ALLOWED")
+            }
+            transactions = @{
+                lock_timeout_minutes = 30
+            }
+            lifecycle = @{
+                strict_operation_phases = $true
+                strict_phase_transitions = $true
+                completion_idempotent_by_commit = $true
+            }
+            audit = @{
+                format = "jsonl"
+                retain_days = 90
             }
         } | ConvertTo-Json -Depth 10 |
             Set-Content -LiteralPath $paths.PolicyConfig -Encoding UTF8

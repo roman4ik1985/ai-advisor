@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "parked_files": {
+    "immutable_during_task": true,
+    "fingerprint_algorithm": "SHA256",
+    "block_on_drift": true
+  },
+  "commit": {
+    "allowed_classes": [
+      "NEW_ALLOWED",
+      "PREEXISTING_ALLOWED"
+    ]
+  },
+  "transactions": {
+    "lock_timeout_minutes": 30
+  },
+  "lifecycle": {
+    "strict_operation_phases": true,
+    "strict_phase_transitions": true,
+    "completion_idempotent_by_commit": true
+  },
+  "audit": {
+    "format": "jsonl",
+    "retain_days": 90
+  }
+}

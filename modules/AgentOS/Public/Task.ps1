@@ -15,9 +15,29 @@
 
     $paths = Get-AgentOsPaths -RepositoryRoot $RepositoryRoot
     Initialize-AgentOsDirectories -Paths $paths
+    $policy = Get-AgentOsPolicy -RepositoryRoot $RepositoryRoot
 
-    if ((Test-Path -LiteralPath $paths.CurrentTask) -and -not $Force) {
-        throw "An active task already exists. Use -Force only after reviewing it."
+    if (Test-Path -LiteralPath $paths.CurrentTask) {
+        if (-not $Force) {
+            throw "An active task already exists. Use -Force only after reviewing it."
+        }
+
+        $previousTask = Read-AgentOsJson -Path $paths.CurrentTask
+        if ($previousTask -and $previousTask.id) {
+            $previousActivePath = Join-Path $paths.TasksActive "$($previousTask.id).json"
+            $archivePath = Join-Path $paths.Recovery "replaced-active-$($previousTask.id)-$((Get-Date).ToString('yyyyMMdd-HHmmss-fff')).json"
+            $previousActive = if (Test-Path -LiteralPath $previousActivePath) {
+                Read-AgentOsJson -Path $previousActivePath
+            }
+            else {
+                $previousTask
+            }
+
+            Save-AgentOsJson -Value $previousActive -Path $archivePath
+            if (Test-Path -LiteralPath $previousActivePath) {
+                Remove-AgentOsTransactionalFile -Path $previousActivePath
+            }
+        }
     }
 
     $baseline = Get-AgentOsGitSnapshot -RepositoryRoot $RepositoryRoot
@@ -29,9 +49,7 @@
             $path = [string]$entry.Path
 
             $allowed = Test-AgentOsPathMatch -Path $path -Patterns $AllowedScope
-            $protected = Test-AgentOsPathMatch -Path $path -Patterns $ProtectedScope
-
-            if (-not $allowed -and -not $protected) {
+            if (-not $allowed) {
                 $effectiveParked += $path
             }
         }
@@ -44,12 +62,12 @@
                 path = $_
                 reason = "preexisting work parked for current task"
                 added_at = [DateTimeOffset]::Now.ToString("o")
-                immutable = $true
+                immutable = [bool]$policy.parked_files.immutable_during_task
             }
         }
     )
 
-    $id = "TASK-$((Get-Date).ToString('yyyy-MM-dd-HHmmss'))"
+    $id = "TASK-$((Get-Date).ToString('yyyy-MM-dd-HHmmss-fff'))"
 
     $manifest = New-AgentOsManifestObject `
         -TaskId $id `

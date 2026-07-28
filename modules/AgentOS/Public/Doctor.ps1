@@ -80,10 +80,37 @@ function Test-AgentOsRelease {
     }
 
     $manifest = Read-AgentOsJsonRaw -Path $manifestPath
+    if ([string]$manifest.schema_version -ne '1.0' -or [string]$manifest.release -ne 'agent-os-v1.0.0' -or [string]$manifest.algorithm -ne 'SHA256') {
+        return [pscustomobject]@{
+            Status = 'FAILED'
+            Files = @([pscustomobject]@{
+                Path = 'RELEASE-MANIFEST.json'
+                Status = 'INVALID_MANIFEST'
+                Expected = 'schema_version=1.0; release=agent-os-v1.0.0; algorithm=SHA256'
+                Actual = "schema_version=$($manifest.schema_version); release=$($manifest.release); algorithm=$($manifest.algorithm)"
+            })
+        }
+    }
+
     $results = @()
+    $seen = @{}
 
     foreach ($entry in @($manifest.files)) {
-        $path = Join-Path $RepositoryRoot ([string]$entry.path).Replace("/",[IO.Path]::DirectorySeparatorChar)
+        $relativePath = ([string]$entry.path).Replace("\", "/")
+        if ([string]::IsNullOrWhiteSpace($relativePath) -or $seen.ContainsKey($relativePath) -or
+            [IO.Path]::IsPathRooted($relativePath) -or $relativePath.Split('/') -contains '..') {
+            $results += [pscustomobject]@{ Path=$entry.path; Status='INVALID_PATH'; Expected=$entry.sha256; Actual=$null }
+            continue
+        }
+        $seen[$relativePath] = $true
+
+        $tracked = Invoke-AgentOsGit -RepositoryRoot $RepositoryRoot -Arguments @('ls-files', '--error-unmatch', '--', $relativePath) -AllowFailure
+        if ($tracked.ExitCode -ne 0) {
+            $results += [pscustomobject]@{ Path=$entry.path; Status='UNTRACKED'; Expected=$entry.sha256; Actual=$null }
+            continue
+        }
+
+        $path = Join-Path $RepositoryRoot $relativePath.Replace("/",[IO.Path]::DirectorySeparatorChar)
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
             $results += [pscustomobject]@{ Path=$entry.path; Status="MISSING"; Expected=$entry.sha256; Actual=$null }
             continue

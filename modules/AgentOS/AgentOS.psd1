@@ -1,6 +1,6 @@
 ﻿@{
     RootModule        = "AgentOS.psm1"
-    ModuleVersion     = "0.8.0"
+    ModuleVersion     = "1.0.0"
     GUID              = "4c945193-10ad-42c8-9af2-561b3f84da91"
     Author            = "my-erp-system"
     CompanyName       = "Local"

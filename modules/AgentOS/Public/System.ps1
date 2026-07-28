@@ -63,10 +63,12 @@ function Clear-AgentOsCompletedTransactions {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$RepositoryRoot,
-        [int]$OlderThanDays = 14
+        [int]$OlderThanDays = 0
     )
 
     $paths = Get-AgentOsPaths -RepositoryRoot $RepositoryRoot
+    $policy = Get-AgentOsPolicy -RepositoryRoot $RepositoryRoot
+    if ($OlderThanDays -le 0) { $OlderThanDays = [int]$policy.audit.retain_days }
     $cutoff = [DateTimeOffset]::Now.AddDays(-$OlderThanDays)
     $removed = @()
     foreach ($file in Get-ChildItem -LiteralPath $paths.Transactions -Filter "*.json" -ErrorAction SilentlyContinue) {
@@ -77,5 +79,30 @@ function Clear-AgentOsCompletedTransactions {
             $removed += $file.Name
         }
     }
-    [pscustomobject]@{ Status="CLEANED"; Removed=$removed }
+    $auditPath = Join-Path $paths.Logs 'audit.jsonl'
+    $retainedAudit = 0
+    $removedAudit = 0
+    if (Test-Path -LiteralPath $auditPath -PathType Leaf) {
+        $retained = @()
+        foreach ($line in @(Get-Content -LiteralPath $auditPath)) {
+            if ([string]::IsNullOrWhiteSpace($line)) { continue }
+            try {
+                $event = $line | ConvertFrom-Json
+                $recordedAt = [DateTimeOffset]::Parse([string]$event.recorded_at)
+                if ($recordedAt -ge $cutoff) {
+                    $retained += $line
+                    $retainedAudit++
+                }
+                else {
+                    $removedAudit++
+                }
+            }
+            catch {
+                throw "Audit log contains invalid JSONL: $($_.Exception.Message)"
+            }
+        }
+        Set-Content -LiteralPath $auditPath -Value $retained -Encoding UTF8
+    }
+
+    [pscustomobject]@{ Status="CLEANED"; Removed=$removed; RetainedAudit=$retainedAudit; RemovedAudit=$removedAudit }
 }

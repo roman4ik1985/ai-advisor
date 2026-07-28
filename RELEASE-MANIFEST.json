@@ -1,0 +1,173 @@
+{
+  "schema_version": "1.0",
+  "release": "agent-os-v1.0.0",
+  "generated_at": "2026-07-28T22:49:38.7691212+03:00",
+  "algorithm": "SHA256",
+  "files": [
+    {
+      "path": ".agent-os/config/commands.json",
+      "size": 797,
+      "sha256": "e98f8610fe405bb1cd5262f86a6f01fa5f7fdec5e0cd9f7082af4d5539dd7ea8"
+    },
+    {
+      "path": ".agent-os/config/policy.json",
+      "size": 532,
+      "sha256": "32c9d5a6d18b790b1004557c906d531cf5a6eccad0929dcfff3847de8c3c8e7a"
+    },
+    {
+      "path": ".agent-os/templates/task-manifest.json",
+      "size": 917,
+      "sha256": "d2e9250fada871ab4b4ba9c94d4a378d1c922d850bb40aeade2043b2d5c8fcac"
+    },
+    {
+      "path": "modules/AgentOS/AgentOS.psd1",
+      "size": 1232,
+      "sha256": "2c11a9e88da44ff765f51dc2d7c662340609321886b45f6f9b0e9e48da8071b7"
+    },
+    {
+      "path": "modules/AgentOS/AgentOS.psm1",
+      "size": 987,
+      "sha256": "56d3d7416520d8a6b687fb85668ce370e5c3e65a575f34b2f36dbafa35be3c91"
+    },
+    {
+      "path": "modules/AgentOS/Private/Audit.ps1",
+      "size": 1578,
+      "sha256": "d2e88a7126fe325d017322ab8e30c1d4a23f4833462ebd1bfd906164bba32290"
+    },
+    {
+      "path": "modules/AgentOS/Private/Config.ps1",
+      "size": 4660,
+      "sha256": "eb01b44cf94bd76d76d7f4e914aedc1286ac421844e278905fa96138544f94be"
+    },
+    {
+      "path": "modules/AgentOS/Private/Execution.ps1",
+      "size": 2021,
+      "sha256": "830d93d60480442b7c0ce8454edb40564303feb5e3a27ef78fa3b91b45d1a402"
+    },
+    {
+      "path": "modules/AgentOS/Private/Fingerprint.ps1",
+      "size": 1759,
+      "sha256": "5439874bf4b059cfbcb6d8fc70f8338cab7490618388bcd41b3dd341cd008fb2"
+    },
+    {
+      "path": "modules/AgentOS/Private/Git.ps1",
+      "size": 2156,
+      "sha256": "e7093cdad25afe54d2aa999e0be59ee2318c724e3f044446a21ae68384e93371"
+    },
+    {
+      "path": "modules/AgentOS/Private/Json.ps1",
+      "size": 1100,
+      "sha256": "47da038834f64a6b9ba2d34270ad899223ecad874ab4eb433a19c81e95546476"
+    },
+    {
+      "path": "modules/AgentOS/Private/Lifecycle.ps1",
+      "size": 3370,
+      "sha256": "143ca7f6be6d5fc06cf86b3b512484c9799c3ef09d59c966c80e8c80fb3d828e"
+    },
+    {
+      "path": "modules/AgentOS/Private/Manifest.ps1",
+      "size": 4496,
+      "sha256": "3cbf101ffd8506dfde627f2d5f5cef73480c31319b164c2fb41bf916584b02d7"
+    },
+    {
+      "path": "modules/AgentOS/Private/Paths.ps1",
+      "size": 1973,
+      "sha256": "c805b31652b85c44e23e5f2ee2b55aafe61b28ff6d219f482916528917a31414"
+    },
+    {
+      "path": "modules/AgentOS/Private/Scope.ps1",
+      "size": 7556,
+      "sha256": "a3b9c709b4c82d6fbb266261e1cd89768ba30153ffd2319cdb9d53069b47ffc7"
+    },
+    {
+      "path": "modules/AgentOS/Private/State.ps1",
+      "size": 717,
+      "sha256": "1492b61562161c75fb045376718ca9f32045ea1d34876a2f820fbdc54d35d38f"
+    },
+    {
+      "path": "modules/AgentOS/Private/Transaction.ps1",
+      "size": 9225,
+      "sha256": "e6d5bdfaf975a6481522f7717800b7f52c4d3fff8f66192bdc29057f09068c85"
+    },
+    {
+      "path": "modules/AgentOS/Public/Commit.ps1",
+      "size": 2242,
+      "sha256": "69e09694326049aa6c7846eafa28404c7037fb71f36173d232b0ef905bc9ae4a"
+    },
+    {
+      "path": "modules/AgentOS/Public/Complete.ps1",
+      "size": 4657,
+      "sha256": "34fb1b04a85f6098a3b710e7ee7adb94f9dd31e8351a782818309bee5679d2a1"
+    },
+    {
+      "path": "modules/AgentOS/Public/Doctor.ps1",
+      "size": 6098,
+      "sha256": "1d1b2337581126fd52932b7cf74e4fc2a8cfa6b6d55965518bdc6aaee10911fa"
+    },
+    {
+      "path": "modules/AgentOS/Public/Drift.ps1",
+      "size": 438,
+      "sha256": "27c0ce3b5449ef743c321c423f55842881cd54bb0b26342b10f99bcf28c8e984"
+    },
+    {
+      "path": "modules/AgentOS/Public/Initialize-AgentOs.ps1",
+      "size": 1750,
+      "sha256": "7a2c9eb19d17a6f238845cba0550cf15ac657e63980caeb15460f401861ac59a"
+    },
+    {
+      "path": "modules/AgentOS/Public/Migration.ps1",
+      "size": 774,
+      "sha256": "7aa489fa84d2beb209bdc767ac49f4b378fbadbb795182d12e34be295980bafc"
+    },
+    {
+      "path": "modules/AgentOS/Public/Park.ps1",
+      "size": 2732,
+      "sha256": "8ec8a0954be2d13fac9dce9be6cffc8376aad144bd60164d718dec63f0eb596c"
+    },
+    {
+      "path": "modules/AgentOS/Public/Phase.ps1",
+      "size": 1183,
+      "sha256": "6469e3a171de76a89ed7890a40488961f582db491076a5efd2ab1c4be4f8ab92"
+    },
+    {
+      "path": "modules/AgentOS/Public/Savepoint.ps1",
+      "size": 1350,
+      "sha256": "829b6439026dc58a7a2c740ace9302d27d7a730e9ddb3041821b74802d2f6325"
+    },
+    {
+      "path": "modules/AgentOS/Public/Scope.ps1",
+      "size": 1912,
+      "sha256": "f12f3e4765317b477b7d179b2395abcdf043f44c8dce124d2e83dde9125b5c6e"
+    },
+    {
+      "path": "modules/AgentOS/Public/System.ps1",
+      "size": 4449,
+      "sha256": "30e069aad885019b437603ebc03590cef1f8f7254cf275ca7f0781a10d57499a"
+    },
+    {
+      "path": "modules/AgentOS/Public/Task.ps1",
+      "size": 4432,
+      "sha256": "a040137a00d02e5907078c7b6a0d6d9ce6b2535e58cb96c2ce1137d624312fae"
+    },
+    {
+      "path": "modules/AgentOS/Public/Verification.ps1",
+      "size": 2575,
+      "sha256": "120408067a4ad82a8eaf98ce2c281f6c0d8e0e1c2cc7fad5f890b8d981baf41d"
+    },
+    {
+      "path": "modules/AgentOS/Public/Z.TransactionalWrappers.ps1",
+      "size": 5168,
+      "sha256": "230401ea8c8f24f2ea951cd98d5b369964dcd538892943cdaa582ff5e2bb7347"
+    },
+    {
+      "path": "scripts/agent-os.ps1",
+      "size": 6600,
+      "sha256": "f7d7bc8527d42f0c5d0f45914bf9729d5aa4cd798bcb193e1374dbcd3bf54067"
+    },
+    {
+      "path": "scripts/install-agent-os.ps1",
+      "size": 2230,
+      "sha256": "7961320653ce00bcbce50f570e287438a98327470b9eacbc9d582481a079d829"
+    }
+  ]
+}
