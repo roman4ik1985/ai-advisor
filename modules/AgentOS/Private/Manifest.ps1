@@ -7,8 +7,8 @@
         [Parameter(Mandatory)][string]$RepositoryRoot,
         [Parameter(Mandatory)]$Baseline,
         [Parameter(Mandatory)][string[]]$AllowedScope,
-        [Parameter(Mandatory)][string[]]$ProtectedScope,
-        [Parameter(Mandatory)][object[]]$ParkedFiles,
+        [AllowEmptyCollection()][string[]]$ProtectedScope = @(),
+        [AllowEmptyCollection()][object[]]$ParkedFiles = @(),
         [Parameter(Mandatory)][string]$RiskLevel
     )
 
