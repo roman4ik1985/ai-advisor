@@ -18,7 +18,11 @@
     }
 
     $mode = if ($staged.Count -eq 0) { "EVIDENCE_ONLY" } else { "SOURCE_CHANGE" }
-    $classified = @(Get-AgentOsScopeClassification -RepositoryRoot $RepositoryRoot -Entries $staged -Task $task)
+    $classified = if ($staged.Count -eq 0) {
+        @()
+    } else {
+        @(Get-AgentOsScopeClassification -RepositoryRoot $RepositoryRoot -Entries $staged -Task $task)
+    }
 
     $invalid = @(
         $classified | Where-Object {

@@ -359,6 +359,8 @@ Describe "Evidence-only operational completion" {
     It "requires explicit switches for an empty staged set and completion" {
         (Get-Command Test-AgentOsCommit).Parameters.Keys | Should -Contain "AllowNoStagedFiles"
         (Get-Command Complete-AgentOsTask).Parameters.Keys | Should -Contain "EvidenceOnly"
+        $commitCore = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot "..\modules\AgentOS\Public\Commit.ps1")
+        $commitCore | Should -Match '\$staged\.Count -eq 0'
     }
 
     It "documents the bounded evidence-only completion contract" {
