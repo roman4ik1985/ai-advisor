@@ -26,6 +26,18 @@ function Repair-AgentOsState {
 
     $paths = Get-AgentOsPaths -RepositoryRoot $RepositoryRoot
     Initialize-AgentOsDirectories -Paths $paths
+
+    $lock = Read-AgentOsJsonRaw -Path $paths.LockFile
+    [int]$lockProcessId = 0
+    if (
+        -not $Force -and
+        $lock -and
+        [int]::TryParse([string]$lock.process_id, [ref]$lockProcessId) -and
+        (Test-AgentOsProcessAlive -ProcessId $lockProcessId)
+    ) {
+        throw "Agent OS is locked by live PID ${lockProcessId}: $($lock.operation)."
+    }
+
     $recovered = @()
     $orphanedTasks = @()
 
