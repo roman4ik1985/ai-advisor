@@ -7,6 +7,7 @@ $ErrorActionPreference = 'Stop'
 $sourceRoot = Split-Path -Parent $PSScriptRoot
 $releaseItems = @(
   'server.mjs',
+  'response-validator.mjs',
   'package.json',
   'README.md',
   'TECHNICAL_SPECIFICATION.md',
@@ -19,6 +20,22 @@ $releaseItems = @(
 
 if (-not (Test-Path -LiteralPath $ActiveRoot)) {
   throw "Active runtime directory does not exist: $ActiveRoot"
+}
+
+$trackedFiles = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+@(& git -C $sourceRoot ls-files) | ForEach-Object {
+  [void]$trackedFiles.Add($_.Replace('/', '\'))
+}
+if ($trackedFiles.Count -eq 0) {
+  throw "Release source must be a Git worktree with tracked files: $sourceRoot"
+}
+
+$dirtyReleaseFiles = @(& git -C $sourceRoot diff --name-only HEAD -- $releaseItems)
+if ($LASTEXITCODE -ne 0) {
+  throw "Could not inspect release source changes."
+}
+if ($dirtyReleaseFiles.Count -gt 0) {
+  throw "Release source has uncommitted tracked changes: $($dirtyReleaseFiles -join ', ')"
 }
 
 $changes = @()
@@ -34,6 +51,7 @@ foreach ($item in $releaseItems) {
   }
   foreach ($sourceFile in $sourceFiles) {
     $relative = $sourceFile.FullName.Substring($sourceRoot.Length).TrimStart('\', '/')
+    if (-not $trackedFiles.Contains($relative)) { continue }
     $target = Join-Path $ActiveRoot $relative
     $changed = -not (Test-Path -LiteralPath $target) -or
       (Get-FileHash -LiteralPath $sourceFile.FullName -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash
