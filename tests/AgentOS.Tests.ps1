@@ -361,6 +361,8 @@ Describe "Evidence-only operational completion" {
         (Get-Command Complete-AgentOsTask).Parameters.Keys | Should -Contain "EvidenceOnly"
         $commitCore = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot "..\modules\AgentOS\Public\Commit.ps1")
         $commitCore | Should -Match '\$staged\.Count -eq 0'
+        $completeCore = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot "..\modules\AgentOS\Public\Complete.ps1")
+        $completeCore | Should -Match '\$entries\.Count -eq 0'
     }
 
     It "documents the bounded evidence-only completion contract" {

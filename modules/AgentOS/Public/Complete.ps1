@@ -68,7 +68,11 @@
         $completionMode = "SOURCE_CHANGE"
     }
 
-    $classified = @(Get-AgentOsScopeClassification -RepositoryRoot $RepositoryRoot -Entries $entries -Task $task)
+    $classified = if ($entries.Count -eq 0) {
+        @()
+    } else {
+        @(Get-AgentOsScopeClassification -RepositoryRoot $RepositoryRoot -Entries $entries -Task $task)
+    }
     $invalid = @(
         $classified | Where-Object {
             $_.Classification -notin @("NEW_ALLOWED","PREEXISTING_ALLOWED")
