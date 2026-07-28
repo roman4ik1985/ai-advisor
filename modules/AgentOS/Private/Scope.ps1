@@ -132,6 +132,9 @@ function Get-AgentOsScopeClassification {
 
     # Internal whitelist: Agent OS own artifacts are never user changes
     $agentOsInternalPatterns = @(
+        # Root-level files are runtime artifacts, not package configuration.
+        # Keep config/** and templates/** available for explicit release work.
+        '.agent-os/*',
         '.agent-os/evidence/**',
         '.agent-os/state/**',
         '.agent-os/manifests/**',
