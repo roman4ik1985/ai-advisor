@@ -17,9 +17,11 @@ if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
 }
 
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-if ([string]$manifest.release -ne 'agent-os-v1.0.0' -or [string]$manifest.algorithm -ne 'SHA256') {
-    throw 'Installer requires an Agent OS v1.0.0 SHA256 release manifest.'
+if ([string]$manifest.release -ne 'agent-os-v1.0.0' -or [string]$manifest.algorithm -ne 'SHA256' -or [string]$manifest.content_normalization -ne 'UTF-8 LF') {
+    throw 'Installer requires an Agent OS v1.0.0 SHA256 UTF-8 LF release manifest.'
 }
+
+. (Join-Path $sourceRoot 'modules\AgentOS\Private\Release.ps1')
 
 foreach ($entry in @($manifest.files)) {
     $relative = ([string]$entry.path).Replace('/', [IO.Path]::DirectorySeparatorChar)
@@ -31,7 +33,7 @@ foreach ($entry in @($manifest.files)) {
     if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
         throw "Release package file is missing: $($entry.path)"
     }
-    $sourceHash = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant()
+    $sourceHash = (Get-AgentOsCanonicalReleaseHash -Path $source).Hash
     if ($sourceHash -ne [string]$entry.sha256) {
         throw "Release package hash mismatch: $($entry.path)"
     }

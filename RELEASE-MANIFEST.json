@@ -1,173 +1,179 @@
 {
   "schema_version": "1.0",
   "release": "agent-os-v1.0.0",
-  "generated_at": "2026-07-28T22:49:38.7691212+03:00",
+  "generated_at": "2026-07-29T00:47:37.1898531+03:00",
   "algorithm": "SHA256",
+  "content_normalization": "UTF-8 LF",
   "files": [
     {
       "path": ".agent-os/config/commands.json",
-      "size": 797,
-      "sha256": "e98f8610fe405bb1cd5262f86a6f01fa5f7fdec5e0cd9f7082af4d5539dd7ea8"
+      "size": 765,
+      "sha256": "dc3230af305fe2c533d0e81d3cdab8eef1282803c6fea4eb17317c2be59a63a2"
     },
     {
       "path": ".agent-os/config/policy.json",
-      "size": 532,
-      "sha256": "32c9d5a6d18b790b1004557c906d531cf5a6eccad0929dcfff3847de8c3c8e7a"
+      "size": 515,
+      "sha256": "7a65d7db65fba9d6fd0d1121834d7d5ec91e2ee65ca9f2303dadfcf9242526c9"
     },
     {
       "path": ".agent-os/templates/task-manifest.json",
-      "size": 917,
-      "sha256": "d2e9250fada871ab4b4ba9c94d4a378d1c922d850bb40aeade2043b2d5c8fcac"
+      "size": 875,
+      "sha256": "a1067fa1560147a0e984cf58888c0532721c197ab94b6bf2e1a526010b4c23cb"
     },
     {
       "path": "modules/AgentOS/AgentOS.psd1",
-      "size": 1232,
-      "sha256": "2c11a9e88da44ff765f51dc2d7c662340609321886b45f6f9b0e9e48da8071b7"
+      "size": 1195,
+      "sha256": "10ff866f82746032a1bb8a7e837546acc4e43cbd6b3eda90cdf5c4fe605d271a"
     },
     {
       "path": "modules/AgentOS/AgentOS.psm1",
-      "size": 987,
-      "sha256": "56d3d7416520d8a6b687fb85668ce370e5c3e65a575f34b2f36dbafa35be3c91"
+      "size": 956,
+      "sha256": "58cec8a3b1a3aa5b7613a1dc39de55d07057b8951aceb0d40abd4885b0da7b74"
     },
     {
       "path": "modules/AgentOS/Private/Audit.ps1",
-      "size": 1578,
-      "sha256": "d2e88a7126fe325d017322ab8e30c1d4a23f4833462ebd1bfd906164bba32290"
+      "size": 1529,
+      "sha256": "564ea71f59b27cff6f3473d1b06fc121cd13c272217f0167c15864f86c73a54e"
     },
     {
       "path": "modules/AgentOS/Private/Config.ps1",
-      "size": 4660,
-      "sha256": "eb01b44cf94bd76d76d7f4e914aedc1286ac421844e278905fa96138544f94be"
+      "size": 4641,
+      "sha256": "6907033526efd05f8815342160e4a994cb4e7544f40dcc17a4564734abeb22b9"
     },
     {
       "path": "modules/AgentOS/Private/Execution.ps1",
-      "size": 2021,
-      "sha256": "830d93d60480442b7c0ce8454edb40564303feb5e3a27ef78fa3b91b45d1a402"
+      "size": 1964,
+      "sha256": "698b331ca093de9275c86082f398f83d985a5128be775e018f7fa89e622b06ac"
     },
     {
       "path": "modules/AgentOS/Private/Fingerprint.ps1",
-      "size": 1759,
-      "sha256": "5439874bf4b059cfbcb6d8fc70f8338cab7490618388bcd41b3dd341cd008fb2"
+      "size": 1708,
+      "sha256": "b809e9928b4684be28a09aa5889b6f35fa69e1b93d5ee2ce4f5ffc321a898d5e"
     },
     {
       "path": "modules/AgentOS/Private/Git.ps1",
-      "size": 2156,
-      "sha256": "e7093cdad25afe54d2aa999e0be59ee2318c724e3f044446a21ae68384e93371"
+      "size": 2085,
+      "sha256": "9f4832cd55c469f28586d9cb955d6731c334b5ad9c163780d79b551480f4e6c0"
     },
     {
       "path": "modules/AgentOS/Private/Json.ps1",
-      "size": 1100,
-      "sha256": "47da038834f64a6b9ba2d34270ad899223ecad874ab4eb433a19c81e95546476"
+      "size": 1064,
+      "sha256": "0105e28fcd3f9570d21005437ca5c109fead1c10ec8e7805a9d629bcf760eec6"
     },
     {
       "path": "modules/AgentOS/Private/Lifecycle.ps1",
-      "size": 3370,
-      "sha256": "143ca7f6be6d5fc06cf86b3b512484c9799c3ef09d59c966c80e8c80fb3d828e"
+      "size": 3282,
+      "sha256": "f1c27dfab0a95705ef9f71eef9ce5a6cbca9f5d1dc457ca40425855247fb7d18"
     },
     {
       "path": "modules/AgentOS/Private/Manifest.ps1",
-      "size": 4496,
-      "sha256": "3cbf101ffd8506dfde627f2d5f5cef73480c31319b164c2fb41bf916584b02d7"
+      "size": 4964,
+      "sha256": "71656fd54279cb367f27bc2fdebe53f5da421022cb4dd1afc40a2c469297c130"
     },
     {
       "path": "modules/AgentOS/Private/Paths.ps1",
-      "size": 1973,
-      "sha256": "c805b31652b85c44e23e5f2ee2b55aafe61b28ff6d219f482916528917a31414"
+      "size": 1931,
+      "sha256": "4f0e524aaf1b5540d3bf0d9c468c95293547827e54c62ae73f1fddd954ba8b56"
+    },
+    {
+      "path": "modules/AgentOS/Private/Release.ps1",
+      "size": 659,
+      "sha256": "b599dc5b772dfc14245d299384cfcd8419e36b025380be93d51b6b5cc8315833"
     },
     {
       "path": "modules/AgentOS/Private/Scope.ps1",
-      "size": 7556,
-      "sha256": "a3b9c709b4c82d6fbb266261e1cd89768ba30153ffd2319cdb9d53069b47ffc7"
+      "size": 7502,
+      "sha256": "4512e87f34b3c87ccab0b467ffac05b0d131f8cd1364ef17a32a9a08f2cf80bb"
     },
     {
       "path": "modules/AgentOS/Private/State.ps1",
-      "size": 717,
-      "sha256": "1492b61562161c75fb045376718ca9f32045ea1d34876a2f820fbdc54d35d38f"
+      "size": 700,
+      "sha256": "296ee9266a10aaced9a2967926fd4529f52be7a1920ae9fa475ebdf6dfb895eb"
     },
     {
       "path": "modules/AgentOS/Private/Transaction.ps1",
-      "size": 9225,
-      "sha256": "e6d5bdfaf975a6481522f7717800b7f52c4d3fff8f66192bdc29057f09068c85"
+      "size": 8986,
+      "sha256": "cdd1ac5d703b8aee11f1fb310bd4bd25062d8864239fc62e0b21bf0ffa339f13"
     },
     {
       "path": "modules/AgentOS/Public/Commit.ps1",
-      "size": 2242,
-      "sha256": "69e09694326049aa6c7846eafa28404c7037fb71f36173d232b0ef905bc9ae4a"
+      "size": 2192,
+      "sha256": "5ebd8c092723e41a5ff2458ced134dcce60210409d21172901e1ca606e435377"
     },
     {
       "path": "modules/AgentOS/Public/Complete.ps1",
-      "size": 4657,
-      "sha256": "34fb1b04a85f6098a3b710e7ee7adb94f9dd31e8351a782818309bee5679d2a1"
+      "size": 4578,
+      "sha256": "4af177ae332bc4c3875c23dcbe496c26da30ee6003dd3e5fbdda6fe8c917d4fb"
     },
     {
       "path": "modules/AgentOS/Public/Doctor.ps1",
-      "size": 6098,
-      "sha256": "1d1b2337581126fd52932b7cf74e4fc2a8cfa6b6d55965518bdc6aaee10911fa"
+      "size": 6133,
+      "sha256": "105647a84e40427c463e784bf779a03d080f0a33265e5bdd08fdcf6f50e2d048"
     },
     {
       "path": "modules/AgentOS/Public/Drift.ps1",
-      "size": 438,
-      "sha256": "27c0ce3b5449ef743c321c423f55842881cd54bb0b26342b10f99bcf28c8e984"
+      "size": 429,
+      "sha256": "a0c6fa920ef6b85ab388e85832724a7b8e864d78013b67826db7dce04558fa65"
     },
     {
       "path": "modules/AgentOS/Public/Initialize-AgentOs.ps1",
-      "size": 1750,
-      "sha256": "7a2c9eb19d17a6f238845cba0550cf15ac657e63980caeb15460f401861ac59a"
+      "size": 1718,
+      "sha256": "d0ce0744dcda67488b14c951b7fa7243bbf5ea014f23de135e7c2c66464662d6"
     },
     {
       "path": "modules/AgentOS/Public/Migration.ps1",
-      "size": 774,
-      "sha256": "7aa489fa84d2beb209bdc767ac49f4b378fbadbb795182d12e34be295980bafc"
+      "size": 761,
+      "sha256": "1e812ee12bd523fcb77343df5489af650fc1aa72a5cf7a188b92641b9c56cd0c"
     },
     {
       "path": "modules/AgentOS/Public/Park.ps1",
-      "size": 2732,
-      "sha256": "8ec8a0954be2d13fac9dce9be6cffc8376aad144bd60164d718dec63f0eb596c"
+      "size": 2665,
+      "sha256": "6d0ab86d17fdafabefdd328fa5ae3bb34baafbe9d7763cab197afa186645e585"
     },
     {
       "path": "modules/AgentOS/Public/Phase.ps1",
-      "size": 1183,
-      "sha256": "6469e3a171de76a89ed7890a40488961f582db491076a5efd2ab1c4be4f8ab92"
+      "size": 1140,
+      "sha256": "2f2e446e620b8b9936973b7a12144334a925d04f946df106ce80325f924ecee3"
     },
     {
       "path": "modules/AgentOS/Public/Savepoint.ps1",
-      "size": 1350,
-      "sha256": "829b6439026dc58a7a2c740ace9302d27d7a730e9ddb3041821b74802d2f6325"
+      "size": 1306,
+      "sha256": "8c746a901ee11af9893eebcadf56c4b6e797cddc955c5eaf33a73ed9fe136522"
     },
     {
       "path": "modules/AgentOS/Public/Scope.ps1",
-      "size": 1912,
-      "sha256": "f12f3e4765317b477b7d179b2395abcdf043f44c8dce124d2e83dde9125b5c6e"
+      "size": 1875,
+      "sha256": "b89e684611adeda23cf07fb813ef1e6e4ddce5a8dd0a00be3d854ae68835efa1"
     },
     {
       "path": "modules/AgentOS/Public/System.ps1",
-      "size": 4449,
-      "sha256": "30e069aad885019b437603ebc03590cef1f8f7254cf275ca7f0781a10d57499a"
+      "size": 4767,
+      "sha256": "5054ca5455f8208a9ba49cc5679e257edcc9b55c06cec4cec883c9c4dcf81370"
     },
     {
       "path": "modules/AgentOS/Public/Task.ps1",
-      "size": 4432,
-      "sha256": "a040137a00d02e5907078c7b6a0d6d9ce6b2535e58cb96c2ce1137d624312fae"
+      "size": 4336,
+      "sha256": "9f5920d105a523a71577714e8e7e43abebe3dcaec65301302b6d391a0f618b9d"
     },
     {
       "path": "modules/AgentOS/Public/Verification.ps1",
-      "size": 2575,
-      "sha256": "120408067a4ad82a8eaf98ce2c281f6c0d8e0e1c2cc7fad5f890b8d981baf41d"
+      "size": 2507,
+      "sha256": "fedf1022d22a6d7327d8bea1f68817b989cea7419fcfd17d9b9e020db628958a"
     },
     {
       "path": "modules/AgentOS/Public/Z.TransactionalWrappers.ps1",
-      "size": 5168,
-      "sha256": "230401ea8c8f24f2ea951cd98d5b369964dcd538892943cdaa582ff5e2bb7347"
+      "size": 5062,
+      "sha256": "91d0943f32e1bf1e59f6c463b2b500a742f60dd82fc895848b1f985c6f06a4df"
     },
     {
       "path": "scripts/agent-os.ps1",
-      "size": 6600,
-      "sha256": "f7d7bc8527d42f0c5d0f45914bf9729d5aa4cd798bcb193e1374dbcd3bf54067"
+      "size": 6421,
+      "sha256": "eeec42da44350ed840adccd84b2d7fe4be093ecbecbf546ad2638d3aaaf37a7f"
     },
     {
       "path": "scripts/install-agent-os.ps1",
-      "size": 2230,
-      "sha256": "7961320653ce00bcbce50f570e287438a98327470b9eacbc9d582481a079d829"
+      "size": 2324,
+      "sha256": "0a1cc25313b295d2f7db18ccfc3298526b9faeabc5bbe0dc2cc246b55c174d80"
     }
   ]
 }

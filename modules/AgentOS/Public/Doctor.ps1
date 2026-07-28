@@ -80,14 +80,14 @@ function Test-AgentOsRelease {
     }
 
     $manifest = Read-AgentOsJsonRaw -Path $manifestPath
-    if ([string]$manifest.schema_version -ne '1.0' -or [string]$manifest.release -ne 'agent-os-v1.0.0' -or [string]$manifest.algorithm -ne 'SHA256') {
+    if ([string]$manifest.schema_version -ne '1.0' -or [string]$manifest.release -ne 'agent-os-v1.0.0' -or [string]$manifest.algorithm -ne 'SHA256' -or [string]$manifest.content_normalization -ne 'UTF-8 LF') {
         return [pscustomobject]@{
             Status = 'FAILED'
             Files = @([pscustomobject]@{
                 Path = 'RELEASE-MANIFEST.json'
                 Status = 'INVALID_MANIFEST'
-                Expected = 'schema_version=1.0; release=agent-os-v1.0.0; algorithm=SHA256'
-                Actual = "schema_version=$($manifest.schema_version); release=$($manifest.release); algorithm=$($manifest.algorithm)"
+                Expected = 'schema_version=1.0; release=agent-os-v1.0.0; algorithm=SHA256; content_normalization=UTF-8 LF'
+                Actual = "schema_version=$($manifest.schema_version); release=$($manifest.release); algorithm=$($manifest.algorithm); content_normalization=$($manifest.content_normalization)"
             })
         }
     }
@@ -116,7 +116,7 @@ function Test-AgentOsRelease {
             continue
         }
 
-        $actual = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+        $actual = (Get-AgentOsCanonicalReleaseHash -Path $path).Hash
         $results += [pscustomobject]@{
             Path=$entry.path
             Status=if($actual -eq [string]$entry.sha256){"PASSED"}else{"MISMATCH"}
