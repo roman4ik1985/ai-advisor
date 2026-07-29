@@ -9,6 +9,8 @@ $releaseItems = @(
   'server.mjs',
   'response-validator.mjs',
   'intent-router.mjs',
+  'live-resolvers.mjs',
+  'request-pipeline.mjs',
   'package.json',
   'README.md',
   'TECHNICAL_SPECIFICATION.md',
