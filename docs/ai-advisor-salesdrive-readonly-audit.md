@@ -79,4 +79,11 @@ These values must be supplied through protected server configuration during a se
 - Official API/YML capability verification: PASS.
 - Real account/YML field validation: pending credential-authorized read-only probe.
 - Direct clients and AI routing: not implemented in this documentation-only correction.
+
+## Release preflight, 2026-07-29
+
+- The dedicated direct-resolver release manifest now includes `salesdrive-yml.mjs` and `salesdrive-api.mjs`.
+- `SALESDRIVE_YML_URL` is absent from the checked AI Advisor runtime/source configuration and from the existing ERP integration configuration. The YML probe cannot be formed without an enabled export URL.
+- Existing server-side SalesDrive subdomain/API-key material was detected only by presence and used for one direct, read-only dictionary probe. The request failed before an HTTP response with a socket-level connection failure; no key, URL, response body or customer data was printed or persisted.
+- Active runtime release and restart are intentionally withheld: releasing without a configured YML source would degrade product/price evidence, and the direct API path has no successful connectivity proof.
 - ERP dependency: removed from the target architecture.

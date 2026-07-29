@@ -11,6 +11,8 @@ $releaseItems = @(
   'intent-router.mjs',
   'live-resolvers.mjs',
   'request-pipeline.mjs',
+  'salesdrive-yml.mjs',
+  'salesdrive-api.mjs',
   'package.json',
   'README.md',
   'TECHNICAL_SPECIFICATION.md',
