@@ -48,3 +48,12 @@ test('widget keeps accessibility, safe errors, and motion guards for product gui
   assert.match(css, /#0e7490/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
+
+test('widget offers a dedicated Telegram order verification flow outside AI chat', async () => {
+  const source = await readFile(new URL('../public/widget.js', import.meta.url), 'utf8');
+  assert.match(source, /orderLinkEndpoint/u);
+  assert.match(source, /orderReference/u);
+  assert.match(source, /Статус замовлення/u);
+  assert.match(source, /safeTelegramLink/u);
+  assert.doesNotMatch(source, /conversation\.push\(\{ role: 'user', content: orderReference/u);
+});

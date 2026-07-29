@@ -5,12 +5,16 @@ import { createSalesdriveOrderClient } from './salesdrive-order-client.mjs';
 import { createTelegramOwnedOrderService } from './telegram-owned-order-service.mjs';
 import { createTelegramOrderWebhook } from './telegram-order-webhook.mjs';
 import { createTelegramOrderSender } from './telegram-order-sender.mjs';
+import { createSalesdriveOrderProvisioningResolver } from './salesdrive-order-provisioning.mjs';
+import { createTelegramOrderProvisioner } from './telegram-order-provisioning.mjs';
 
 export async function createTelegramOrderRuntime({
   config,
   createRedisClient = createTelegramOrderRedisClient,
   createOrderClient = createSalesdriveOrderClient,
   createSender = createTelegramOrderSender,
+  createCandidateResolver = createSalesdriveOrderProvisioningResolver,
+  createProvisioner = createTelegramOrderProvisioner,
   actionSink,
 } = {}) {
   if (!config?.telegramOrderEnabled) return null;
@@ -37,6 +41,15 @@ export async function createTelegramOrderRuntime({
     orderService,
   });
   const sender = createSender({ botToken: config.telegramOrderBotToken });
+  async function provision(input) {
+    const candidateResolver = createCandidateResolver();
+    if (!candidateResolver.configured) throw new Error('TELEGRAM_ORDER_PROVISIONING_SOURCE_NOT_CONFIGURED');
+    return createProvisioner({
+      candidateResolver,
+      stateStore,
+      botUsername: config.telegramOrderBotUsername,
+    }).provision(input);
+  }
 
   async function handle({ secretHeader, update }) {
     const webhookResult = await webhook.handle({ secretHeader, update });
@@ -72,6 +85,7 @@ export async function createTelegramOrderRuntime({
 
   return Object.freeze({
     handle,
+    provision,
     stateStore,
     async close() { await redis.close(); },
   });

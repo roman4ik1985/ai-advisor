@@ -191,6 +191,7 @@
 
   const script = document.currentScript;
   const endpoint = script?.dataset.endpoint || 'https://ai.ledprojector.com.ua/api/chat';
+  const orderLinkEndpoint = new URL('/api/telegram/order-link', new URL(endpoint, location.href).origin).toString();
   const mascotUrl = script?.dataset.mascot || 'https://ai.ledprojector.com.ua/assets/mascot.png';
   const productTarget = script?.dataset.productTarget === '_blank' ? '_blank' : '_self';
   const panelId = 'lp-agent-panel';
@@ -205,6 +206,10 @@
     close: 'Закрыть консультанта',
     open: 'Открыть AI-консультанта',
     suggestions: ['Подберите проектор', 'Сравнить модели', 'Доставка и оплата'],
+    orderStatus: 'Статус заказа',
+    orderPrompt: 'Введите номер заказа. Информация откроется только после проверки телефона в Telegram.',
+    orderPlaceholder: 'Номер заказа',
+    orderButton: 'Проверить в Telegram',
     thinking: 'Думаю…',
     products: 'Подходящие товары',
     showProduct: 'Показать товар',
@@ -227,6 +232,10 @@
     close: 'Закрити консультанта',
     open: 'Відкрити AI-консультанта',
     suggestions: ['Підібрати проєктор', 'Порівняти моделі', 'Доставка й оплата'],
+    orderStatus: 'Статус замовлення',
+    orderPrompt: 'Введіть номер замовлення. Інформація відкриється лише після перевірки телефону в Telegram.',
+    orderPlaceholder: 'Номер замовлення',
+    orderButton: 'Перевірити в Telegram',
     thinking: 'Думаю…',
     products: 'Відповідні товари',
     showProduct: 'Показати товар',
@@ -607,7 +616,76 @@
       suggestionButtons.push(button);
       group.append(button);
     }
+    const orderButton = document.createElement('button');
+    orderButton.type = 'button';
+    orderButton.className = 'lp-agent-suggestion';
+    orderButton.textContent = copy.orderStatus;
+    orderButton.addEventListener('click', () => {
+      if (!busy) addOrderLinkForm();
+    });
+    suggestionButtons.push(orderButton);
+    group.append(orderButton);
     messagesElement.append(group);
+  }
+
+  function addOrderLinkForm() {
+    if (messagesElement.querySelector('.lp-agent-order-form')) return;
+    addMessage('assistant', copy.orderPrompt);
+    const form = document.createElement('form');
+    form.className = 'lp-agent-order-form';
+    const field = document.createElement('input');
+    field.className = 'lp-agent-order-input';
+    field.maxLength = 64;
+    field.required = true;
+    field.autocomplete = 'off';
+    field.placeholder = copy.orderPlaceholder;
+    field.setAttribute('aria-label', copy.orderPlaceholder);
+    const submit = document.createElement('button');
+    submit.type = 'submit';
+    submit.className = 'lp-agent-order-submit';
+    submit.textContent = copy.orderButton;
+    form.append(field, submit);
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const orderReference = field.value.trim();
+      if (!orderReference || busy) return;
+      setBusy(true);
+      submit.disabled = true;
+      try {
+        const response = await fetch(orderLinkEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderReference }),
+        });
+        const payload = await response.json();
+        if (!response.ok || !safeTelegramLink(payload?.button?.url)) throw userInterfaceError('UNAVAILABLE');
+        const link = document.createElement('a');
+        link.className = 'lp-agent-order-link';
+        link.href = payload.button.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = copy.orderButton;
+        form.replaceWith(link);
+      } catch {
+        submit.disabled = false;
+        addMessage('assistant', copy.unavailable);
+      } finally {
+        setBusy(false);
+      }
+    });
+    messagesElement.append(form);
+    field.focus();
+  }
+
+  function safeTelegramLink(value) {
+    try {
+      const url = new URL(String(value || ''));
+      return url.protocol === 'https:' && url.hostname === 't.me' && /^\/[A-Za-z][A-Za-z0-9_]{4,31}$/u.test(url.pathname)
+        ? url.toString()
+        : '';
+    } catch {
+      return '';
+    }
   }
 
   function collectPageContext() {

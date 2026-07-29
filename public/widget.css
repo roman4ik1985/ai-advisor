@@ -48,6 +48,9 @@
 .lp-agent-mascot-button:focus-visible,
 .lp-agent-icon-button:focus-visible,
 .lp-agent-send:focus-visible,
+.lp-agent-order-submit:focus-visible,
+.lp-agent-order-link:focus-visible,
+.lp-agent-order-input:focus-visible,
 .lp-agent-suggestion:focus-visible,
 .lp-agent-input:focus-visible {
   outline: 3px solid var(--lp-agent-cyan);
@@ -314,6 +317,17 @@
 }
 
 .lp-agent-send:disabled { cursor: wait; opacity: .55; }
+
+.lp-agent-order-form { display: grid; gap: 8px; margin: 8px 0; }
+.lp-agent-order-input {
+  min-width: 0; border: 1px solid #d7dee8; border-radius: 10px;
+  padding: 10px 12px; font: inherit;
+}
+.lp-agent-order-submit, .lp-agent-order-link {
+  border: 0; border-radius: 10px; padding: 10px 12px; background: #229ed9;
+  color: #fff; font-weight: 700; text-align: center; text-decoration: none; cursor: pointer;
+}
+.lp-agent-order-submit:disabled { cursor: wait; opacity: .55; }
 .lp-agent-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 
 .lp-agent-product-highlight {

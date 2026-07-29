@@ -1,7 +1,7 @@
 # C22–C25 — Telegram order status source acceptance
 
 Date: 2026-07-29
-Status: source transport wired and disabled; provisioning/config/live release pending
+Status: source transport and provisioning wired and disabled; config/live release pending
 
 ## Implemented boundary
 
@@ -53,7 +53,7 @@ commission, expense or profit fields.
 ## Verification
 
 - Focused C22–C25: 22/22 PASS.
-- Full source suite after disabled transport wiring: 166/166 PASS.
+- Full source suite after provisioning: 174/174 PASS.
 - Tests use injected synthetic data and an injected fetch implementation only.
 - No Telegram, SalesDrive, OpenCart or ERP request was made.
 
@@ -69,3 +69,4 @@ authorized live acceptance.
 C26–C29 and transport acceptance:
 [docs/ai-advisor-telegram-order-webhook-source-acceptance.md](./ai-advisor-telegram-order-webhook-source-acceptance.md).
 [docs/ai-advisor-telegram-order-transport-source-acceptance.md](./ai-advisor-telegram-order-transport-source-acceptance.md).
+[docs/ai-advisor-telegram-order-provisioning-source-acceptance.md](./ai-advisor-telegram-order-provisioning-source-acceptance.md).

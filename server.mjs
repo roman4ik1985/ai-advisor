@@ -38,7 +38,12 @@ if (config.provider === 'api' && !config.apiKey) {
 }
 
 try {
-  telegramOrderRuntime = await createTelegramOrderRuntime({ config });
+  telegramOrderRuntime = await createTelegramOrderRuntime({
+    config: {
+      ...config,
+      telegramOrderBotUsername: String(process.env.TELEGRAM_ORDER_BOT_USERNAME || ''),
+    },
+  });
 } catch {
   console.error('Telegram order runtime configuration failed.');
   process.exit(1);
@@ -60,6 +65,31 @@ const server = createServer(async (request, response) => {
 
   if (requestUrl.pathname === '/health') {
     return json(response, 200, { ok: true, provider: config.provider });
+  }
+
+  if (
+    requestUrl.pathname === '/api/telegram/order-link'
+    && request.method === 'POST'
+    && telegramOrderRuntime
+  ) {
+    if (!applyCors(request, response)) {
+      return sendError(response, 403, 'Origin is not allowed.', 'ORIGIN_NOT_ALLOWED', requestId);
+    }
+    const clientId = getRateLimitClientId(request);
+    const rateLimit = rateLimiter.consume(`telegram-link:${clientId}`);
+    if (!rateLimit.allowed) {
+      return sendError(response, 429, 'Too many requests.', 'RATE_LIMITED', requestId, rateLimit.retryAfterSeconds);
+    }
+    try {
+      const body = await readJsonBody(request);
+      const link = await telegramOrderRuntime.provision({ orderReference: body.orderReference });
+      return json(response, 200, link);
+    } catch (error) {
+      if (error.code === 'INVALID_JSON') return sendError(response, 400, 'Invalid JSON body.', error.code, requestId);
+      if (error.code === 'BODY_TOO_LARGE') return sendError(response, 413, 'Request body is too large.', error.code, requestId);
+      if (error.code === 'UNSUPPORTED_MEDIA_TYPE') return sendError(response, 415, 'Content-Type must be application/json.', error.code, requestId);
+      return sendError(response, 503, 'Telegram verification is temporarily unavailable.', 'TELEGRAM_LINK_UNAVAILABLE', requestId);
+    }
   }
 
   if (

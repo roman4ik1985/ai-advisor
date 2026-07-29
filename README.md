@@ -57,7 +57,11 @@ route, Redis client, Telegram sender и verified-ID owned-order service уже
 [docs/ai-advisor-order-status-source-acceptance.md](./docs/ai-advisor-order-status-source-acceptance.md).
 [docs/ai-advisor-telegram-order-webhook-source-acceptance.md](./docs/ai-advisor-telegram-order-webhook-source-acceptance.md).
 [docs/ai-advisor-telegram-order-transport-source-acceptance.md](./docs/ai-advisor-telegram-order-transport-source-acceptance.md).
-Focused transport/config проходит 11/11, полный source suite — 166/166.
+Provisioning добавляет нейтральный real/decoy link contract и отдельную widget-форму:
+номер заказа не передаётся AI, а существование заказа не раскрывается до
+Telegram `request_contact`. Acceptance:
+[docs/ai-advisor-telegram-order-provisioning-source-acceptance.md](./docs/ai-advisor-telegram-order-provisioning-source-acceptance.md).
+Focused provisioning/widget проходит 19/19, полный source suite — 174/174.
 
 Плавающий AI-консультант для `ledprojector.com.ua` с двумя режимами:
 

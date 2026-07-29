@@ -1,7 +1,7 @@
 # Telegram order transport source acceptance
 
 Date: 2026-07-29
-Status: source wired and disabled by default; configuration, provisioning and live release pending
+Status: source and provisioning wired, disabled by default; configuration and live release pending
 
 ## Implemented
 
@@ -47,14 +47,14 @@ Values are never sent to the browser or added to normal logs.
 
 ## Remaining live prerequisites
 
-1. Define the authenticated order-link provisioning endpoint/service that supplies
-   `customerRef`, expected phone and verified source-order IDs without anonymous
-   order disclosure.
-2. Provision an approved Redis namespace and credentials.
-3. Create/configure the Telegram bot webhook secret and bot token.
-4. Connect actual manager and notification action sinks.
-5. Add a durable outbound outbox if delivery must survive a process crash after
+1. Provision an approved Redis namespace and credentials.
+2. Create/configure the Telegram bot username, webhook secret and bot token.
+3. Connect actual manager and notification action sinks.
+4. Add a durable outbound outbox if delivery must survive a process crash after
    Telegram update dedupe.
-6. Run concurrency/failover, Telegram test-bot and authorized synthetic
+5. Run concurrency/failover, Telegram test-bot and authorized synthetic
    SalesDrive acceptance.
-7. Perform an explicit source-to-runtime release and redacted health/log checks.
+6. Perform an explicit source-to-runtime release and redacted health/log checks.
+
+Provisioning acceptance:
+[docs/ai-advisor-telegram-order-provisioning-source-acceptance.md](./ai-advisor-telegram-order-provisioning-source-acceptance.md).

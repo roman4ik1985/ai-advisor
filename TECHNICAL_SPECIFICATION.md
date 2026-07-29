@@ -121,7 +121,7 @@
 - детерминированные русские и украинские ответы по live-фактам с `FRESH` / `STALE` / `UNAVAILABLE` и fail-closed fallback;
 - контролируемый learning log с редакторским review, выключенный по умолчанию;
 - Agent OS 1.0 с приёмкой T01–T11 90/90 и legacy suite 19/19;
-- основной source test suite 69/69 PASS на C00 baseline, 96/96 PASS после P1 C10–C15, 107/107 PASS после C20, 118/118 PASS после C21, 140/140 PASS после C22–C25, 155/155 PASS после C26–C29 и 166/166 PASS после disabled transport wiring.
+- основной source test suite 69/69 PASS на C00 baseline, 96/96 PASS после P1 C10–C15, 107/107 PASS после C20, 118/118 PASS после C21, 140/140 PASS после C22–C25, 155/155 PASS после C26–C29, 166/166 PASS после transport wiring и 174/174 PASS после provisioning.
 
 Принятый production snapshot на 29.07.2026 также подтвердил source/runtime release diff 0 и локальный/публичный `/health` HTTP 200. Это историческая acceptance-точка, а не замена текущей health-проверки перед новой runtime-операцией.
 
@@ -731,12 +731,15 @@ orchestrator, Redis-backed durable binding/selection/proof state, opaque
 single-use order callbacks, update dedupe и Redis-atomic distributed limiter.
 Fixed HTTP route, Redis client, Telegram sender и verified-ID owned-order service
 подключены в source под disabled-by-default feature flag. Link provisioning,
-реальные credentials/action sinks, durable outbound outbox и live acceptance
-остаются отдельным configuration/runtime release contour.
+реализован как real/decoy ten-minute session с одинаковым public contract:
+SalesDrive candidate ищется GET-only по exact `externalId`, а widget order number
+не входит в AI conversation. Реальные credentials/action sinks, durable outbound
+outbox и live acceptance остаются отдельным configuration/runtime release contour.
 Полный контракт: [docs/ai-advisor-order-ownership-contract.md](./docs/ai-advisor-order-ownership-contract.md).
 Source acceptance: [docs/ai-advisor-order-status-source-acceptance.md](./docs/ai-advisor-order-status-source-acceptance.md).
 [C26–C29 acceptance](./docs/ai-advisor-telegram-order-webhook-source-acceptance.md).
 [Transport source acceptance](./docs/ai-advisor-telegram-order-transport-source-acceptance.md).
+[Provisioning source acceptance](./docs/ai-advisor-telegram-order-provisioning-source-acceptance.md).
 
 ### P3. Manager and knowledge operations
 
