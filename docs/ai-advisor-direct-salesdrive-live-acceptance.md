@@ -96,3 +96,13 @@ All four responses retained the existing success keys and request IDs. Local/pub
 - The GET-only SalesDrive payment dictionary projects only ID/label DTOs. Deterministic output uses only `AVAILABLE + FRESH` evidence, sanitizes labels and does not promise approval or applicability to a specific order.
 - Missing, stale or unavailable payment evidence returns the manager fallback without a model call.
 - Targeted routing/rendering/API-contract tests pass 28/28; the full source suite passes 69/69. Runtime release and live acceptance are recorded after deployment.
+
+### Payment-method runtime acceptance
+
+The nine-file hash-verified release was applied without copying `.env`, and a new SYSTEM-host listener loaded the payment resolver path. Three non-personal local `/api/chat` checks passed:
+
+- Russian payment-method wording returned HTTP 200 with payment labels, no catalog lookup and no approval promise.
+- Ukrainian payment-method wording returned HTTP 200 with payment labels, no catalog lookup and no approval promise.
+- Combined payment/delivery wording returned both allow-listed dictionaries, no catalog cards and no delivery-deadline promise.
+
+All responses retained the existing success keys and request IDs. Source/runtime release diff is zero, local/public health return HTTP 200, and a corrected boundary-aware scan of 13 runtime log files found no SalesDrive/OpenAI key, YML URL or `publicKey` marker. Live payment-method acceptance: **PASS**.
