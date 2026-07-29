@@ -17,6 +17,18 @@ test('intent router limits evidence sources by route', () => {
   assert.match(routeInstruction('live_fact'), /Do not claim stock/u);
 });
 
+test('bilingual price forms and delivery methods select only required resolvers', () => {
+  for (const question of ['Какая цена?', 'Уточните цену', 'Сравните цены', 'Яка ціна?', 'Уточніть ціну']) {
+    const decision = buildRouteDecision({ question });
+    assert.equal(decision.intent, 'live_fact');
+    assert.ok(decision.requiredResolvers.includes('price'), question);
+  }
+
+  assert.deepEqual(buildRouteDecision({ question: 'Какие способы доставки доступны?' }).requiredResolvers, ['delivery']);
+  assert.deepEqual(buildRouteDecision({ question: 'Які способи доставки доступні?' }).requiredResolvers, ['delivery']);
+  assert.equal(buildRouteDecision({ question: 'Нужна оценка характеристик' }).requiredResolvers.includes('price'), false);
+});
+
 test('smart router uses the full pipeline only for multi-constraint recommendations', () => {
   assert.deepEqual(buildRouteDecision({ question: 'Xiaomi Wanbo T6 Max характеристики' }), {
     route: 'SIMPLE',

@@ -46,3 +46,10 @@ Do not add order-status lookup or customer data. The next implementation slice s
 | Secret-safe log scan | PASS | Marker-only scan found no key, YML URL or `publicKey` marker in runtime log files. |
 
 The API output stream is exclusively locked by the SYSTEM host, so this re-acceptance does not read or persist raw route/validation lines. The external response contract, deterministic source tests and redacted runtime behavior are the acceptance evidence.
+
+## Bilingual routing hardening, 2026-07-29
+
+- Russian and Ukrainian price word forms now require the price resolver; unrelated words such as Russian `оценка` do not.
+- A delivery-methods-only question requires only the delivery resolver and no longer performs an inventory/catalog lookup because of generic availability wording.
+- Deterministic inventory output requires one candidate or a confident full-name/SKU match. Multiple unmatched candidates return a model/SKU clarification without exposing an arbitrary product.
+- Source verification passed 60/60 tests; the public server contract file is unchanged and the source diff contains no secret markers. Runtime re-acceptance follows the hash-verified release.

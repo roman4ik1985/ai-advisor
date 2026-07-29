@@ -9,10 +9,12 @@ const ROUTES = Object.freeze({
 });
 
 const ESCALATION_PATTERN = /(?:менеджер|менеджеру|оператор|перезвон|зателефон|подзвон|контакт|телефон|скарг|жалоб|повернен|возврат|юридич|суд|претенз)/u;
-const LIVE_PATTERN = /(?:наявност|наличи|в наличии|есть ли|доступн|сьогодні|сегодня|завтра|післязавтра|послезавтра|коли достав|когда достав|срок.*достав|цін[ауеы]|стоимост|скільки кошту)/u;
+const PRICE_PATTERN = /(?:(?:^|[^\p{L}])(?:ціна|ціни|ціну|ціною|ціні|цена|цены|цену|цене|ценой)(?=$|[^\p{L}])|стоимост|скільки кошту|сколько стоит)/u;
+const LIVE_PATTERN = /(?:наявност|наличи|в наличии|есть ли|доступн|сьогодні|сегодня|завтра|післязавтра|послезавтра|коли достав|когда достав|строк.*достав|срок.*достав)/u;
 const DELIVERY_PATTERN = /(?:доставк|доставлен|доставим|доставимо|відправк|відправлен|отправим|відправимо|самовивіз|самовывоз)/u;
-const INVENTORY_PATTERN = /(?:наявност|наличи|в наличии|есть ли|доступн|залиш|остатк|резерв)/u;
-const PRICE_PATTERN = /(?:цін[ауеы]|стоимост|скільки кошту|сколько стоит)/u;
+const EXPLICIT_INVENTORY_PATTERN = /(?:наявност|наличи|в наличии|есть ли|залиш|остатк|резерв)/u;
+const AVAILABILITY_PATTERN = /(?:доступн)/u;
+const DELIVERY_METHODS_PATTERN = /(?:(?:способ|варіант|вариант|метод)\w*.{0,32}(?:доставк|доставлен)|(?:доставк|доставлен)\w*.{0,32}(?:способ|варіант|вариант|метод))/u;
 const ADVICE_PATTERN = /(?:подбер|порад|порекоменду|посовет|какой.*выбрать|який.*обрат|какой.*підібрат|для дома|для кімнат|для комнаты|бюджет|яркост|яскравіст)/u;
 const COMPATIBILITY_PATTERN = /(?:сумісн|совместим|підійде|подойдет|підходить|подходит|екран|screen|ps5|playstation|xbox)/u;
 
@@ -20,7 +22,7 @@ export function classifyIntent({ question = '', messages = [] } = {}) {
   const text = normalize(question || latestUserMessage(messages));
 
   if (ESCALATION_PATTERN.test(text)) return 'manager_handoff';
-  if (LIVE_PATTERN.test(text)) return 'live_fact';
+  if (LIVE_PATTERN.test(text) || PRICE_PATTERN.test(text)) return 'live_fact';
   if (/(?:гарант|оплат|рассроч|кредит|повернен|обмен)/u.test(text)) return 'store_faq';
   if (ADVICE_PATTERN.test(text)) return 'product_advice';
   return 'product_lookup';
@@ -34,9 +36,11 @@ export function buildRouteDecision({ question = '', messages = [] } = {}) {
   const normalizedQuestion = normalize(question || latestUserMessage(messages));
   const intent = classifyIntent({ question: normalizedQuestion, messages });
   const isRecommendation = ADVICE_PATTERN.test(normalizedQuestion);
-  const needsInventory = INVENTORY_PATTERN.test(normalizedQuestion);
   const needsDelivery = DELIVERY_PATTERN.test(normalizedQuestion);
   const needsPrice = PRICE_PATTERN.test(normalizedQuestion);
+  const deliveryMethodsOnly = needsDelivery && DELIVERY_METHODS_PATTERN.test(normalizedQuestion);
+  const needsInventory = EXPLICIT_INVENTORY_PATTERN.test(normalizedQuestion)
+    || AVAILABILITY_PATTERN.test(normalizedQuestion) && !deliveryMethodsOnly;
   const needsCompatibility = COMPATIBILITY_PATTERN.test(normalizedQuestion);
   const hasMultipleCommercialConstraints = [needsInventory, needsDelivery, needsPrice, needsCompatibility]
     .filter(Boolean)
@@ -49,7 +53,7 @@ export function buildRouteDecision({ question = '', messages = [] } = {}) {
 
   const requiredResolvers = new Set();
   const policy = getRoutePolicy(intent);
-  if (policy.catalog) requiredResolvers.add('catalog');
+  if (policy.catalog && !(deliveryMethodsOnly && !needsInventory && !needsPrice)) requiredResolvers.add('catalog');
   if (policy.knowledge) requiredResolvers.add('knowledge');
   if (route === 'COMPLEX') requiredResolvers.add('knowledge');
   if (needsPrice) requiredResolvers.add('price');

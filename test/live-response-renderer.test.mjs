@@ -43,6 +43,35 @@ test('does not render inventory without explicit matching stock evidence', () =>
   assert.equal(answer, null);
 });
 
+test('does not choose an arbitrary product for an ambiguous inventory question', () => {
+  const second = {
+    sku: 'sku-2',
+    name: 'Projector Two',
+    prices: ['14 999 грн.'],
+    availability: { state: 'IN_STOCK' },
+  };
+  const facts = [
+    { sku: 'sku-1', availability: { state: 'IN_STOCK' } },
+    { sku: 'sku-2', availability: { state: 'IN_STOCK' } },
+  ];
+
+  const ambiguous = renderDeterministicLiveAnswer({
+    question: 'Какие проекторы есть в наличии?',
+    route: { requiredResolvers: ['catalog', 'inventory'] },
+    catalog: [inStockCatalog[0], second],
+    liveFacts: { inventory: facts },
+  });
+  assert.match(ambiguous, /Уточните.*модель или артикул/iu);
+  assert.doesNotMatch(ambiguous, /Projector One|Projector Two/u);
+
+  assert.match(renderDeterministicLiveAnswer({
+    question: 'Есть ли Projector Two в наличии?',
+    route: { requiredResolvers: ['catalog', 'inventory'] },
+    catalog: [inStockCatalog[0], second],
+    liveFacts: { inventory: facts },
+  }), /Projector Two/u);
+});
+
 test('keeps a delivery-deadline question on the validator path', () => {
   const answer = renderDeterministicLiveAnswer({
     question: 'Доставите завтра?',

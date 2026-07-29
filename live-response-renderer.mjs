@@ -20,10 +20,12 @@ function renderDeliveryMethods(question, methods) {
 }
 
 function renderInventory(question, catalog, inventory, includePrice) {
-  const item = (Array.isArray(catalog) ? catalog : []).find((product) => {
+  const candidates = (Array.isArray(catalog) ? catalog : []).filter((product) => {
     const sku = String(product?.sku || '');
     return sku && (Array.isArray(inventory) ? inventory : []).some((fact) => String(fact?.sku || '') === sku);
   });
+  const item = selectConfidentProduct(question, candidates);
+  if (!item && candidates.length > 1) return ambiguityFallback(question);
   const state = item?.availability?.state;
   if (!item || !['IN_STOCK', 'OUT_OF_STOCK'].includes(state)) return null;
 
@@ -35,6 +37,28 @@ function renderInventory(question, catalog, inventory, includePrice) {
   }
   const availability = state === 'IN_STOCK' ? 'есть в наличии' : 'нет в наличии';
   return `По данным SalesDrive, ${item.name}: ${availability}.${price}`;
+}
+
+function selectConfidentProduct(question, candidates) {
+  if (!Array.isArray(candidates) || candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
+  const query = compact(question);
+  const matches = candidates.filter((item) => {
+    const sku = compact(item?.sku);
+    const name = compact(item?.name);
+    return sku.length >= 3 && query.includes(sku) || name.length >= 5 && query.includes(name);
+  });
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function compact(value) {
+  return String(value || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+}
+
+function ambiguityFallback(question) {
+  return isUkrainian(question)
+    ? 'Уточніть, будь ласка, модель або артикул проектора — перевірю точну ціну та наявність.'
+    : 'Уточните, пожалуйста, модель или артикул проектора — проверю точную цену и наличие.';
 }
 
 function isUkrainian(question) {
