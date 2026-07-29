@@ -33,3 +33,16 @@ Do not add order-status lookup or customer data. The next implementation slice s
 - Inventory output requires an exact YML `IN_STOCK` or `OUT_OF_STOCK` match and includes price only when the router requested a fresh price resolver.
 - Delivery output contains allow-listed method labels only. A request for a deadline bypasses the renderer and remains on the existing validator path.
 - Source verification passed: 58 automated tests, unchanged successful HTTP response shape, and no secret marker in the source diff. Runtime acceptance is recorded separately after release.
+
+## Runtime re-acceptance, 2026-07-29
+
+| Check | Result | Evidence summary |
+| --- | --- | --- |
+| Release and reload | PASS | Hash-verified release applied; a new SYSTEM-host listener process loaded the new renderer module. |
+| Price and availability | PASS | An exact public YML item returned HTTP 200, `catalogDiagnostics.code=OK`, a current price and explicit availability wording from the deterministic SalesDrive response. |
+| Delivery methods | PASS | A delivery-method request returned HTTP 200 and explicit delivery-method wording without a deadline promise. |
+| Deadline guard | PASS | A deadline request returned HTTP 200 and did not contain a delivery deadline promise. |
+| Public contract and health | PASS | All three responses retained the existing success keys; local and public `/health` returned HTTP 200. |
+| Secret-safe log scan | PASS | Marker-only scan found no key, YML URL or `publicKey` marker in runtime log files. |
+
+The API output stream is exclusively locked by the SYSTEM host, so this re-acceptance does not read or persist raw route/validation lines. The external response contract, deterministic source tests and redacted runtime behavior are the acceptance evidence.
