@@ -54,3 +54,15 @@ The API output stream is exclusively locked by the SYSTEM host, so this re-accep
 - Deterministic inventory output requires one candidate or a confident full-name/SKU match. Multiple unmatched candidates return a model/SKU clarification without exposing an arbitrary product.
 - Live preflight exposed nested product-name ambiguity and nondeterministic price-only wording. The renderer now chooses a unique most-specific full-name/SKU match and renders bilingual price-only answers directly.
 - Source verification passed 62/62 tests; the public server contract file is unchanged and the source diff contains no secret markers. Runtime re-acceptance follows the corrected hash-verified release.
+
+### Bilingual runtime re-acceptance
+
+The corrected renderer was hash-verified in the active runtime and loaded by a new SYSTEM-host process. Five non-personal local `/api/chat` checks passed:
+
+- Russian exact-item price returned current YML price with direct SalesDrive wording.
+- Ukrainian exact-item price returned current YML price with direct SalesDrive wording.
+- Delivery-methods-only returned method wording with `catalogDiagnostics.code=SKIPPED_BY_ROUTE` and no catalog cards.
+- Exact-item inventory returned explicit availability without adding an unrequested price.
+- A multi-product inventory query returned a model/SKU clarification and named none of the returned products.
+
+Every response returned HTTP 200 with the unchanged success keys and a request ID. Local/public health returned HTTP 200; marker-only runtime-log scan found no key, YML URL or `publicKey` marker. Bilingual routing hardening acceptance: **PASS**.
