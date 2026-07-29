@@ -1,7 +1,7 @@
 # C22–C25 — Telegram order status source acceptance
 
 Date: 2026-07-29
-Status: source PASS; webhook, persistence, selection-token service and runtime integration pending
+Status: C22–C29 source PASS; active transport/runtime integration pending
 
 ## Implemented boundary
 
@@ -47,21 +47,24 @@ commission, expense or profit fields.
   upstream payloads or credentials.
 - Unsupported text/callbacks, group chats and a mismatched Telegram identity
   only show the menu and perform no data read.
-- The rate limiter is per Telegram user. Distributed persistence and webhook
-  enforcement remain runtime work.
+- The original in-memory limiter is retained for isolated menu tests. C26–C29
+  add a Redis-atomic distributed limiter and webhook orchestration.
 
 ## Verification
 
 - Focused C22–C25: 22/22 PASS.
-- Full source suite: 140/140 PASS.
+- Full source suite after C26–C29: 155/155 PASS.
 - Tests use injected synthetic data and an injected fetch implementation only.
 - No Telegram, SalesDrive, OpenCart or ERP request was made.
 
 ## Deferred runtime work
 
-The source package is deliberately not wired to the active server. A future
-release task must separately implement and accept the Telegram webhook,
-persistent one-time deep-link/binding/proof consumption, opaque order-selection
-tokens, distributed rate limits, dictionary label hydration, manager and
-notification operations, secret-safe observability, and live acceptance with
-authorized synthetic/test records.
+The source package is deliberately not wired to the active server. C26–C29 now
+provide injected webhook orchestration, Redis-backed one-time state, opaque
+selection tokens and a distributed limiter. A future release task must connect
+an approved Redis client and HTTP/Telegram transports, add dictionary hydration,
+manager and notification operations, secret-safe observability, and perform
+authorized live acceptance.
+
+C26–C29 acceptance:
+[docs/ai-advisor-telegram-order-webhook-source-acceptance.md](./ai-advisor-telegram-order-webhook-source-acceptance.md).

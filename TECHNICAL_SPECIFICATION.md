@@ -121,7 +121,7 @@
 - детерминированные русские и украинские ответы по live-фактам с `FRESH` / `STALE` / `UNAVAILABLE` и fail-closed fallback;
 - контролируемый learning log с редакторским review, выключенный по умолчанию;
 - Agent OS 1.0 с приёмкой T01–T11 90/90 и legacy suite 19/19;
-- основной source test suite 69/69 PASS на C00 baseline, 96/96 PASS после P1 C10–C15, 107/107 PASS после C20, 118/118 PASS после C21 и 140/140 PASS после source-only C22–C25.
+- основной source test suite 69/69 PASS на C00 baseline, 96/96 PASS после P1 C10–C15, 107/107 PASS после C20, 118/118 PASS после C21, 140/140 PASS после C22–C25 и 155/155 PASS после source-only C26–C29.
 
 Принятый production snapshot на 29.07.2026 также подтвердил source/runtime release diff 0 и локальный/публичный `/health` HTTP 200. Это историческая acceptance-точка, а не замена текущей health-проверки перед новой runtime-операцией.
 
@@ -141,7 +141,7 @@
 - резервное копирование файлов и базы перед установкой;
 - полный mobile/desktop/browser, accessibility и Web Vitals smoke-test;
 - опциональный manager handoff;
-- опциональный персональный статус заказа только через принятый C20–C25 ownership/menu contract и отдельный webhook/persistence/runtime release.
+- опциональный персональный статус заказа только через принятый C20–C29 ownership/menu/webhook/state contract и отдельный transport/config/runtime release.
 
 ## 6. Целевые пользовательские сценарии
 
@@ -448,7 +448,7 @@ flowchart LR
 | `COMPLEX` | Support Agent, затем validator и независимая проверка компактного evidence package | Только после `ALLOW` validator |
 | `ESCALATE` | Локальный manager fallback без выдуманного ответа | Нет |
 
-Прямой SalesDrive YML является live-источником идентификации, цены и наличия товара; при единственном кандидате или наиболее специфичном совпадении полного названия/SKU `live-response-renderer.mjs` формирует price-only и inventory ответы без модельного решения. Неоднозначный inventory-запрос возвращает детерминированное уточнение модели/SKU. Router распознаёт русские и украинские формы цены, способов доставки и способов оплаты; dictionary-only запрос не включает catalog/inventory, а смешанный запрос получает `delivery + payment`. Direct YML/API DTO имеют явное freshness-состояние `FRESH`, `STALE` или `UNAVAILABLE`. `resolveLiveEvidence` допускает в публичный catalog и live facts только `FRESH`; stale last-known-good хранится только внутри YML client/диагностики. Renderer требует `AVAILABLE + FRESH`, очищает dictionary labels от HTML/control characters, ограничивает их длину и число, validator дополнительно проверяет timestamp не старше 10 минут, а pipeline при обязательном `STALE`/`UNAVAILABLE` resolver возвращает manager fallback без модельного вызова. Response validator принимает наличие только при явном нормализованном состоянии `IN_STOCK` или `OUT_OF_STOCK`. SalesDrive API используется GET-only для публичных словарей способов доставки и оплаты. Delivery dictionary не подтверждает дату/срок; payment dictionary не подтверждает одобрение или доступность метода для конкретного заказа. API ключ и YML URL существуют только server-side; order lookup имеет source-only C20–C25 контракт, но не подключён к текущему HTTP/runtime до отдельной webhook/persistence/release-приёмки. Внутренние route, freshness, validation и verification evidence пишутся только в request-id-safe диагностический лог; успешный HTTP-контракт виджета не расширяется внутренними данными.
+Прямой SalesDrive YML является live-источником идентификации, цены и наличия товара; при единственном кандидате или наиболее специфичном совпадении полного названия/SKU `live-response-renderer.mjs` формирует price-only и inventory ответы без модельного решения. Неоднозначный inventory-запрос возвращает детерминированное уточнение модели/SKU. Router распознаёт русские и украинские формы цены, способов доставки и способов оплаты; dictionary-only запрос не включает catalog/inventory, а смешанный запрос получает `delivery + payment`. Direct YML/API DTO имеют явное freshness-состояние `FRESH`, `STALE` или `UNAVAILABLE`. `resolveLiveEvidence` допускает в публичный catalog и live facts только `FRESH`; stale last-known-good хранится только внутри YML client/диагностики. Renderer требует `AVAILABLE + FRESH`, очищает dictionary labels от HTML/control characters, ограничивает их длину и число, validator дополнительно проверяет timestamp не старше 10 минут, а pipeline при обязательном `STALE`/`UNAVAILABLE` resolver возвращает manager fallback без модельного вызова. Response validator принимает наличие только при явном нормализованном состоянии `IN_STOCK` или `OUT_OF_STOCK`. SalesDrive API используется GET-only для публичных словарей способов доставки и оплаты. Delivery dictionary не подтверждает дату/срок; payment dictionary не подтверждает одобрение или доступность метода для конкретного заказа. API ключ и YML URL существуют только server-side; order lookup имеет source-only C20–C29 контракт, но не подключён к текущему HTTP/runtime до отдельной transport/config/release-приёмки. Внутренние route, freshness, validation и verification evidence пишутся только в request-id-safe диагностический лог; успешный HTTP-контракт виджета не расширяется внутренними данными.
 
 ## 12. Интеграция с OpenCart
 
@@ -689,11 +689,15 @@ Source package C10–C15 выполнен 29.07.2026 и принят 96/96 ав�
 | ID | Контур | Зависимость | Результат | Статус |
 |---|---|---|---|---|
 | C20 | Ownership/auth contract | C00 | Design-only контракт доказательства владения заказом, fail-closed и anti-enumeration | Source PASS |
-| C21 | Verification mechanism | Решение владельца после C20 | Одноразовый deep link + private Telegram `request_contact` + `telegramUserId → customerRef` | Source PASS; webhook/storage pending |
+| C21 | Verification mechanism | Решение владельца после C20 | Одноразовый deep link + private Telegram `request_contact` + `telegramUserId → customerRef` | Source PASS |
 | C22 | Narrow order DTO | C20, C21 | Номер, товары/количество, сумма, status/payment/delivery/tracking без контактов и служебных полей | Source PASS |
 | C23 | GET-only order client | C21, C22 | Exact-ID GET, ownership check и server-side projection до Telegram boundary | Source PASS; runtime wiring pending |
 | C24 | Deterministic order response | C23 | Фиксированное меню и RU/UK templates без свободного текста и AI | Source PASS |
-| C25 | Order security acceptance | C21–C24 | Enumeration, replay, rate-limit, PII и log-safety проверки | Source PASS; distributed enforcement pending |
+| C25 | Order security acceptance | C21–C24 | Enumeration, replay, rate-limit, PII и log-safety проверки | Source PASS |
+| C26 | Webhook orchestration | C21–C25 | Secret header, update dedupe, private start/contact/callback routing | Source PASS; HTTP route pending |
+| C27 | Persistent order state | C26 | Redis link/binding/selection/proof state with atomic consumption | Source PASS; Redis connection pending |
+| C28 | Opaque order selection | C23, C27 | Single-use contextual order token without source ID in callback | Source PASS |
+| C29 | Distributed acceptance | C26–C28 | Redis-atomic per-user limit, replay/failure/no-AI integration tests | Source PASS; live acceptance pending |
 
 Anonymous order lookup запрещён. Raw SalesDrive order/contact payload не передаётся модели, браузеру или обычным логам.
 
@@ -722,11 +726,14 @@ public result. API ошибки, upstream payload и секреты не поп�
 Telegram order-flow является menu-only: шесть фиксированных callback operations,
 детерминированные RU/UK templates, без свободного текста, intent recognition,
 prompt, model context или OpenAI request. C25 добавляет synthetic acceptance и
-per-Telegram-user source limiter; webhook, persistent binding/proof consumption,
-opaque order-selection tokens и distributed rate limit остаются отдельным
-runtime/release contour.
+per-Telegram-user source limiter. C26–C29 реализуют инъецируемый webhook
+orchestrator, Redis-backed durable binding/selection/proof state, opaque
+single-use order callbacks, update dedupe и Redis-atomic distributed limiter.
+HTTP route, реальный Redis/Telegram transport, owned-order list adapter и live
+acceptance остаются отдельным runtime/release contour.
 Полный контракт: [docs/ai-advisor-order-ownership-contract.md](./docs/ai-advisor-order-ownership-contract.md).
 Source acceptance: [docs/ai-advisor-order-status-source-acceptance.md](./docs/ai-advisor-order-status-source-acceptance.md).
+[C26–C29 acceptance](./docs/ai-advisor-telegram-order-webhook-source-acceptance.md).
 
 ### P3. Manager and knowledge operations
 

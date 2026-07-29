@@ -1,7 +1,7 @@
 # C20 — ownership/auth contract for order status
 
 Date: 2026-07-29
-Status: C20–C25 source contracts implemented; bot/runtime integration remains disabled
+Status: C20–C29 source contracts implemented; active bot/runtime integration remains disabled
 
 ## Scope
 
@@ -77,8 +77,10 @@ credentials, CRM notes, cost/margin fields, internal identifiers, and other
 orders. Raw SalesDrive payloads are projected to this allow-list before reaching
 the Telegram renderer. The order contour has no model boundary at all.
 
-C21 source validation is implemented in `telegram-order-binding.mjs`. Telegram
-webhook/API integration and persistent binding storage are still pending.
+C21 source validation is implemented in `telegram-order-binding.mjs`. C26–C29
+add secret-authenticated injected webhook orchestration, Redis-backed persistent
+binding/proof/selection state and distributed limiting. HTTP route, Redis client,
+Telegram sender and active runtime integration are still pending.
 C22–C25 source validation is implemented in `order-dto.mjs`,
 `salesdrive-order-client.mjs`, `telegram-order-menu.mjs` and their tests.
 Anonymous lookup remains forbidden; runtime lookup remains disabled.
@@ -96,7 +98,8 @@ per-user rate limiting, PII exclusion and absence of AI/write methods.
 
 No existing endpoint, request field, response field, or HTTP status changes in
 C20. The current client contract is therefore backward-compatible and unchanged.
-The focused C22–C25 suites pass 22/22 and the full source suite passes 140/140.
+The focused C26–C29 suites pass 15/15 and the full source suite passes 155/155.
 
 Detailed source acceptance:
 [docs/ai-advisor-order-status-source-acceptance.md](./ai-advisor-order-status-source-acceptance.md).
+[docs/ai-advisor-telegram-order-webhook-source-acceptance.md](./ai-advisor-telegram-order-webhook-source-acceptance.md).

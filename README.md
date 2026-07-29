@@ -17,7 +17,7 @@
 
 Последняя runtime acceptance на этой точке зафиксировала source/runtime diff 0 и локальный/публичный `/health` HTTP 200. Перед любой новой runtime-операцией health и diff проверяются заново; этот README не утверждает их текущий live-статус.
 
-Канонический forward roadmap C00–C54 и deferred-зоны находятся в разделе 18 [TECHNICAL_SPECIFICATION.md](./TECHNICAL_SPECIFICATION.md#18-forward-roadmap). Персональный статус заказа не включён в runtime: source C20–C25 готов, но до отдельной webhook/persistence/release-приёмки запрещены anonymous lookup и реальные order API/customer-data операции.
+Канонический forward roadmap C00–C54 и deferred-зоны находятся в разделе 18 [TECHNICAL_SPECIFICATION.md](./TECHNICAL_SPECIFICATION.md#18-forward-roadmap). Персональный статус заказа не включён в runtime: source C20–C29 готов, но до отдельной transport/config/release-приёмки запрещены anonymous lookup и реальные order API/customer-data операции.
 
 ### Product-aware MVP source package
 
@@ -33,7 +33,7 @@ Source acceptance: [docs/ai-advisor-product-aware-mvp.md](./docs/ai-advisor-prod
 
 ### Privacy-gated order status
 
-C20–C25 реализованы как source-контракты без внешней интеграции. Веб-ассистент
+C20–C29 реализованы как source-контракты без внешней интеграции. Веб-ассистент
 создаёт одноразовую десятиминутную deep-link сессию, клиент открывает личный чат
 бота и нажимает Telegram-кнопку `Поділитися номером`. Backend принимает только
 собственный `request_contact` текущего пользователя в private chat, сверяет его
@@ -48,10 +48,13 @@ SalesDrive `GET /api/order/list/` с точным server-side ID и повтор
 проверкой до проекции. Контакты, точный адрес, платёжные
 реквизиты, CRM-заметки, внутренние поля и чужие заказы исключаются. Telegram
 order-flow работает только через фиксированное меню, без свободного текста и AI.
-Webhook, persistent binding/proof store, opaque selection tokens, distributed
-rate limit и runtime-интеграция пока не реализованы. Acceptance:
+Source webhook проверяет Telegram secret/update ID; Redis-адаптер атомарно хранит
+одноразовые link/selection/proof и phone-free binding; distributed limiter
+закрывается при отказе Redis. Модули не открывают HTTP route и сами не соединяются
+с Redis, Telegram или SalesDrive. Runtime-интеграция пока не реализована. Acceptance:
 [docs/ai-advisor-order-status-source-acceptance.md](./docs/ai-advisor-order-status-source-acceptance.md).
-Focused C22–C25 проходит 22/22, полный source suite — 140/140.
+[docs/ai-advisor-telegram-order-webhook-source-acceptance.md](./docs/ai-advisor-telegram-order-webhook-source-acceptance.md).
+Focused C26–C29 проходит 15/15, полный source suite — 155/155.
 
 Плавающий AI-консультант для `ledprojector.com.ua` с двумя режимами:
 
@@ -190,7 +193,7 @@ SHUTDOWN_TIMEOUT_MS=30000
 
 ### Direct SalesDrive configuration
 
-Для live-данных backend читает только server-side переменные: `SALESDRIVE_YML_URL`, `SALESDRIVE_SUBDOMAIN` и `SALESDRIVE_API_KEY`. Полный YML URL (включая `publicKey`) и API key являются секретами: не добавляйте их в Git, HTML, `widget.js`, логи или сообщения чата. При отсутствии настроек resolver закрывается безопасно: цена/наличие не подтверждаются, а пользователь получает manager fallback. Персональный статус заказа пока не включён в runtime; C20–C25 существуют только как source-контракты и synthetic acceptance.
+Для live-данных backend читает только server-side переменные: `SALESDRIVE_YML_URL`, `SALESDRIVE_SUBDOMAIN` и `SALESDRIVE_API_KEY`. Полный YML URL (включая `publicKey`) и API key являются секретами: не добавляйте их в Git, HTML, `widget.js`, логи или сообщения чата. При отсутствии настроек resolver закрывается безопасно: цена/наличие не подтверждаются, а пользователь получает manager fallback. Персональный статус заказа пока не включён в runtime; C20–C29 существуют только как source-контракты и synthetic acceptance.
 
 ## База знаний консультанта
 
