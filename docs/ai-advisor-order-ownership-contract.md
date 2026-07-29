@@ -1,14 +1,16 @@
 # C20 — ownership/auth contract for order status
 
 Date: 2026-07-29
-Status: C20 and C21 source contracts implemented; bot and order lookup remain disabled
+Status: C20–C25 source contracts implemented; bot/runtime integration remains disabled
 
 ## Scope
 
 C20 defines the proof boundary before personal order lookup. C21 implements the
-source-only Telegram contact-binding contract. Neither module calls Telegram,
-SalesDrive, OpenCart or ERP, reads a real order, adds an endpoint, persists a
-binding, or changes the active runtime.
+source-only Telegram contact-binding contract. C22–C25 add the bounded order DTO,
+GET-only injected SalesDrive adapter, fixed menu/templates and synthetic security
+acceptance. None of these modules is connected to Telegram, SalesDrive, OpenCart
+or ERP runtime, reads a real order, adds a webhook, persists a binding, or changes
+the active runtime.
 
 The executable source contract is `order-ownership-contract.mjs`. It accepts only
 an opaque server-produced proof envelope and returns an authorization gate. It
@@ -65,7 +67,7 @@ single-use consumption before a future order request. It is not order evidence.
 
 ## User-visible order data after proof
 
-After a successful code the assistant may show the ordinary order details the
+After a successful Telegram binding and ownership proof the bot may show the ordinary order details the
 customer expects: full order number, product names and quantities, total and
 currency, normalized order/payment/fulfillment status, delivery method, tracking
 number/link, confirmed delivery date, and last update time.
@@ -73,11 +75,13 @@ number/link, confirmed delivery date, and last update time.
 The response still excludes full phone/email/address, payment-card or transaction
 credentials, CRM notes, cost/margin fields, internal identifiers, and other
 orders. Raw SalesDrive payloads are projected to this allow-list before reaching
-the browser or model.
+the Telegram renderer. The order contour has no model boundary at all.
 
 C21 source validation is implemented in `telegram-order-binding.mjs`. Telegram
 webhook/API integration and persistent binding storage are still pending.
-C22–C25 also remain unimplemented. Anonymous lookup remains forbidden.
+C22–C25 source validation is implemented in `order-dto.mjs`,
+`salesdrive-order-client.mjs`, `telegram-order-menu.mjs` and their tests.
+Anonymous lookup remains forbidden; runtime lookup remains disabled.
 
 ## Verification
 
@@ -86,8 +90,13 @@ binding, backend ownership, expiry, replay and neutral public results.
 `test/telegram-order-binding.test.mjs` covers deep-link entropy/expiry, private
 own-contact validation, Ukrainian phone normalization, typed/forwarded contact
 rejection, group/mismatched identity rejection, phone-free binding projection
-and neutral public failures.
+and neutral public failures. The C22–C25 suites cover bounded projection,
+ownership-first GET access, callback-only routing, deterministic RU/UK templates,
+per-user rate limiting, PII exclusion and absence of AI/write methods.
 
 No existing endpoint, request field, response field, or HTTP status changes in
 C20. The current client contract is therefore backward-compatible and unchanged.
-The focused C20+C21 suites pass 22/22 and the full source suite passes 118/118.
+The focused C22–C25 suites pass 22/22 and the full source suite passes 140/140.
+
+Detailed source acceptance:
+[docs/ai-advisor-order-status-source-acceptance.md](./ai-advisor-order-status-source-acceptance.md).
