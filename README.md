@@ -17,7 +17,7 @@
 
 Последняя runtime acceptance на этой точке зафиксировала source/runtime diff 0 и локальный/публичный `/health` HTTP 200. Перед любой новой runtime-операцией health и diff проверяются заново; этот README не утверждает их текущий live-статус.
 
-Канонический forward roadmap C00–C54 и deferred-зоны находятся в разделе 18 [TECHNICAL_SPECIFICATION.md](./TECHNICAL_SPECIFICATION.md#18-forward-roadmap). Персональный статус заказа не включён в runtime: source C20–C29 готов, но до отдельной transport/config/release-приёмки запрещены anonymous lookup и реальные order API/customer-data операции.
+Канонический forward roadmap C00–C54 и deferred-зоны находятся в разделе 18 [TECHNICAL_SPECIFICATION.md](./TECHNICAL_SPECIFICATION.md#18-forward-roadmap). Персональный статус заказа не включён в active runtime: C20–C29 и disabled-by-default transport source готовы, но до provisioning/config/release-приёмки запрещены anonymous lookup и реальные order API/customer-data операции.
 
 ### Product-aware MVP source package
 
@@ -51,10 +51,13 @@ order-flow работает только через фиксированное �
 Source webhook проверяет Telegram secret/update ID; Redis-адаптер атомарно хранит
 одноразовые link/selection/proof и phone-free binding; distributed limiter
 закрывается при отказе Redis. Модули не открывают HTTP route и сами не соединяются
-с Redis, Telegram или SalesDrive. Runtime-интеграция пока не реализована. Acceptance:
+с Redis, Telegram или SalesDrive до включения `TELEGRAM_ORDER_ENABLED`. Fixed HTTP
+route, Redis client, Telegram sender и verified-ID owned-order service уже
+подключены в source и выключены по умолчанию. Acceptance:
 [docs/ai-advisor-order-status-source-acceptance.md](./docs/ai-advisor-order-status-source-acceptance.md).
 [docs/ai-advisor-telegram-order-webhook-source-acceptance.md](./docs/ai-advisor-telegram-order-webhook-source-acceptance.md).
-Focused C26–C29 проходит 15/15, полный source suite — 155/155.
+[docs/ai-advisor-telegram-order-transport-source-acceptance.md](./docs/ai-advisor-telegram-order-transport-source-acceptance.md).
+Focused transport/config проходит 11/11, полный source suite — 166/166.
 
 Плавающий AI-консультант для `ledprojector.com.ua` с двумя режимами:
 
@@ -93,7 +96,7 @@ npm run start:api:background
 
 Рабочая копия API размещена в `F:\Services\AI Advisor`; исходная папка `C:\AI Advisor` сохранена как rollback-копия. Логи API находятся в `F:\Services\AI Advisor\logs`.
 
-Перед любым переносом проверяйте release-кандидат: `npm test`, затем `npm run release:active:dry-run`. Только после явного решения о production-release применяйте `pwsh -NoProfile -File scripts\release-active-runtime.ps1 -Apply`, сверяйте hashes в выводе и отдельно перезапускайте API host в согласованное окно. Скрипт не переносит `.env`, логи, архивы или node_modules и не удаляет файлы из active runtime.
+Перед любым переносом проверяйте release-кандидат: `npm test`, затем `npm run release:active:dry-run`. Только после явного решения о production-release применяйте `pwsh -NoProfile -File scripts\release-active-runtime.ps1 -Apply`, сверяйте hashes в выводе и отдельно перезапускайте API host в согласованное окно. Скрипт не переносит `.env`, логи, архивы или node_modules и не удаляет файлы из active runtime. Если изменились `package.json`/`package-lock.json`, до перезапуска выполните в active runtime `npm ci --omit=dev` и проверьте audit; это отдельный явно подтверждённый release-шаг.
 
 Для текущего пользователя настроены два recovery-механизма:
 
@@ -193,7 +196,7 @@ SHUTDOWN_TIMEOUT_MS=30000
 
 ### Direct SalesDrive configuration
 
-Для live-данных backend читает только server-side переменные: `SALESDRIVE_YML_URL`, `SALESDRIVE_SUBDOMAIN` и `SALESDRIVE_API_KEY`. Полный YML URL (включая `publicKey`) и API key являются секретами: не добавляйте их в Git, HTML, `widget.js`, логи или сообщения чата. При отсутствии настроек resolver закрывается безопасно: цена/наличие не подтверждаются, а пользователь получает manager fallback. Персональный статус заказа пока не включён в runtime; C20–C29 существуют только как source-контракты и synthetic acceptance.
+Для live-данных backend читает только server-side переменные: `SALESDRIVE_YML_URL`, `SALESDRIVE_SUBDOMAIN` и `SALESDRIVE_API_KEY`. Полный YML URL (включая `publicKey`) и API key являются секретами: не добавляйте их в Git, HTML, `widget.js`, логи или сообщения чата. При отсутствии настроек resolver закрывается безопасно: цена/наличие не подтверждаются, а пользователь получает manager fallback. Персональный статус заказа пока не включён в active runtime; transport source выключен по умолчанию и требует отдельной provisioning/config/release-приёмки.
 
 ## База знаний консультанта
 

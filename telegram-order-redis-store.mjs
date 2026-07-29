@@ -49,7 +49,7 @@ export function createTelegramOrderRedisStore({
     return result === 'OK';
   }
 
-  async function saveLink({ linkSession, customerRef, expectedPhone } = {}) {
+  async function saveLink({ linkSession, customerRef, expectedPhone, sourceOrderIds = [] } = {}) {
     const token = String(linkSession?.token ?? '');
     const expiresAt = Date.parse(linkSession?.expiresAt);
     const ttlMs = expiresAt - now();
@@ -59,6 +59,7 @@ export function createTelegramOrderRedisStore({
       linkSession,
       customerRef: String(customerRef),
       expectedPhone: String(expectedPhone),
+      sourceOrderIds: normalizeSourceOrderIds(sourceOrderIds),
     });
     return await command(['SET', key('link', token), record, 'NX', 'PX', String(ttlMs)]) === 'OK';
   }
@@ -87,6 +88,7 @@ export function createTelegramOrderRedisStore({
   async function completeBinding({ telegramUserId, token, binding } = {}) {
     const userId = normalizeTelegramId(telegramUserId);
     if (!userId || !TOKEN.test(String(token ?? '')) || !validBinding(binding, userId)) return false;
+    const linkRecord = parseRecord(await command(['GET', key('link', token)]));
     const result = await command([
       'EVAL',
       COMPLETE_BINDING_SCRIPT,
@@ -98,7 +100,12 @@ export function createTelegramOrderRedisStore({
       JSON.stringify(binding),
       String(BINDING_TTL_MS),
     ]);
-    return Number(result) === 1;
+    if (Number(result) !== 1) return false;
+    const sourceOrderIds = normalizeSourceOrderIds(linkRecord?.sourceOrderIds);
+    const stored = await command([
+      'SET', key('owned', userId), JSON.stringify(sourceOrderIds), 'PX', String(BINDING_TTL_MS),
+    ]);
+    return stored === 'OK';
   }
 
   async function getBinding(telegramUserId) {
@@ -106,6 +113,17 @@ export function createTelegramOrderRedisStore({
     if (!userId) return null;
     const binding = parseRecord(await command(['GET', key('binding', userId)]));
     return validBinding(binding, userId) ? Object.freeze(binding) : null;
+  }
+
+  async function getOwnedSourceOrderIds(telegramUserId) {
+    const userId = normalizeTelegramId(telegramUserId);
+    if (!userId || !await getBinding(userId)) return [];
+    const value = await command(['GET', key('owned', userId)]);
+    try {
+      return normalizeSourceOrderIds(JSON.parse(stringValue(value)));
+    } catch {
+      return [];
+    }
   }
 
   async function issueOrderChoice({ telegramUserId, customerRef, sourceOrderId, orderReference } = {}) {
@@ -231,6 +249,7 @@ export function createTelegramOrderRedisStore({
     getPendingLink,
     completeBinding,
     getBinding,
+    getOwnedSourceOrderIds,
     issueOrderChoice,
     consumeOrderChoice,
     getSelection,
@@ -256,6 +275,11 @@ function validBinding(binding, expectedUserId) {
 
 function validCustomerRef(value) {
   return /^[A-Za-z0-9:_-]{1,128}$/u.test(String(value ?? ''));
+}
+
+function normalizeSourceOrderIds(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map(String).filter((item) => SOURCE_ORDER_ID.test(item)))].slice(0, 20);
 }
 
 function normalizeTelegramId(value) {

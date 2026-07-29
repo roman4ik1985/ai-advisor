@@ -16,6 +16,7 @@ import { getRateLimitClientId } from './src/client-identity.mjs';
 import { executeRequestPipeline } from './request-pipeline.mjs';
 import { createSalesdriveYmlClient } from './salesdrive-yml.mjs';
 import { createSalesdriveApiClient } from './salesdrive-api.mjs';
+import { createTelegramOrderRuntime } from './telegram-order-runtime.mjs';
 
 const config = readConfig();
 const publicDir = fileURLToPath(new URL('./public/', import.meta.url));
@@ -29,9 +30,17 @@ const sockets = new Set();
 let shuttingDown = false;
 const salesdriveYml = createSalesdriveYmlClient();
 const salesdriveApi = createSalesdriveApiClient();
+let telegramOrderRuntime = null;
 
 if (config.provider === 'api' && !config.apiKey) {
   console.error('OPENAI_API_KEY is required for API mode.');
+  process.exit(1);
+}
+
+try {
+  telegramOrderRuntime = await createTelegramOrderRuntime({ config });
+} catch {
+  console.error('Telegram order runtime configuration failed.');
   process.exit(1);
 }
 
@@ -51,6 +60,26 @@ const server = createServer(async (request, response) => {
 
   if (requestUrl.pathname === '/health') {
     return json(response, 200, { ok: true, provider: config.provider });
+  }
+
+  if (
+    requestUrl.pathname === config.telegramOrderWebhookPath
+    && request.method === 'POST'
+    && telegramOrderRuntime
+  ) {
+    try {
+      const update = await readJsonBody(request);
+      const result = await telegramOrderRuntime.handle({
+        secretHeader: request.headers['x-telegram-bot-api-secret-token'],
+        update,
+      });
+      return json(response, result.httpStatus, result.body);
+    } catch (error) {
+      if (error.code === 'INVALID_JSON') return json(response, 400, { ok: false });
+      if (error.code === 'BODY_TOO_LARGE') return json(response, 413, { ok: false });
+      if (error.code === 'UNSUPPORTED_MEDIA_TYPE') return json(response, 415, { ok: false });
+      return json(response, 503, { ok: false });
+    }
   }
 
   if (requestUrl.pathname === '/api/chat' && request.method === 'POST') {
@@ -304,6 +333,11 @@ async function shutdown(signal) {
   shuttingDown = true;
   console.log(`[shutdown] ${signal}: draining requests for up to ${config.shutdownTimeoutMs}ms.`);
   clearInterval(rateLimitCleanupTimer);
+  try {
+    await telegramOrderRuntime?.close();
+  } catch {
+    console.warn('[shutdown] Telegram order state close failed.');
+  }
   rateLimiter.clear();
   aiLimiter.close();
 

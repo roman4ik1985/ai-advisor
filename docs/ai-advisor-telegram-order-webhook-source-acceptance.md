@@ -1,7 +1,7 @@
 # C26–C29 — Telegram order webhook and durable-state source acceptance
 
 Date: 2026-07-29
-Status: source PASS; HTTP transport, Redis connection, Telegram sender and active runtime remain disabled
+Status: source transport wired; configuration, provisioning and active release remain disabled
 
 ## Implemented
 
@@ -58,11 +58,13 @@ Status: source PASS; HTTP transport, Redis connection, Telegram sender and activ
 
 ## Still required for release
 
-- Install/configure an approved Redis client and dedicated key namespace.
-- Add an HTTP route that forwards the secret header/body to this orchestrator.
-- Add a Telegram sender for returned commands with retry/idempotency controls.
-- Implement the authorized owned-order list adapter and dictionary hydration.
+- Configure an approved Redis namespace and credentials.
+- Implement authenticated order-link provisioning.
+- Add dictionary hydration.
 - Implement actual notification settings and manager delivery.
 - Run isolated Redis concurrency/failover acceptance, Telegram test-bot
   acceptance, authorized synthetic SalesDrive acceptance, log review and
   source/runtime release checks.
+
+Transport acceptance:
+[docs/ai-advisor-telegram-order-transport-source-acceptance.md](./ai-advisor-telegram-order-transport-source-acceptance.md).

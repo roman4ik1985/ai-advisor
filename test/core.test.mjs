@@ -47,6 +47,24 @@ test('load-protection settings are bounded and configurable', () => {
   assert.equal(bounded.shutdownTimeoutMs, 1000);
 });
 
+test('Telegram order transport is disabled by default and config values stay server-side', () => {
+  const disabled = readConfig(['--provider=api'], {});
+  assert.equal(disabled.telegramOrderEnabled, false);
+  assert.equal(disabled.telegramOrderWebhookPath, '/api/telegram/order-webhook');
+  const enabled = readConfig(['--provider=api'], {
+    TELEGRAM_ORDER_ENABLED: 'true',
+    TELEGRAM_ORDER_WEBHOOK_SECRET: 'secret',
+    TELEGRAM_ORDER_BOT_TOKEN: 'token',
+    TELEGRAM_ORDER_REDIS_URL: 'redis://127.0.0.1:6379',
+    TELEGRAM_ORDER_RATE_LIMIT_PER_MINUTE: '999',
+  });
+  assert.equal(enabled.telegramOrderEnabled, true);
+  assert.equal(enabled.telegramOrderWebhookSecret, 'secret');
+  assert.equal(enabled.telegramOrderBotToken, 'token');
+  assert.equal(enabled.telegramOrderRedisUrl, 'redis://127.0.0.1:6379');
+  assert.equal(enabled.telegramOrderRateLimit, 60);
+});
+
 test('conversation is bounded and sanitized', () => {
   const messages = Array.from({ length: 12 }, (_, index) => ({ role: index % 2 ? 'assistant' : 'user', content: ` ${index} ` }));
   assert.deepEqual(sanitizeMessages(messages).map((item) => item.content), ['4', '5', '6', '7', '8', '9', '10', '11']);

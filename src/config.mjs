@@ -42,6 +42,12 @@ export function readConfig(argv = process.argv.slice(2), env = process.env) {
     shutdownTimeoutMs: toInteger(env.SHUTDOWN_TIMEOUT_MS, 30000, 1000, 120000),
     learningLogEnabled: toBoolean(env.LEARNING_LOG_ENABLED),
     learningLogPath: resolve(projectRoot, 'logs', normalizeLearningLogFile(env.LEARNING_LOG_FILE)),
+    telegramOrderEnabled: toBoolean(env.TELEGRAM_ORDER_ENABLED),
+    telegramOrderWebhookPath: '/api/telegram/order-webhook',
+    telegramOrderWebhookSecret: String(env.TELEGRAM_ORDER_WEBHOOK_SECRET || ''),
+    telegramOrderBotToken: String(env.TELEGRAM_ORDER_BOT_TOKEN || ''),
+    telegramOrderRedisUrl: String(env.TELEGRAM_ORDER_REDIS_URL || ''),
+    telegramOrderRateLimit: toInteger(env.TELEGRAM_ORDER_RATE_LIMIT_PER_MINUTE, 10, 1, 60),
   };
 }
 
