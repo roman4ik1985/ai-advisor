@@ -99,6 +99,9 @@ const server = createServer(async (request, response) => {
           querySalesdriveDelivery: config.provider === 'test'
             ? undefined
             : () => salesdriveApi.listDeliveryMethods(),
+          querySalesdrivePayment: config.provider === 'test'
+            ? undefined
+            : () => salesdriveApi.listPaymentMethods(),
           queryKnowledge: () => searchKnowledge({ messages, page: body.page }),
           buildPrompt: buildAssistantPrompt,
           askSupport: (input) => askAssistant({ ...input, safetyIdentifier }),

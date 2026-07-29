@@ -22,6 +22,12 @@ const freshDeliveryEvidence = {
   checkedAt: '2026-07-29T00:00:00Z',
   capabilities: ['methods'],
 };
+const freshPaymentEvidence = {
+  status: 'AVAILABLE',
+  freshness: 'FRESH',
+  checkedAt: '2026-07-29T00:00:00Z',
+  capabilities: ['methods'],
+};
 
 test('deterministically renders confirmed inventory with matching price', () => {
   const answer = renderDeterministicLiveAnswer({
@@ -38,13 +44,53 @@ test('deterministically renders confirmed inventory with matching price', () => 
 test('deterministically renders only delivery methods without a deadline', () => {
   const answer = renderDeterministicLiveAnswer({
     question: 'Які способи доставки доступні?',
-    route: { requiredResolvers: ['catalog', 'inventory', 'delivery'] },
+    route: { requiredResolvers: ['delivery'] },
     liveFacts: { deliveryMethods: [{ id: '1', label: 'Нова пошта' }, { id: '2', label: 'Самовивіз' }] },
     liveEvidence: { delivery: freshDeliveryEvidence },
   });
 
-  assert.equal(answer, 'Доступні способи доставки: Нова пошта, Самовивіз. Точний строк доставки уточнить менеджер.');
+  assert.equal(answer, 'Доступні способи доставки: Нова пошта, Самовивіз. Доступність конкретного способу для замовлення підтверджується під час оформлення.');
   assert.doesNotMatch(answer, /завтра|дн\w*|годин/iu);
+});
+
+test('deterministically renders bilingual payment methods and combined dictionaries', () => {
+  const paymentMethods = [
+    { id: '1', label: 'Оплата карткою' },
+    { id: '2', label: 'Готівка' },
+    { id: '3', label: '<script>unsafe()</script>' },
+  ];
+  const ukrainian = renderDeterministicLiveAnswer({
+    question: 'Які способи оплати доступні?',
+    route: { requiredResolvers: ['payment'] },
+    liveFacts: { paymentMethods },
+    liveEvidence: { payment: freshPaymentEvidence },
+  });
+  assert.match(ukrainian, /^Доступні способи оплати:/u);
+  assert.match(ukrainian, /Оплата карткою.*Готівка/u);
+  assert.doesNotMatch(ukrainian, /<script>/iu);
+
+  const combined = renderDeterministicLiveAnswer({
+    question: 'Какие способы оплаты и доставки доступны?',
+    route: { requiredResolvers: ['delivery', 'payment'] },
+    liveFacts: {
+      paymentMethods: [{ id: '1', label: 'Картой' }],
+      deliveryMethods: [{ id: '2', label: 'Самовывоз' }],
+    },
+    liveEvidence: { payment: freshPaymentEvidence, delivery: freshDeliveryEvidence },
+  });
+  assert.match(combined, /Доступные способы оплаты: Картой/u);
+  assert.match(combined, /Доступные способы доставки: Самовывоз/u);
+  assert.doesNotMatch(combined, /одобр|гарантир|рассрочк/u);
+
+  const productAndPayment = renderDeterministicLiveAnswer({
+    question: 'Какая цена Projector One и какие способы оплаты?',
+    route: { requiredResolvers: ['catalog', 'price', 'payment'] },
+    catalog: inStockCatalog,
+    liveFacts: { paymentMethods: [{ id: '1', label: 'Картой' }] },
+    liveEvidence: { price: freshPriceEvidence, payment: freshPaymentEvidence },
+  });
+  assert.match(productAndPayment, /цена Projector One: 13 599 грн/u);
+  assert.match(productAndPayment, /способы оплаты: Картой/u);
 });
 
 test('deterministically renders bilingual price-only questions', () => {
@@ -134,7 +180,7 @@ test('keeps a delivery-deadline question on the validator path', () => {
   assert.equal(answer, null);
 });
 
-test('never renders stale price, inventory or delivery evidence', () => {
+test('never renders stale price, inventory, delivery or payment evidence', () => {
   const stale = { status: 'STALE', freshness: 'STALE', checkedAt: '2026-07-29T00:00:00Z' };
   assert.equal(renderDeterministicLiveAnswer({
     question: 'Какая цена Projector One?',
@@ -155,6 +201,56 @@ test('never renders stale price, inventory or delivery evidence', () => {
     liveFacts: { deliveryMethods: [{ id: '1', label: 'Нова пошта' }] },
     liveEvidence: { delivery: { ...stale, capabilities: ['methods'] } },
   }), null);
+  assert.equal(renderDeterministicLiveAnswer({
+    question: 'Какие способы оплаты?',
+    route: { requiredResolvers: ['payment'] },
+    liveFacts: { paymentMethods: [{ id: '1', label: 'Картой' }] },
+    liveEvidence: { payment: { ...stale, capabilities: ['methods'] } },
+  }), null);
+});
+
+test('pipeline renders fresh payment methods without model and fails closed when unavailable', async () => {
+  let supportCalls = 0;
+  const base = {
+    messages: [{ role: 'user', content: 'Какие способы оплаты доступны?' }],
+    queryCatalog: async () => { throw new Error('catalog not expected'); },
+    queryKnowledge: async () => { throw new Error('knowledge not expected'); },
+    buildPrompt: () => 'unused',
+    askSupport: async () => { supportCalls += 1; return 'model answer'; },
+    askVerifier: async () => { throw new Error('verifier not expected'); },
+    now: () => new Date('2026-07-29T00:01:00Z'),
+  };
+  const fresh = await executeRequestPipeline({
+    ...base,
+    question: 'Какие способы оплаты доступны?',
+    querySalesdrivePayment: async () => ({
+      items: [{ id: '1', label: 'Картой' }],
+      diagnostics: { code: 'OK' },
+      source: 'salesdrive_api',
+      fetchedAt: '2026-07-29T00:00:00Z',
+      freshness: 'FRESH',
+    }),
+  });
+  assert.equal(supportCalls, 0);
+  assert.match(fresh.answer, /Доступные способы оплаты: Картой/u);
+  assert.equal(fresh.freshness.live.payment.status, 'AVAILABLE');
+  assert.deepEqual(fresh.catalog, []);
+  assert.equal(fresh.catalogDiagnostics.code, 'SKIPPED_BY_ROUTE');
+
+  const unavailable = await executeRequestPipeline({
+    ...base,
+    question: 'Какие способы оплаты доступны?',
+    querySalesdrivePayment: async () => ({
+      items: [],
+      diagnostics: { code: 'SALES_DRIVE_API_TIMEOUT' },
+      source: 'salesdrive_api',
+      fetchedAt: null,
+      freshness: 'UNAVAILABLE',
+    }),
+  });
+  assert.equal(supportCalls, 0);
+  assert.deepEqual(unavailable.validation.reasons, ['LIVE_PAYMENT_UNAVAILABLE']);
+  assert.match(unavailable.answer, /^Чтобы дать точный ответ/u);
 });
 
 test('pipeline returns confirmed inventory without calling the model', async () => {

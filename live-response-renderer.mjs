@@ -6,10 +6,28 @@ export function renderDeterministicLiveAnswer({
   liveEvidence = {},
 } = {}) {
   const resolvers = new Set(route?.requiredResolvers || []);
-  if (resolvers.has('delivery')) {
-    if (!isFreshAvailable(liveEvidence.delivery, 'methods')) return null;
+  if (resolvers.has('delivery') || resolvers.has('payment')) {
+    if (resolvers.has('delivery') && !isFreshAvailable(liveEvidence.delivery, 'methods')) return null;
+    if (resolvers.has('payment') && !isFreshAvailable(liveEvidence.payment, 'methods')) return null;
     if (asksForDeliveryDeadline(question)) return null;
-    return renderDeliveryMethods(question, liveFacts.deliveryMethods);
+    const dictionaryAnswer = renderMethodDictionaries({
+      question,
+      deliveryMethods: resolvers.has('delivery') ? liveFacts.deliveryMethods : [],
+      paymentMethods: resolvers.has('payment') ? liveFacts.paymentMethods : [],
+    });
+    if (!dictionaryAnswer) return null;
+    if (resolvers.has('inventory')) {
+      if (!isFreshAvailable(liveEvidence.inventory, 'stock')) return null;
+      if (resolvers.has('price') && !isFreshAvailable(liveEvidence.price)) return null;
+      const inventoryAnswer = renderInventory(question, catalog, liveFacts.inventory, resolvers.has('price'));
+      return inventoryAnswer ? `${inventoryAnswer} ${dictionaryAnswer}` : null;
+    }
+    if (resolvers.has('price')) {
+      if (!isFreshAvailable(liveEvidence.price)) return null;
+      const priceAnswer = renderPrice(question, catalog);
+      return priceAnswer ? `${priceAnswer} ${dictionaryAnswer}` : null;
+    }
+    return dictionaryAnswer;
   }
   if (resolvers.has('inventory')) {
     if (!isFreshAvailable(liveEvidence.inventory, 'stock')) return null;
@@ -28,15 +46,38 @@ function isFreshAvailable(evidence, capability) {
   return available && (!capability || Array.isArray(evidence?.capabilities) && evidence.capabilities.includes(capability));
 }
 
-function renderDeliveryMethods(question, methods) {
-  const labels = [...new Set((Array.isArray(methods) ? methods : [])
-    .map((item) => String(item?.label || '').trim())
+function renderMethodDictionaries({ question, deliveryMethods, paymentMethods }) {
+  const deliveryLabels = safeLabels(deliveryMethods);
+  const paymentLabels = safeLabels(paymentMethods);
+  if (deliveryLabels.length === 0 && paymentLabels.length === 0) return null;
+  const ukrainian = isUkrainian(question);
+  const parts = [];
+  if (paymentLabels.length > 0) {
+    parts.push(ukrainian
+      ? `Доступні способи оплати: ${paymentLabels.join(', ')}.`
+      : `Доступные способы оплаты: ${paymentLabels.join(', ')}.`);
+  }
+  if (deliveryLabels.length > 0) {
+    parts.push(ukrainian
+      ? `Доступні способи доставки: ${deliveryLabels.join(', ')}.`
+      : `Доступные способы доставки: ${deliveryLabels.join(', ')}.`);
+  }
+  parts.push(ukrainian
+    ? 'Доступність конкретного способу для замовлення підтверджується під час оформлення.'
+    : 'Доступность конкретного способа для заказа подтверждается при оформлении.');
+  return parts.join(' ');
+}
+
+function safeLabels(methods) {
+  return [...new Set((Array.isArray(methods) ? methods : [])
+    .map((item) => String(item?.label || '')
+      .replace(/<[^>]*>/gu, ' ')
+      .replace(/[\u0000-\u001f\u007f]/gu, ' ')
+      .replace(/\s+/gu, ' ')
+      .trim()
+      .slice(0, 120))
     .filter(Boolean))]
     .slice(0, 12);
-  if (labels.length === 0) return null;
-  return isUkrainian(question)
-    ? `Доступні способи доставки: ${labels.join(', ')}. Точний строк доставки уточнить менеджер.`
-    : `Доступные способы доставки: ${labels.join(', ')}. Точный срок доставки уточнит менеджер.`;
 }
 
 function renderInventory(question, catalog, inventory, includePrice) {

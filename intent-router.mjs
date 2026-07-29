@@ -15,6 +15,8 @@ const DELIVERY_PATTERN = /(?:доставк|доставлен|доставим|
 const EXPLICIT_INVENTORY_PATTERN = /(?:наявност|наличи|в наличии|есть ли|залиш|остатк|резерв)/u;
 const AVAILABILITY_PATTERN = /(?:доступн)/u;
 const DELIVERY_METHODS_PATTERN = /(?:(?:способ|варіант|вариант|метод)\w*.{0,32}(?:доставк|доставлен)|(?:доставк|доставлен)\w*.{0,32}(?:способ|варіант|вариант|метод))/u;
+const PAYMENT_METHODS_PATTERN = /(?:(?:способ|варіант|вариант|метод)\w*.{0,32}(?:оплат|платеж|платіж)|(?:оплат|платеж|платіж)\w*.{0,32}(?:способ|варіант|вариант|метод)|(?:як|как)\s+(?:можна|можно)\s+оплат)/u;
+const FINANCING_POLICY_PATTERN = /(?:рассроч|розстроч|кредит|оплат\w*.{0,16}част)/u;
 const ADVICE_PATTERN = /(?:подбер|порад|порекоменду|посовет|какой.*выбрать|який.*обрат|какой.*підібрат|для дома|для кімнат|для комнаты|бюджет|яркост|яскравіст)/u;
 const COMPATIBILITY_PATTERN = /(?:сумісн|совместим|підійде|подойдет|підходить|подходит|екран|screen|ps5|playstation|xbox)/u;
 
@@ -22,7 +24,8 @@ export function classifyIntent({ question = '', messages = [] } = {}) {
   const text = normalize(question || latestUserMessage(messages));
 
   if (ESCALATION_PATTERN.test(text)) return 'manager_handoff';
-  if (LIVE_PATTERN.test(text) || PRICE_PATTERN.test(text)) return 'live_fact';
+  if (FINANCING_POLICY_PATTERN.test(text)) return 'store_faq';
+  if (LIVE_PATTERN.test(text) || PRICE_PATTERN.test(text) || PAYMENT_METHODS_PATTERN.test(text)) return 'live_fact';
   if (/(?:гарант|оплат|рассроч|кредит|повернен|обмен)/u.test(text)) return 'store_faq';
   if (ADVICE_PATTERN.test(text)) return 'product_advice';
   return 'product_lookup';
@@ -39,10 +42,12 @@ export function buildRouteDecision({ question = '', messages = [] } = {}) {
   const needsDelivery = DELIVERY_PATTERN.test(normalizedQuestion);
   const needsPrice = PRICE_PATTERN.test(normalizedQuestion);
   const deliveryMethodsOnly = needsDelivery && DELIVERY_METHODS_PATTERN.test(normalizedQuestion);
+  const needsPayment = PAYMENT_METHODS_PATTERN.test(normalizedQuestion);
+  const financingPolicyOnly = FINANCING_POLICY_PATTERN.test(normalizedQuestion);
   const needsInventory = EXPLICIT_INVENTORY_PATTERN.test(normalizedQuestion)
-    || AVAILABILITY_PATTERN.test(normalizedQuestion) && !deliveryMethodsOnly;
+    || AVAILABILITY_PATTERN.test(normalizedQuestion) && !deliveryMethodsOnly && !needsPayment && !financingPolicyOnly;
   const needsCompatibility = COMPATIBILITY_PATTERN.test(normalizedQuestion);
-  const hasMultipleCommercialConstraints = [needsInventory, needsDelivery, needsPrice, needsCompatibility]
+  const hasMultipleCommercialConstraints = [needsInventory, needsDelivery, needsPrice, needsPayment, needsCompatibility]
     .filter(Boolean)
     .length >= 2;
 
@@ -53,12 +58,14 @@ export function buildRouteDecision({ question = '', messages = [] } = {}) {
 
   const requiredResolvers = new Set();
   const policy = getRoutePolicy(intent);
-  if (policy.catalog && !(deliveryMethodsOnly && !needsInventory && !needsPrice)) requiredResolvers.add('catalog');
+  const liveDictionaryOnly = (deliveryMethodsOnly || needsPayment) && !needsInventory && !needsPrice;
+  if (policy.catalog && !liveDictionaryOnly) requiredResolvers.add('catalog');
   if (policy.knowledge) requiredResolvers.add('knowledge');
   if (route === 'COMPLEX') requiredResolvers.add('knowledge');
   if (needsPrice) requiredResolvers.add('price');
   if (needsInventory) requiredResolvers.add('inventory');
   if (needsDelivery) requiredResolvers.add('delivery');
+  if (needsPayment) requiredResolvers.add('payment');
 
   return {
     route,
@@ -99,7 +106,7 @@ export function routeInstruction(intent) {
     case 'product_advice':
       return 'TRUSTED_ROUTE_POLICY: This is a product-selection request. Use supplied catalog and knowledge evidence, or ask one focused clarification when needed.';
     case 'live_fact':
-      return 'TRUSTED_ROUTE_POLICY: This asks for a live fact. Catalog cards may support current price and product identity only. Do not claim stock, reservation, delivery deadline, promotion, or any other live operational fact without explicit evidence; recommend manager confirmation when needed.';
+      return 'TRUSTED_ROUTE_POLICY: This asks for a live fact. Catalog cards may support current price and product identity only. Payment and delivery method labels require explicit live dictionary evidence. Do not claim stock, reservation, delivery deadline, payment approval, promotion, or any other live operational fact without explicit evidence; recommend manager confirmation when needed.';
     case 'manager_handoff':
       return 'TRUSTED_ROUTE_POLICY: The visitor explicitly needs a manager. Do not guess contact, stock, payment, or delivery details; explain what the manager should confirm.';
     default:

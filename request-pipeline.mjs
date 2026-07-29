@@ -10,6 +10,7 @@ export async function executeRequestPipeline({
   queryCatalog,
   querySalesdriveCatalog,
   querySalesdriveDelivery,
+  querySalesdrivePayment,
   queryKnowledge,
   buildPrompt,
   askSupport,
@@ -23,6 +24,7 @@ export async function executeRequestPipeline({
     queryCatalog,
     querySalesdriveCatalog,
     querySalesdriveDelivery,
+    querySalesdrivePayment,
     now,
   });
   const knowledge = getRoutePolicy(route.intent).knowledge ? await queryKnowledge() : [];
@@ -126,7 +128,7 @@ export async function executeRequestPipeline({
 
 function requiredLiveEvidenceFailure(route, evidence) {
   const required = new Set(route?.requiredResolvers || []);
-  for (const resolver of ['price', 'inventory', 'delivery']) {
+  for (const resolver of ['price', 'inventory', 'delivery', 'payment']) {
     if (!required.has(resolver)) continue;
     const status = String(evidence?.[resolver]?.status || 'UNAVAILABLE');
     if (status !== 'AVAILABLE') return `LIVE_${resolver.toUpperCase()}_${status}`;

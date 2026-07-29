@@ -24,6 +24,7 @@ export async function resolveLiveEvidence({
   queryCatalog,
   querySalesdriveCatalog,
   querySalesdriveDelivery,
+  querySalesdrivePayment,
   now = () => new Date(),
 }) {
   const requiredResolvers = new Set(route?.requiredResolvers || []);
@@ -36,6 +37,7 @@ export async function resolveLiveEvidence({
   let priceResolver = notRequiredResolver();
   let inventoryResolver = notRequiredResolver();
   let deliveryResolver = notRequiredResolver();
+  let paymentResolver = notRequiredResolver();
   const liveFacts = {};
 
   if (requiredResolvers.has('catalog') || requiredResolvers.has('price')) {
@@ -109,6 +111,24 @@ export async function resolveLiveEvidence({
     if (hasDeliveryMethods) liveFacts.deliveryMethods = items;
   }
 
+  if (requiredResolvers.has('payment')) {
+    const result = querySalesdrivePayment
+      ? await querySalesdrivePayment()
+      : { items: [], diagnostics: { code: 'NO_AUTHORIZED_READ_ONLY_SOURCE' }, fetchedAt: null };
+    const items = Array.isArray(result?.items) ? result.items : [];
+    const resultFreshness = normalizeFreshness(result);
+    const hasPaymentMethods = resultFreshness === 'FRESH' && items.length > 0 && result?.diagnostics?.code === 'OK';
+    paymentResolver = {
+      status: hasPaymentMethods ? 'AVAILABLE' : resolverFailureStatus(resultFreshness),
+      freshness: resultFreshness,
+      source: hasPaymentMethods || resultFreshness === 'STALE' ? (result?.source || 'salesdrive_api') : null,
+      checkedAt: hasPaymentMethods || resultFreshness === 'STALE' ? (result?.fetchedAt || now().toISOString()) : null,
+      reason: hasPaymentMethods ? null : String(result?.diagnostics?.code || 'SALES_DRIVE_API_UNAVAILABLE'),
+      capabilities: hasPaymentMethods ? ['methods'] : [],
+    };
+    if (hasPaymentMethods) liveFacts.paymentMethods = items;
+  }
+
   return {
     catalog,
     catalogDiagnostics,
@@ -117,6 +137,7 @@ export async function resolveLiveEvidence({
       price: priceResolver,
       inventory: requiredResolvers.has('inventory') ? inventoryResolver : notRequiredResolver(),
       delivery: requiredResolvers.has('delivery') ? deliveryResolver : notRequiredResolver(),
+      payment: requiredResolvers.has('payment') ? paymentResolver : notRequiredResolver(),
     },
     liveFacts,
   };

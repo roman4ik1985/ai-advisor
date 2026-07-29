@@ -4,7 +4,7 @@ import { buildFreshnessEvidence, buildRouteDecision, classifyIntent, getRoutePol
 import { executeRequestPipeline } from '../request-pipeline.mjs';
 
 test('intent router classifies the supported store request types deterministically', () => {
-  assert.equal(classifyIntent({ question: 'Які способи оплати та доставки?' }), 'store_faq');
+  assert.equal(classifyIntent({ question: 'Які способи оплати та доставки?' }), 'live_fact');
   assert.equal(classifyIntent({ question: 'Порадьте проектор для кімнати до 20 000 грн' }), 'product_advice');
   assert.equal(classifyIntent({ question: 'Есть ли Wanbo T6 Max в наличии?' }), 'live_fact');
   assert.equal(classifyIntent({ question: 'Нужен менеджер, пожалуйста перезвоните' }), 'manager_handoff');
@@ -17,7 +17,7 @@ test('intent router limits evidence sources by route', () => {
   assert.match(routeInstruction('live_fact'), /Do not claim stock/u);
 });
 
-test('bilingual price forms and delivery methods select only required resolvers', () => {
+test('bilingual price, delivery and payment forms select only required resolvers', () => {
   for (const question of ['Какая цена?', 'Уточните цену', 'Сравните цены', 'Яка ціна?', 'Уточніть ціну']) {
     const decision = buildRouteDecision({ question });
     assert.equal(decision.intent, 'live_fact');
@@ -26,6 +26,10 @@ test('bilingual price forms and delivery methods select only required resolvers'
 
   assert.deepEqual(buildRouteDecision({ question: 'Какие способы доставки доступны?' }).requiredResolvers, ['delivery']);
   assert.deepEqual(buildRouteDecision({ question: 'Які способи доставки доступні?' }).requiredResolvers, ['delivery']);
+  assert.deepEqual(buildRouteDecision({ question: 'Какие способы оплаты доступны?' }).requiredResolvers, ['payment']);
+  assert.deepEqual(buildRouteDecision({ question: 'Як можна оплатити замовлення?' }).requiredResolvers, ['payment']);
+  assert.deepEqual(buildRouteDecision({ question: 'Які способи оплати та доставки?' }).requiredResolvers, ['delivery', 'payment']);
+  assert.deepEqual(buildRouteDecision({ question: 'Доступна ли рассрочка?' }).requiredResolvers, ['knowledge']);
   assert.equal(buildRouteDecision({ question: 'Нужна оценка характеристик' }).requiredResolvers.includes('price'), false);
 });
 

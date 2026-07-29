@@ -88,3 +88,11 @@ Four non-personal local `/api/chat` checks passed:
 - An unknown-product price request returned HTTP 200, an empty catalog, no price and the manager fallback without a model-generated live claim.
 
 All four responses retained the existing success keys and request IDs. Local/public health returned HTTP 200. A boundary-aware scan of 13 runtime log files found no SalesDrive/OpenAI key, YML URL or `publicKey` marker; two broad-pattern hits were verified as historical `task-scheduler-*` filename text rather than tokens. Freshness fail-closed acceptance: **PASS**.
+
+## Live payment-method hardening, 2026-07-29
+
+- Russian/Ukrainian payment-method questions require only the direct `payment` resolver; mixed payment/delivery questions require both dictionaries without catalog or inventory.
+- Financing policy questions such as credit/installment availability remain on the knowledge/manager path and do not become inventory queries.
+- The GET-only SalesDrive payment dictionary projects only ID/label DTOs. Deterministic output uses only `AVAILABLE + FRESH` evidence, sanitizes labels and does not promise approval or applicability to a specific order.
+- Missing, stale or unavailable payment evidence returns the manager fallback without a model call.
+- Targeted routing/rendering/API-contract tests pass 28/28; the full source suite passes 69/69. Runtime release and live acceptance are recorded after deployment.
