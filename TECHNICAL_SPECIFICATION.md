@@ -787,7 +787,22 @@ OpenCart/cPanel, Tunnel, active runtime, secrets и remote изменяются 
 [regression report](./docs/ai-advisor-p5-regression-report.md) и
 [rollout/rollback runbook](./docs/ai-advisor-p5-rollout-runbook.md).
 
-### P6. Deferred beyond current scope
+### P6. Production monitoring hardening
+
+| ID | Контур | Статус |
+|---|---|---|
+| C60 | Immutable Lightning bundle integrity | PASS: normal/cache-busted byte + SHA-256 parity, stale/partial bundle fail-closed |
+| C61 | Five-route production mount smoke | PASS: HTTP 200 и real headless browser mount 5/5 |
+| C62 | Mobile Web Vitals | PASS: 390x844, LCP 1,268 ms, CLS 0, INP 56 ms, focus contract PASS |
+| C63 | SLO and alert consequence | PASS: любое нарушение блокирует rollout и направляет в P5 rollback runbook |
+| C64 | Repeatable operations gate | PASS: `npm run production:smoke`, browser errors 0, no production mutation |
+
+P6 реализован как read-only monitor с фиксированным production host и
+allow-listed routes. Он не читает заказы/клиентов, не меняет OpenCart,
+Lightning, runtime, `.env` или секреты. Evidence:
+[docs/ai-advisor-p6-production-monitoring.md](./docs/ai-advisor-p6-production-monitoring.md).
+
+### P7. Deferred beyond current scope
 
 - дополнительные языки поверх RU/UK;
 - A/B-тесты подсказок и поведения персонажа;

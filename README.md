@@ -52,6 +52,15 @@ server embed. Acceptance и rollback evidence:
 [docs/ai-advisor-p5-regression-report.md](./docs/ai-advisor-p5-regression-report.md),
 [docs/ai-advisor-p5-rollout-runbook.md](./docs/ai-advisor-p5-rollout-runbook.md).
 
+P6 добавляет повторяемый read-only production gate:
+`npm run production:smoke`. Он проверяет normal/cache-busted parity активного
+Lightning widget bundle, HTTP 200 и mount на пяти маршрутах, mobile 390x844,
+open/close/focus, LCP/CLS/INP и browser errors. Первый live run прошёл:
+bundle 29,472 bytes, routes 5/5, LCP 1,268 ms, CLS 0, INP 56 ms, errors 0.
+При любом нарушении команда возвращает non-zero и
+`FREEZE_ROLLOUT_AND_USE_ROLLBACK_RUNBOOK`. Подробности:
+[docs/ai-advisor-p6-production-monitoring.md](./docs/ai-advisor-p6-production-monitoring.md).
+
 ### Product-aware MVP source package
 
 C10–C15 реализованы в source:

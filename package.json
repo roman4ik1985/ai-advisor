@@ -17,6 +17,7 @@
     "security:maintenance": "node scripts/security-maintenance.mjs",
     "benchmark:quality": "node scripts/run-quality-benchmark.mjs",
     "performance:budget": "node scripts/check-performance-budget.mjs",
+    "production:smoke": "node scripts/check-production-widget.mjs",
     "analytics:rotate": "node scripts/rotate-product-analytics.mjs",
     "release:active:dry-run": "pwsh -NoProfile -File scripts/release-active-runtime.ps1",
     "test": "node --test test/*.test.mjs",
