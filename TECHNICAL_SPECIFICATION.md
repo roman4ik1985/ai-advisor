@@ -763,12 +763,12 @@ P3 acceptance:
 
 | ID | Контур | Условие |
 |---|---|---|
-| C40 | Privacy-safe product analytics | Отдельное решение по перечню событий и retention |
-| C41 | Readiness and SLO | После стабилизации product-aware MVP |
-| C42 | Distributed rate limit | Только при multi-instance backend |
-| C43 | Security maintenance | Перед staging acceptance и далее по регламенту |
-| C44 | Cost/quality benchmark | После стабилизации тестового набора пользовательских сценариев |
-| C45 | Performance and Web Vitals | Требует staging |
+| C40 | Privacy-safe product analytics | Source PASS: три allow-listed product event, без visitor identity/free text, retention 30 дней, disabled by default |
+| C41 | Readiness and SLO | Source PASS: отдельный `/ready`; 30-day targets 99.5% availability, 98% success, p95 <= 15 s; live samples пока `NO_DATA` |
+| C42 | Distributed rate limit | Current single-instance PASS на local fixed window; multi-instance fail-closed до atomic distributed limiter |
+| C43 | Security maintenance | Source PASS: zero audit vulnerabilities/secret markers, required headers present, 30-day cadence |
+| C44 | Cost/quality benchmark | Source PASS: deterministic RU/UK corpus 12/12, model-call budget 12 total / 1.0 average |
+| C45 | Performance and Web Vitals | Asset budget PASS (JS 30,567 / 120,000 bytes; CSS 9,098 / 50,000 bytes); LCP/CLS/INP `STAGING_REQUIRED` |
 
 ### P5. Staging and controlled rollout
 

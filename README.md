@@ -26,6 +26,18 @@ product-specifications:ingest` продвигает только провере�
 официальных product pages в отдельный evidence-файл. Цена, наличие, акции и
 доставка не могут попасть в этот статический product evidence.
 
+P4 C40–C45 завершён в source. Product analytics выключена по умолчанию, хранит
+только три allow-listed события без visitor identity/free text и имеет retention
+30 дней. Отдельный `/ready` проверяет зависимости и capacity; SLO-контракт
+задаёт 99.5% availability, 98% success и p95 не более 15 секунд. Текущий
+single-instance backend использует local limiter, а multi-instance запуск
+fail-closed до atomic distributed limiter. Security maintenance, RU/UK
+cost-quality benchmark и asset budgets выполняются командами
+`npm run security:maintenance`, `npm run benchmark:quality` и
+`npm run performance:budget`. Source assets проходят бюджет; реальные LCP/CLS/INP
+остаются `STAGING_REQUIRED`. Acceptance:
+[docs/ai-advisor-p4-operations-acceptance.md](./docs/ai-advisor-p4-operations-acceptance.md).
+
 ### Product-aware MVP source package
 
 C10–C15 реализованы в source:

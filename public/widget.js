@@ -192,6 +192,8 @@
   const script = document.currentScript;
   const endpoint = script?.dataset.endpoint || 'https://ai.ledprojector.com.ua/api/chat';
   const orderLinkEndpoint = new URL('/api/telegram/order-link', new URL(endpoint, location.href).origin).toString();
+  const productAnalyticsEnabled = script?.dataset.productAnalytics === 'true';
+  const productAnalyticsEndpoint = new URL('/api/analytics/product', new URL(endpoint, location.href).origin).toString();
   const mascotUrl = script?.dataset.mascot || 'https://ai.ledprojector.com.ua/assets/mascot.png';
   const productTarget = script?.dataset.productTarget === '_blank' ? '_blank' : '_self';
   const panelId = 'lp-agent-panel';
@@ -437,6 +439,7 @@
       titleLink.target = productTarget;
       if (productTarget === '_blank') titleLink.rel = 'noopener noreferrer';
       titleLink.textContent = product.name;
+      titleLink.addEventListener('click', () => trackProductEvent('PRODUCT_CARD_OPENED', product));
       title.append(titleLink);
       body.append(title);
 
@@ -462,17 +465,38 @@
       action.textContent = findProductTarget(product) ? copy.showProduct : copy.openProduct;
       action.addEventListener('click', (event) => {
         const target = findProductTarget(product);
-        if (!target) return;
+        if (!target) {
+          trackProductEvent('PRODUCT_CARD_OPENED', product);
+          return;
+        }
         event.preventDefault();
+        trackProductEvent('PRODUCT_GUIDE_USED', product);
         showProduct(target);
       });
       body.append(action);
       card.append(body);
       list.append(card);
+      trackProductEvent('PRODUCT_CARD_SHOWN', product);
     }
 
     section.append(heading, list);
     afterElement.after(section);
+  }
+
+  function trackProductEvent(eventType, product) {
+    if (!productAnalyticsEnabled) return;
+    let rawKey = product?.id || product?.sku || '';
+    if (!rawKey) {
+      try { rawKey = new URL(product?.url || '').pathname; } catch { rawKey = ''; }
+    }
+    const productKey = String(rawKey).replace(/[^A-Za-z0-9:_./-]+/g, '_').slice(0, 160);
+    if (!productKey) return;
+    void fetch(productAnalyticsEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventType, productKey }),
+      keepalive: true,
+    }).catch(() => {});
   }
 
   function findProductTarget(product) {

@@ -18,6 +18,9 @@ import { createSalesdriveYmlClient } from './salesdrive-yml.mjs';
 import { createSalesdriveApiClient } from './salesdrive-api.mjs';
 import { createTelegramOrderRuntime } from './telegram-order-runtime.mjs';
 import { loadProductSpecificationEvidence } from './product-specification-evidence.mjs';
+import { createProductAnalytics } from './product-analytics.mjs';
+import { buildReadinessSnapshot } from './readiness-slo.mjs';
+import { decideRateLimitStrategy } from './rate-limit-strategy.mjs';
 
 const config = readConfig();
 const publicDir = fileURLToPath(new URL('./public/', import.meta.url));
@@ -34,6 +37,18 @@ const salesdriveApi = createSalesdriveApiClient();
 const productSpecificationEvidence = await loadProductSpecificationEvidence(
   fileURLToPath(new URL('./knowledge/product-specifications.json', import.meta.url)),
 );
+const rateLimitStrategy = decideRateLimitStrategy({
+  instanceCount: Number.parseInt(process.env.BACKEND_INSTANCE_COUNT || '1', 10),
+  distributedConfigured: false,
+});
+if (rateLimitStrategy.status !== 'READY') {
+  console.error('Distributed rate limiting is required before multi-instance startup.');
+  process.exit(1);
+}
+const productAnalytics = createProductAnalytics({
+  enabled: ['1', 'true', 'yes', 'on'].includes(String(process.env.PRODUCT_ANALYTICS_ENABLED || '').toLowerCase()),
+  path: fileURLToPath(new URL('./logs/product-analytics.jsonl', import.meta.url)),
+});
 let telegramOrderRuntime = null;
 
 if (config.provider === 'api' && !config.apiKey) {
@@ -70,6 +85,47 @@ const server = createServer(async (request, response) => {
 
   if (requestUrl.pathname === '/health') {
     return json(response, 200, { ok: true, provider: config.provider });
+  }
+
+  if (requestUrl.pathname === '/ready') {
+    const readiness = buildReadinessSnapshot({
+      shuttingDown,
+      providerConfigured: config.provider !== 'api' || Boolean(config.apiKey),
+      queueActive: aiLimiter.active,
+      queueQueued: aiLimiter.queued,
+      maxConcurrent: config.aiMaxConcurrent,
+      maxQueue: config.aiMaxQueue,
+      rateLimitStrategy,
+      telegramEnabled: config.telegramOrderEnabled,
+      telegramReady: !config.telegramOrderEnabled || Boolean(telegramOrderRuntime),
+    });
+    return json(response, readiness.ready ? 200 : 503, readiness);
+  }
+
+  if (
+    requestUrl.pathname === '/api/analytics/product'
+    && request.method === 'POST'
+    && productAnalytics.enabled
+  ) {
+    if (!applyCors(request, response)) {
+      return sendError(response, 403, 'Origin is not allowed.', 'ORIGIN_NOT_ALLOWED', requestId);
+    }
+    const clientId = getRateLimitClientId(request);
+    const rate = rateLimiter.consume(`product-analytics:${clientId}`);
+    if (!rate.allowed) {
+      return sendError(response, 429, 'Too many requests.', 'RATE_LIMITED', requestId, rate.retryAfterSeconds);
+    }
+    try {
+      const accepted = await productAnalytics.record(await readJsonBody(request));
+      return accepted
+        ? json(response, 202, { ok: true })
+        : sendError(response, 400, 'Invalid analytics event.', 'INVALID_ANALYTICS_EVENT', requestId);
+    } catch (error) {
+      if (error.code === 'INVALID_JSON') return sendError(response, 400, 'Invalid JSON body.', error.code, requestId);
+      if (error.code === 'BODY_TOO_LARGE') return sendError(response, 413, 'Request body is too large.', error.code, requestId);
+      if (error.code === 'UNSUPPORTED_MEDIA_TYPE') return sendError(response, 415, 'Content-Type must be application/json.', error.code, requestId);
+      return sendError(response, 503, 'Analytics is temporarily unavailable.', 'ANALYTICS_UNAVAILABLE', requestId);
+    }
   }
 
   if (
@@ -320,6 +376,10 @@ function mimeType(extension) {
 }
 
 function setSecurityHeaders(response) {
+  response.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https://ledprojector.com.ua https://www.ledprojector.com.ua data:; connect-src 'self'",
+  );
   response.setHeader('X-Content-Type-Options', 'nosniff');
   response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
