@@ -37,12 +37,13 @@ function hasUnverifiedAvailability(answer, freshness) {
 }
 
 function hasUnverifiedDelivery(answer, freshness) {
-  return DELIVERY_DEADLINE_PATTERN.test(answer) && !hasAvailableLiveResolver(freshness, 'delivery');
+  return DELIVERY_DEADLINE_PATTERN.test(answer) && !hasAvailableLiveResolver(freshness, 'delivery', 'deadline');
 }
 
-function hasAvailableLiveResolver(freshness, resolver) {
+function hasAvailableLiveResolver(freshness, resolver, capability) {
   const evidence = freshness?.live?.[resolver];
-  return evidence?.status === 'AVAILABLE' && Number.isFinite(Date.parse(String(evidence.checkedAt || '')));
+  const available = evidence?.status === 'AVAILABLE' && Number.isFinite(Date.parse(String(evidence.checkedAt || '')));
+  return available && (!capability || Array.isArray(evidence?.capabilities) && evidence.capabilities.includes(capability));
 }
 
 function hasUnverifiedWarranty(answer, knowledge, freshness, now) {
@@ -58,6 +59,8 @@ function hasUnverifiedWarranty(answer, knowledge, freshness, now) {
 }
 
 function hasFreshCatalogEvidence(freshness, now) {
+  const priceResolver = freshness?.live?.price;
+  if (priceResolver && priceResolver.status !== 'AVAILABLE') return false;
   const catalog = freshness?.catalog;
   if (!catalog?.queried || catalog.code !== 'OK') return false;
   const fetchedAt = Date.parse(String(catalog.fetchedAt || ''));

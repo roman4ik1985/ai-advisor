@@ -88,3 +88,29 @@ test('complex pipeline verifies the draft once after deterministic validation', 
   assert.equal(result.validation.action, 'ALLOW');
   assert.equal(result.verification.status, 'APPROVED');
 });
+
+test('direct SalesDrive evidence enables stock but does not turn delivery methods into delivery deadlines', async () => {
+  const result = await executeRequestPipeline({
+    question: 'Есть ли Wanbo T6 Max в наличии и доставим завтра?',
+    messages: [{ role: 'user', content: 'Есть ли Wanbo T6 Max в наличии и доставим завтра?' }],
+    page: {},
+    queryCatalog: async () => ({ products: [], diagnostics: { code: 'UNUSED' } }),
+    querySalesdriveCatalog: async () => ({
+      products: [{ name: 'Wanbo T6 Max', sku: 'T6-MAX', prices: ['13 599 грн.'], availability: { state: 'IN_STOCK', stockQuantity: 3 } }],
+      diagnostics: { code: 'OK' }, source: 'salesdrive_yml', fetchedAt: '2026-07-29T00:00:00Z',
+    }),
+    querySalesdriveDelivery: async () => ({
+      items: [{ id: '7', label: 'Нова пошта' }], diagnostics: { code: 'OK' }, source: 'salesdrive_api', fetchedAt: '2026-07-29T00:00:00Z',
+    }),
+    queryKnowledge: async () => [],
+    buildPrompt: () => 'support prompt',
+    askSupport: async () => 'Wanbo T6 Max есть в наличии, доставим завтра.',
+    askVerifier: async () => ({ approved: true }),
+    now: () => new Date('2026-07-29T00:01:00Z'),
+  });
+
+  assert.equal(result.freshness.live.inventory.status, 'AVAILABLE');
+  assert.deepEqual(result.freshness.live.delivery.capabilities, ['methods']);
+  assert.equal(result.validation.accepted, false);
+  assert.deepEqual(result.validation.reasons, ['UNVERIFIED_DELIVERY_DEADLINE']);
+});

@@ -410,8 +410,10 @@ flowchart LR
 | `server.mjs` | HTTP, статические файлы, CORS, rate limit, маршрутизация и ошибки |
 | `intent-router.mjs` | Детерминированный выбор intent, уровня риска, route и требуемых resolvers |
 | `request-pipeline.mjs` | Последовательность routing, evidence, Support Agent, validator и risk-gated verification |
-| `live-resolvers.mjs` | Контракт live evidence: публичный catalog/price и явный unavailable для неавторизованных источников |
+| `live-resolvers.mjs` | Контракт live evidence: прямой SalesDrive YML для catalog/price/inventory и GET-only SalesDrive API для методов доставки |
 | `response-validator.mjs` | Детерминированное действие `ALLOW`, `REWRITE`, `REGENERATE` или `ESCALATE` перед отправкой ответа |
+| `salesdrive-yml.mjs` | Ограниченный HTTPS YML fetch, безопасный разбор без DTD/ENTITY, bounded cache и нормализация цены/остатка |
+| `salesdrive-api.mjs` | GET-only allowlist публичных SalesDrive dictionaries с проекцией DTO |
 | `src/catalog.mjs` | Поиск и безопасное извлечение товарных данных |
 | `src/prompt.mjs` | Очистка истории и построение инструкций модели |
 | CLI provider | Локальные запросы через авторизованный Codex CLI |
@@ -430,7 +432,7 @@ flowchart LR
 | `COMPLEX` | Support Agent, затем validator и независимая проверка компактного evidence package | Только после `ALLOW` validator |
 | `ESCALATE` | Локальный manager fallback без выдуманного ответа | Нет |
 
-Публичный поиск каталога является live-источником только для идентификации товара и текущей цены. Пока не подключён отдельный авторизованный read-only resolver, `inventory` и `delivery` возвращают `UNAVAILABLE` с причиной `NO_AUTHORIZED_READ_ONLY_SOURCE`; validator переводит утверждение о наличии или сроке доставки в безопасный manager fallback. Внутренние route, freshness, validation и verification evidence пишутся только в request-id-safe диагностический лог; успешный HTTP-контракт виджета не расширяется внутренними данными.
+Прямой SalesDrive YML является live-источником идентификации, цены и наличия товара; response validator принимает наличие только при явном нормализованном состоянии `IN_STOCK` или `OUT_OF_STOCK`. SalesDrive API используется GET-only для публичных словарей способов доставки; такой словарь не подтверждает дату/срок доставки, поэтому validator по-прежнему переводит сроковое обещание в manager fallback. API ключ и YML URL существуют только server-side; order lookup не реализуется до отдельного ownership/auth contract. Внутренние route, freshness, validation и verification evidence пишутся только в request-id-safe диагностический лог; успешный HTTP-контракт виджета не расширяется внутренними данными.
 
 ## 12. Интеграция с OpenCart
 
@@ -469,6 +471,9 @@ flowchart LR
 | `CODEX_MODEL` | Опциональная модель CLI | Пусто |
 | `CODEX_TIMEOUT_MS` | Тайм-аут CLI | `90000` |
 | `STORE_URL` | Базовый URL магазина | `https://ledprojector.com.ua` |
+| `SALESDRIVE_YML_URL` | Полный HTTPS URL включённого YML-экспорта SalesDrive; содержит секретный `publicKey` | Пусто, resolver закрыт |
+| `SALESDRIVE_SUBDOMAIN` | SalesDrive subdomain для server-side API | Пусто, API resolver закрыт |
+| `SALESDRIVE_API_KEY` | Серверный ключ SalesDrive для GET-only словарей | Пусто, API resolver закрыт |
 | `RATE_LIMIT_PER_MINUTE` | Лимит на клиента | `20` |
 | `AI_MAX_CONCURRENT` | Максимум одновременно выполняемых AI-запросов | `4` |
 | `AI_MAX_QUEUE` | Максимум AI-запросов в очереди | `16` |
@@ -497,6 +502,8 @@ flowchart LR
 - разрешение товарных URL только для согласованного домена магазина;
 - защита от prompt injection: доверенные инструкции отделены от пользовательского ввода и HTML-контекста;
 - запуск CLI-процесса без `shell: true` и без интерпретации конфигурации оболочкой;
+- YML URL с `publicKey` и `SALESDRIVE_API_KEY` считаются секретами; YML fetch не следует redirect, ограничивает размер/время и отклоняет DTD/ENTITY;
+- raw SalesDrive order/contact payload не передаётся модели; order lookup требует отдельной проверки владельца;
 - CSP и HSTS задаются production reverse proxy с учётом способа встраивания виджета.
 
 ### 14.2. Данные пользователя

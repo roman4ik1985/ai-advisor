@@ -6,7 +6,6 @@ import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readConfig } from './src/config.mjs';
 import { buildAssistantInput, buildAssistantPrompt, sanitizeMessages, trustedInstructions } from './src/prompt.mjs';
-import { searchCatalog } from './src/catalog.mjs';
 import { searchKnowledge } from './src/knowledge.mjs';
 import { appendLearningRecord } from './src/learning-log.mjs';
 import { askViaCli } from './src/providers/cli-provider.mjs';
@@ -15,6 +14,8 @@ import { askViaTest } from './src/providers/test-provider.mjs';
 import { BackpressureError, ConcurrencyLimiter, FixedWindowRateLimiter } from './src/runtime-guards.mjs';
 import { getRateLimitClientId } from './src/client-identity.mjs';
 import { executeRequestPipeline } from './request-pipeline.mjs';
+import { createSalesdriveYmlClient } from './salesdrive-yml.mjs';
+import { createSalesdriveApiClient } from './salesdrive-api.mjs';
 
 const config = readConfig();
 const publicDir = fileURLToPath(new URL('./public/', import.meta.url));
@@ -26,6 +27,8 @@ const aiLimiter = new ConcurrencyLimiter({
 });
 const sockets = new Set();
 let shuttingDown = false;
+const salesdriveYml = createSalesdriveYmlClient();
+const salesdriveApi = createSalesdriveApiClient();
 
 if (config.provider === 'api' && !config.apiKey) {
   console.error('OPENAI_API_KEY is required for API mode.');
@@ -89,7 +92,13 @@ const server = createServer(async (request, response) => {
           page: body.page,
           queryCatalog: async () => config.provider === 'test'
             ? { products: [], diagnostics: { code: 'TEST_PROVIDER', message: 'Catalog lookup skipped in test mode.' } }
-            : searchCatalog(config.storeUrl, latestQuestion),
+            : salesdriveYml.search(latestQuestion),
+          querySalesdriveCatalog: config.provider === 'test'
+            ? undefined
+            : (question) => salesdriveYml.search(question),
+          querySalesdriveDelivery: config.provider === 'test'
+            ? undefined
+            : () => salesdriveApi.listDeliveryMethods(),
           queryKnowledge: () => searchKnowledge({ messages, page: body.page }),
           buildPrompt: buildAssistantPrompt,
           askSupport: (input) => askAssistant({ ...input, safetyIdentifier }),
