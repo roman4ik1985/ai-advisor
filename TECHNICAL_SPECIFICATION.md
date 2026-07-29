@@ -98,7 +98,7 @@
 - интерфейс на украинском и русском языках;
 - сбор ограниченного контекста текущей страницы;
 - поиск товаров через страницу поиска магазина;
-- детерминированная маршрутизация запроса между knowledge, catalog и manager handoff с внутренним freshness-evidence;
+- детерминированная маршрутизация `SIMPLE` / `STANDARD` / `COMPLEX` / `ESCALATE` между knowledge, catalog и manager handoff с внутренним freshness-evidence;
 - два провайдера: `cli` и `api`;
 - принудительная привязка CLI-режима к `127.0.0.1`;
 - запросы Codex CLI в ephemeral/read-only режиме;
@@ -408,13 +408,29 @@ flowchart LR
 | `public/widget.js` | UI, история вкладки, контекст страницы, запросы, карточки рекомендаций, движение персонажа |
 | `public/widget.css` | Изоляция стилей, адаптивность, анимации и доступность |
 | `server.mjs` | HTTP, статические файлы, CORS, rate limit, маршрутизация и ошибки |
-| `intent-router.mjs` | Детерминированный выбор источников и внутренние freshness-метаданные запроса |
+| `intent-router.mjs` | Детерминированный выбор intent, уровня риска, route и требуемых resolvers |
+| `request-pipeline.mjs` | Последовательность routing, evidence, Support Agent, validator и risk-gated verification |
+| `live-resolvers.mjs` | Контракт live evidence: публичный catalog/price и явный unavailable для неавторизованных источников |
+| `response-validator.mjs` | Детерминированное действие `ALLOW`, `REWRITE`, `REGENERATE` или `ESCALATE` перед отправкой ответа |
 | `src/catalog.mjs` | Поиск и безопасное извлечение товарных данных |
 | `src/prompt.mjs` | Очистка истории и построение инструкций модели |
 | CLI provider | Локальные запросы через авторизованный Codex CLI |
 | API provider | Production-запросы к Responses API |
 | Очередь AI | Ограничение параллелизма, backpressure и защита бюджета |
 | OpenCart adapter | Селекторы, нормализация URL и сопоставление DOM-карточек |
+
+### 11.2. Agent OS v2 Lite: routing, evidence и проверка
+
+Пайплайн не предоставляет агенту прямой доступ к OpenCart, ERP или БД. Сначала выполняется детерминированный Smart Router, который выбирает только нужные resolvers и не запускает второй AI-вызов для простого запроса.
+
+| Route | Обработка | Verification Agent |
+|---|---|---|
+| `SIMPLE` | Один Support Agent с catalog/knowledge evidence по политике | Нет |
+| `STANDARD` | Один Support Agent; коммерческие факты разрешены только при подтверждённом evidence | Нет |
+| `COMPLEX` | Support Agent, затем validator и независимая проверка компактного evidence package | Только после `ALLOW` validator |
+| `ESCALATE` | Локальный manager fallback без выдуманного ответа | Нет |
+
+Публичный поиск каталога является live-источником только для идентификации товара и текущей цены. Пока не подключён отдельный авторизованный read-only resolver, `inventory` и `delivery` возвращают `UNAVAILABLE` с причиной `NO_AUTHORIZED_READ_ONLY_SOURCE`; validator переводит утверждение о наличии или сроке доставки в безопасный manager fallback. Внутренние route, freshness, validation и verification evidence пишутся только в request-id-safe диагностический лог; успешный HTTP-контракт виджета не расширяется внутренними данными.
 
 ## 12. Интеграция с OpenCart
 

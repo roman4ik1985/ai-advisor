@@ -4,19 +4,20 @@ const DELIVERY_DEADLINE_PATTERN = /(?:доставимо|доставим|від
 const WARRANTY_PATTERN = /(?:гаранті\w*|гаранти\w*)/iu;
 const WARRANTY_DURATION_PATTERN = /\d{1,3}\s*(?:місяц\w*|месяц\w*|міс\.?|мес\.?|рок\w*|год\w*|лет)/giu;
 
-export function validateAssistantAnswer({ answer, catalog = [], knowledge = [], question = '', freshness = {}, now = () => new Date() }) {
+export function validateAssistantAnswer({ answer, catalog = [], knowledge = [], question = '', freshness = {}, route = {}, now = () => new Date() }) {
   const safeAnswer = String(answer || '').trim();
   const reasons = [];
 
   if (!safeAnswer) reasons.push('EMPTY_ANSWER');
   if (hasUnverifiedPrice(safeAnswer, catalog, freshness, now)) reasons.push('UNVERIFIED_PRICE');
-  if (AVAILABILITY_PATTERN.test(safeAnswer)) reasons.push('UNVERIFIED_AVAILABILITY');
-  if (DELIVERY_DEADLINE_PATTERN.test(safeAnswer)) reasons.push('UNVERIFIED_DELIVERY_DEADLINE');
+  if (hasUnverifiedAvailability(safeAnswer, freshness)) reasons.push('UNVERIFIED_AVAILABILITY');
+  if (hasUnverifiedDelivery(safeAnswer, freshness)) reasons.push('UNVERIFIED_DELIVERY_DEADLINE');
   if (hasUnverifiedWarranty(safeAnswer, knowledge, freshness, now)) reasons.push('UNVERIFIED_WARRANTY_TERM');
 
-  return reasons.length === 0
-    ? { accepted: true, answer: safeAnswer, reasons }
-    : { accepted: false, answer: safeFallback(question), reasons };
+  const action = validationAction(reasons, route);
+  return action === 'ALLOW'
+    ? { accepted: true, action, answer: safeAnswer, reasons }
+    : { accepted: false, action, answer: safeFallback(question), reasons };
 }
 
 function hasUnverifiedPrice(answer, catalog, freshness, now) {
@@ -29,6 +30,19 @@ function hasUnverifiedPrice(answer, catalog, freshness, now) {
       .flatMap(extractPrices),
   );
   return answerPrices.some((price) => !catalogPrices.has(price));
+}
+
+function hasUnverifiedAvailability(answer, freshness) {
+  return AVAILABILITY_PATTERN.test(answer) && !hasAvailableLiveResolver(freshness, 'inventory');
+}
+
+function hasUnverifiedDelivery(answer, freshness) {
+  return DELIVERY_DEADLINE_PATTERN.test(answer) && !hasAvailableLiveResolver(freshness, 'delivery');
+}
+
+function hasAvailableLiveResolver(freshness, resolver) {
+  const evidence = freshness?.live?.[resolver];
+  return evidence?.status === 'AVAILABLE' && Number.isFinite(Date.parse(String(evidence.checkedAt || '')));
 }
 
 function hasUnverifiedWarranty(answer, knowledge, freshness, now) {
@@ -93,6 +107,14 @@ function safeFallback(question) {
   return isUkrainian(question)
     ? 'Щоб не надати неточну інформацію щодо ціни, наявності або умов, будь ласка, уточніть це у менеджера магазину.'
     : 'Чтобы не дать неточную информацию о цене, наличии или условиях, пожалуйста, уточните это у менеджера магазина.';
+}
+
+function validationAction(reasons, route) {
+  if (route?.route === 'ESCALATE') return 'ESCALATE';
+  if (reasons.length === 0) return 'ALLOW';
+  if (reasons.includes('EMPTY_ANSWER')) return 'REGENERATE';
+  if (reasons.some((reason) => reason === 'UNVERIFIED_AVAILABILITY' || reason === 'UNVERIFIED_DELIVERY_DEADLINE')) return 'ESCALATE';
+  return 'REWRITE';
 }
 
 function isUkrainian(question) {

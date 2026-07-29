@@ -19,6 +19,7 @@ test('response validator keeps a catalog-backed price', () => {
 
   assert.deepEqual(result, {
     accepted: true,
+    action: 'ALLOW',
     answer: 'Ціна Xiaomi Wanbo T6 Max — 13 599 грн.',
     reasons: [],
   });
@@ -34,6 +35,7 @@ test('response validator replaces an unsupported price with a language-aware fal
   });
 
   assert.equal(result.accepted, false);
+  assert.equal(result.action, 'REWRITE');
   assert.deepEqual(result.reasons, ['UNVERIFIED_PRICE']);
   assert.match(result.answer, /^Чтобы не дать неточную информацию/u);
 });
@@ -45,6 +47,7 @@ test('response validator blocks availability and promised delivery without a liv
   });
 
   assert.equal(result.accepted, false);
+  assert.equal(result.action, 'ESCALATE');
   assert.deepEqual(result.reasons, ['UNVERIFIED_AVAILABILITY', 'UNVERIFIED_DELIVERY_DEADLINE']);
 });
 
@@ -58,6 +61,7 @@ test('response validator accepts a warranty term only when knowledge supports it
   });
 
   assert.equal(result.accepted, true);
+  assert.equal(result.action, 'ALLOW');
 });
 
 test('response validator blocks a warranty term that knowledge does not support', () => {
@@ -70,6 +74,7 @@ test('response validator blocks a warranty term that knowledge does not support'
   });
 
   assert.equal(result.accepted, false);
+  assert.equal(result.action, 'REWRITE');
   assert.deepEqual(result.reasons, ['UNVERIFIED_WARRANTY_TERM']);
   assert.match(result.answer, /^Щоб не надати неточну інформацію/u);
 });
@@ -83,6 +88,7 @@ test('response validator rejects a catalog price without fresh catalog evidence'
   });
 
   assert.equal(result.accepted, false);
+  assert.equal(result.action, 'REWRITE');
   assert.deepEqual(result.reasons, ['UNVERIFIED_PRICE']);
 });
 
@@ -96,6 +102,7 @@ test('response validator rejects a warranty term from stale knowledge', () => {
   });
 
   assert.equal(result.accepted, false);
+  assert.equal(result.action, 'REWRITE');
   assert.deepEqual(result.reasons, ['UNVERIFIED_WARRANTY_TERM']);
 });
 

@@ -14,8 +14,7 @@ import { askViaApi } from './src/providers/api-provider.mjs';
 import { askViaTest } from './src/providers/test-provider.mjs';
 import { BackpressureError, ConcurrencyLimiter, FixedWindowRateLimiter } from './src/runtime-guards.mjs';
 import { getRateLimitClientId } from './src/client-identity.mjs';
-import { validateAssistantAnswer } from './response-validator.mjs';
-import { buildFreshnessEvidence, classifyIntent, getRoutePolicy, routeInstruction } from './intent-router.mjs';
+import { executeRequestPipeline } from './request-pipeline.mjs';
 
 const config = readConfig();
 const publicDir = fileURLToPath(new URL('./public/', import.meta.url));
@@ -79,35 +78,29 @@ const server = createServer(async (request, response) => {
         return sendError(response, 400, 'Message is required.', 'MESSAGE_REQUIRED', requestId);
       }
 
+      const safetyIdentifier = createHash('sha256')
+        .update(`${safetySalt}:${clientId}:${request.headers['user-agent'] || ''}`)
+        .digest('hex')
+        .slice(0, 32);
       const result = await aiLimiter.run(async () => {
-        const intent = classifyIntent({ question: latestQuestion, messages });
-        const route = getRoutePolicy(intent);
-        const { products: catalog, diagnostics: catalogDiagnostics } = route.catalog
-          ? (config.provider === 'test'
-            ? { products: [], diagnostics: { code: 'TEST_PROVIDER', message: 'Catalog lookup skipped in test mode.' } }
-            : await searchCatalog(config.storeUrl, latestQuestion))
-          : { products: [], diagnostics: { code: 'SKIPPED_BY_ROUTE', message: `Catalog lookup skipped for ${intent}.` } };
-        const knowledge = route.knowledge ? await searchKnowledge({ messages, page: body.page }) : [];
-        const freshness = buildFreshnessEvidence({ intent, catalogDiagnostics, knowledge });
-        const prompt = `${buildAssistantPrompt({ messages, page: body.page, catalog, knowledge })}\n${routeInstruction(intent)}`;
-        const safetyIdentifier = createHash('sha256')
-          .update(`${safetySalt}:${clientId}:${request.headers['user-agent'] || ''}`)
-          .digest('hex')
-          .slice(0, 32);
-        const answer = await askAssistant({ prompt, messages, page: body.page, catalog, knowledge, safetyIdentifier });
-        const validation = validateAssistantAnswer({
-          answer,
-          catalog,
-          knowledge,
+        const pipeline = await executeRequestPipeline({
           question: latestQuestion,
-          freshness,
+          messages,
+          page: body.page,
+          queryCatalog: async () => config.provider === 'test'
+            ? { products: [], diagnostics: { code: 'TEST_PROVIDER', message: 'Catalog lookup skipped in test mode.' } }
+            : searchCatalog(config.storeUrl, latestQuestion),
+          queryKnowledge: () => searchKnowledge({ messages, page: body.page }),
+          buildPrompt: buildAssistantPrompt,
+          askSupport: (input) => askAssistant({ ...input, safetyIdentifier }),
+          askVerifier: (evidence) => verifyAnswer(evidence, safetyIdentifier),
         });
-        console.info(`[route:${requestId}] intent=${intent} catalog=${catalogDiagnostics.code} knowledgeReviewedAt=${freshness.knowledge.reviewedAt.join('|') || 'NONE'}`);
-        console.info(`[validation:${requestId}] accepted=${validation.accepted} reasons=${validation.reasons.join(',') || 'NONE'}`);
-        if (catalog.length === 0 && config.provider !== 'test') {
-          console.warn(`[catalog:${requestId}] ${catalogDiagnostics.code}`, catalogDiagnostics);
+        console.info(`[route:${requestId}] route=${pipeline.route.route} intent=${pipeline.route.intent} risk=${pipeline.route.riskLevel} resolvers=${pipeline.route.requiredResolvers.join('|') || 'NONE'}`);
+        console.info(`[validation:${requestId}] action=${pipeline.validation.action} accepted=${pipeline.validation.accepted} reasons=${pipeline.validation.reasons.join(',') || 'NONE'} verification=${pipeline.verification.status}`);
+        if (pipeline.catalog.length === 0 && config.provider !== 'test' && pipeline.catalogDiagnostics.code !== 'SKIPPED_BY_ROUTE') {
+          console.warn(`[catalog:${requestId}] ${pipeline.catalogDiagnostics.code}`, pipeline.catalogDiagnostics);
         }
-        return { answer: validation.answer, catalog, catalogDiagnostics, knowledge };
+        return pipeline;
       });
 
       if (config.learningLogEnabled) {
@@ -125,7 +118,13 @@ const server = createServer(async (request, response) => {
         }
       }
 
-      return json(response, 200, { ...result, provider: config.provider });
+      return json(response, 200, {
+        answer: result.answer,
+        catalog: result.catalog,
+        catalogDiagnostics: result.catalogDiagnostics,
+        knowledge: result.knowledge,
+        provider: config.provider,
+      });
     } catch (error) {
       console.error(`[chat:${config.provider}:${requestId}]`, error.message);
       if (error.code === 'CLI_USAGE_LIMIT' || error.code === 'CLI_AUTH_REQUIRED') {
@@ -269,6 +268,23 @@ async function askAssistant({ prompt, messages, page, catalog, knowledge, safety
   }
   const testAnswer = String(process.env.AI_TEST_PROVIDER_RESPONSE || '').trim();
   return testAnswer || askViaTest(config);
+}
+
+async function verifyAnswer(evidence, safetyIdentifier) {
+  if (config.provider === 'test') return { approved: true };
+
+  const instructions = [
+    trustedInstructions(),
+    'You are the independent verification agent. Check whether the draft is supported by the supplied evidence and avoids unsupported commercial promises.',
+    'Return exactly ALLOW when the draft is safe. Return ESCALATE when any material claim is unsupported, ambiguous, or risky.',
+  ].join('\n');
+  const rawVerdict = config.provider === 'cli'
+    ? await askViaCli(`${instructions}\nUNTRUSTED_EVIDENCE_START\n${JSON.stringify(evidence)}\nUNTRUSTED_EVIDENCE_END`, config)
+    : await askViaApi({ instructions, input: { evidence } }, config, safetyIdentifier);
+  return {
+    approved: /^ALLOW\b/iu.test(String(rawVerdict || '').trim()),
+    reason: String(rawVerdict || '').trim().slice(0, 120) || 'VERIFIER_EMPTY_RESPONSE',
+  };
 }
 
 async function shutdown(signal) {
