@@ -31,6 +31,19 @@ C10–C15 реализованы в source:
 
 Source acceptance: [docs/ai-advisor-product-aware-mvp.md](./docs/ai-advisor-product-aware-mvp.md). Active runtime и публичный магазин этим пакетом не изменены; real-store release/staging acceptance выполняется только по отдельной команде.
 
+### Privacy-gated order status
+
+C20 реализован только как source-контракт: `order-ownership-contract.mjs`
+fail-closed проверяет непросроченный одноразовый server-bound proof и выдаёт
+разрешение лишь на следующий lookup gate. Он не принимает номер заказа,
+контактные данные, признак существования заказа или order DTO. Все причины
+отказа получают одинаковый anti-enumeration public result.
+
+Контракт и границы: [docs/ai-advisor-order-ownership-contract.md](./docs/ai-advisor-order-ownership-contract.md).
+C21–C25, order API, customer data, новый endpoint и runtime-интеграция остаются
+отключены до отдельного выбора доверенного verification mechanism. После C20
+полный source suite проходит 107/107.
+
 Плавающий AI-консультант для `ledprojector.com.ua` с двумя режимами:
 
 - `cli` — локальное тестирование через текущую авторизацию Codex CLI/ChatGPT;

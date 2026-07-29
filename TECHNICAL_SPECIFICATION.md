@@ -121,7 +121,7 @@
 - детерминированные русские и украинские ответы по live-фактам с `FRESH` / `STALE` / `UNAVAILABLE` и fail-closed fallback;
 - контролируемый learning log с редакторским review, выключенный по умолчанию;
 - Agent OS 1.0 с приёмкой T01–T11 90/90 и legacy suite 19/19;
-- основной source test suite 69/69 PASS на C00 baseline и 96/96 PASS после source-реализации P1 C10–C15.
+- основной source test suite 69/69 PASS на C00 baseline, 96/96 PASS после P1 C10–C15 и 107/107 PASS после design-only C20.
 
 Принятый production snapshot на 29.07.2026 также подтвердил source/runtime release diff 0 и локальный/публичный `/health` HTTP 200. Это историческая acceptance-точка, а не замена текущей health-проверки перед новой runtime-операцией.
 
@@ -686,16 +686,26 @@ Source package C10–C15 выполнен 29.07.2026 и принят 96/96 ав�
 
 Этот этап не входит в обязательный MVP и не начинается с API-вызова.
 
-| ID | Контур | Зависимость | Результат |
-|---|---|---|---|
-| C20 | Ownership/auth contract | C00 | Design-only контракт доказательства владения заказом, fail-closed и anti-enumeration |
-| C21 | Verification mechanism | Решение владельца после C20 | Одноразовая проверка через согласованный доверенный канал |
-| C22 | Narrow order DTO | C20, C21 | Только allow-listed status/payment/delivery/tracking fields без raw customer data |
-| C23 | GET-only order client | C21, C22 | Server-side projection до logging/model boundary |
-| C24 | Deterministic order response | C23 | Ответ только после успешного ownership proof |
-| C25 | Order security acceptance | C21–C24 | Enumeration, replay, rate-limit, PII и log-safety проверки |
+| ID | Контур | Зависимость | Результат | Статус |
+|---|---|---|---|---|
+| C20 | Ownership/auth contract | C00 | Design-only контракт доказательства владения заказом, fail-closed и anti-enumeration | Source PASS |
+| C21 | Verification mechanism | Решение владельца после C20 | Одноразовая проверка через согласованный доверенный канал | Deferred: owner decision required |
+| C22 | Narrow order DTO | C20, C21 | Только allow-listed status/payment/delivery/tracking fields без raw customer data | Deferred |
+| C23 | GET-only order client | C21, C22 | Server-side projection до logging/model boundary | Deferred |
+| C24 | Deterministic order response | C23 | Ответ только после успешного ownership proof | Deferred |
+| C25 | Order security acceptance | C21–C24 | Enumeration, replay, rate-limit, PII и log-safety проверки | Deferred |
 
 Anonymous order lookup запрещён. Raw SalesDrive order/contact payload не передаётся модели, браузеру или обычным логам.
+
+C20 выполнен как изолированный executable policy contract
+`order-ownership-contract.mjs`, не подключённый к HTTP/runtime path. Контракт
+принимает только opaque server-produced proof envelope без order locator и PII.
+Lookup gate открывается лишь для `VERIFIED` proof с subject/channel/nonce/attempt
+bindings, корректным сроком не более десяти минут и без признака consumption.
+Любая неизвестная или лишняя структура, неверное состояние, expiry или replay
+закрываются одинаковым public denial result. Разрешение требует будущего
+атомарного consumption и само по себе не подтверждает существование заказа.
+Полный контракт: [docs/ai-advisor-order-ownership-contract.md](./docs/ai-advisor-order-ownership-contract.md).
 
 ### P3. Manager and knowledge operations
 
