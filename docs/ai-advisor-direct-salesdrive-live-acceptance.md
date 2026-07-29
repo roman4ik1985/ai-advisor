@@ -52,4 +52,5 @@ The API output stream is exclusively locked by the SYSTEM host, so this re-accep
 - Russian and Ukrainian price word forms now require the price resolver; unrelated words such as Russian `оценка` do not.
 - A delivery-methods-only question requires only the delivery resolver and no longer performs an inventory/catalog lookup because of generic availability wording.
 - Deterministic inventory output requires one candidate or a confident full-name/SKU match. Multiple unmatched candidates return a model/SKU clarification without exposing an arbitrary product.
-- Source verification passed 60/60 tests; the public server contract file is unchanged and the source diff contains no secret markers. Runtime re-acceptance follows the hash-verified release.
+- Live preflight exposed nested product-name ambiguity and nondeterministic price-only wording. The renderer now chooses a unique most-specific full-name/SKU match and renders bilingual price-only answers directly.
+- Source verification passed 62/62 tests; the public server contract file is unchanged and the source diff contains no secret markers. Runtime re-acceptance follows the corrected hash-verified release.

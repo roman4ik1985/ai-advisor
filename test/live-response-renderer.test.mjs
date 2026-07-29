@@ -32,6 +32,20 @@ test('deterministically renders only delivery methods without a deadline', () =>
   assert.doesNotMatch(answer, /завтра|дн\w*|годин/iu);
 });
 
+test('deterministically renders bilingual price-only questions', () => {
+  assert.equal(renderDeterministicLiveAnswer({
+    question: 'Какая цена Projector One?',
+    route: { requiredResolvers: ['catalog', 'price'] },
+    catalog: inStockCatalog,
+  }), 'По данным SalesDrive, цена Projector One: 13 599 грн.');
+
+  assert.equal(renderDeterministicLiveAnswer({
+    question: 'Яка ціна Projector One?',
+    route: { requiredResolvers: ['catalog', 'price'] },
+    catalog: inStockCatalog,
+  }), 'За даними SalesDrive, ціна Projector One: 13 599 грн.');
+});
+
 test('does not render inventory without explicit matching stock evidence', () => {
   const answer = renderDeterministicLiveAnswer({
     question: 'Есть ли в наличии?',
@@ -70,6 +84,22 @@ test('does not choose an arbitrary product for an ambiguous inventory question',
     catalog: [inStockCatalog[0], second],
     liveFacts: { inventory: facts },
   }), /Projector Two/u);
+});
+
+test('chooses the most specific full-name match when names are nested', () => {
+  const specific = { ...inStockCatalog[0], sku: 'sku-pro', name: 'Projector One Pro' };
+  const facts = [
+    { sku: 'sku-1', availability: { state: 'IN_STOCK' } },
+    { sku: 'sku-pro', availability: { state: 'IN_STOCK' } },
+  ];
+  const answer = renderDeterministicLiveAnswer({
+    question: 'Есть ли Projector One Pro в наличии?',
+    route: { requiredResolvers: ['catalog', 'inventory'] },
+    catalog: [inStockCatalog[0], specific],
+    liveFacts: { inventory: facts },
+  });
+
+  assert.match(answer, /Projector One Pro/u);
 });
 
 test('keeps a delivery-deadline question on the validator path', () => {

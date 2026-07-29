@@ -5,6 +5,7 @@ export function renderDeterministicLiveAnswer({ question = '', route = {}, catal
     return renderDeliveryMethods(question, liveFacts.deliveryMethods);
   }
   if (resolvers.has('inventory')) return renderInventory(question, catalog, liveFacts.inventory, resolvers.has('price'));
+  if (resolvers.has('price')) return renderPrice(question, catalog);
   return null;
 }
 
@@ -39,16 +40,32 @@ function renderInventory(question, catalog, inventory, includePrice) {
   return `По данным SalesDrive, ${item.name}: ${availability}.${price}`;
 }
 
+function renderPrice(question, catalog) {
+  const candidates = (Array.isArray(catalog) ? catalog : []).filter((item) => Array.isArray(item?.prices) && item.prices[0]);
+  const item = selectConfidentProduct(question, candidates);
+  if (!item && candidates.length > 1) return ambiguityFallback(question);
+  if (!item) return null;
+  const price = String(item.prices[0]).trim().replace(/\.+$/u, '');
+  return isUkrainian(question)
+    ? `За даними SalesDrive, ціна ${item.name}: ${price}.`
+    : `По данным SalesDrive, цена ${item.name}: ${price}.`;
+}
+
 function selectConfidentProduct(question, candidates) {
   if (!Array.isArray(candidates) || candidates.length === 0) return null;
   if (candidates.length === 1) return candidates[0];
   const query = compact(question);
-  const matches = candidates.filter((item) => {
+  const matches = candidates.map((item) => {
     const sku = compact(item?.sku);
     const name = compact(item?.name);
-    return sku.length >= 3 && query.includes(sku) || name.length >= 5 && query.includes(name);
-  });
-  return matches.length === 1 ? matches[0] : null;
+    const score = Math.max(
+      sku.length >= 3 && query.includes(sku) ? sku.length : 0,
+      name.length >= 5 && query.includes(name) ? name.length : 0,
+    );
+    return { item, score };
+  }).filter((match) => match.score > 0).sort((left, right) => right.score - left.score);
+  if (matches.length === 0) return null;
+  return matches.length === 1 || matches[0].score > matches[1].score ? matches[0].item : null;
 }
 
 function compact(value) {
