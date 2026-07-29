@@ -5,6 +5,37 @@
 Объект: локальный прототип в `C:\AI Advisor`  
 Проверки: архитектура, безопасность, API-контракт, доступность, производительность
 
+## Статус актуальности на 29.07.2026
+
+Этот документ сохраняет фактические результаты аудита локального прототипа от 20.07.2026. Он не является текущим списком незакрытых дефектов. Каноническое состояние и forward roadmap находятся в `TECHNICAL_SPECIFICATION.md` версии 1.2.
+
+Повторная source-of-truth сверка на baseline `294b730` и `npm test` 69/69 классифицирует исходные находки так:
+
+| Находка | Статус 29.07.2026 | Подтверждённое состояние |
+|---|---|---|
+| ARCH-01 | Закрыта | Ограниченный concurrency, bounded queue и `AI_QUEUE_FULL` покрыты HTTP-тестом |
+| ARCH-02 | Частично закрыта | Есть cleanup/TTL-поведение и loopback-aware Cloudflare identity; shared limiter остаётся условным C42 только для multi-instance |
+| ARCH-03 | Частично закрыта | Добавлены реальные catalog fixtures, allowlist и diagnostics; отдельный DOM adapter остаётся C13 |
+| ARCH-04 | Закрыта | Реализован graceful shutdown с drain timeout и закрытием очереди |
+| ARCH-05 | Открыта как улучшение | `/health` остаётся liveness; отдельный readiness/SLO contour — C41 |
+| SEC-01 | Закрыта | Trusted instructions отделены от visitor/page/catalog input; есть prompt-injection tests |
+| SEC-02 | Закрыта | CLI запускается без shell-интерпретации |
+| SEC-03 | Закрыта | Catalog URL ограничен согласованным HTTPS-доменом |
+| SEC-04 | Частично закрыта | Rate limit, backpressure, request identity и monitoring добавлены; CORS по-прежнему не считается аутентификацией |
+| SEC-05 | Частично закрыта | Server headers добавлены; CSP/HSTS остаются reverse-proxy/staging проверкой C43 |
+| API-01 | Закрыта | 400/413/415 и другие ошибки проходят единый HTTP contract |
+| API-02 | Закрыта | Все ошибки используют `{ error, code, requestId }`; 429 содержит `Retry-After` |
+| API-03 | Принята как compatibility policy | Успешные поля `/api/chat` зафиксированы schema tests; версия потребуется при первом breaking change |
+| A11Y-01 | Закрыта для текущего UI | Виджет объявлен немодальным dialog с `aria-modal="false"` |
+| A11Y-02 | Закрыта | Предыдущий focus сохраняется и восстанавливается |
+| A11Y-03 | Закрыта | Добавлены `aria-controls`, `aria-expanded` и `aria-busy` |
+| A11Y-04 | Открыта до инструментальной проверки | Цвет изменён, но весь градиент должен пройти C15/C45 contrast measurement |
+| PERF-01 | Частично закрыта | Production delivery существует; immutable cache/compression остаются staging/reverse-proxy gate |
+| PERF-02 | Открыта | Нужны staging Web Vitals и browser matrix C45 |
+| PERF-03 | Закрыта в source artifact | Исходного chroma-изображения нет в текущем `public/` |
+
+После аудита также приняты контуры, которых в исходном документе не было: Agent OS 1.0 release acceptance, постоянный SYSTEM-owned API host, внешний health-monitoring и прямые SalesDrive live resolvers с fail-closed freshness для цены, наличия, доставки и оплаты.
+
 ## 1. Итог
 
 Прототип пригоден для локального тестирования в CLI-режиме. Базовая архитектура компактна, секреты не обнаружены, frontend безопасно выводит ответы через `textContent`, CLI ограничен loopback/read-only, а текущие семь unit-тестов проходят.

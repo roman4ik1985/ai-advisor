@@ -7,15 +7,19 @@
 | Проект | LedProjector AI Advisor |
 | Целевой сайт | `https://ledprojector.com.ua/` |
 | Локальная папка | `C:\AI Advisor` |
-| Версия ТЗ | 1.1 |
-| Дата | 20.07.2026 |
-| Статус | Базовая версия для разработки и приёмки |
+| Версия ТЗ | 1.2 |
+| Дата | 29.07.2026 |
+| Статус | Каноническая production-база и forward roadmap |
 | Локальный режим | Codex CLI через авторизацию ChatGPT |
 | Рабочий режим | OpenAI Responses API |
 
 ### Изменения версии 1.1
 
 Версия подготовлена после архитектурного, security, API, accessibility и performance-аудита текущего прототипа. Добавлены требования к разделению доверенных инструкций и недоверенных данных, ограничению параллельных AI-запросов, production rate limit, единому формату ошибок, фокус-менеджменту, контрасту и измеримым performance-бюджетам. Подробные результаты: [AUDIT_REPORT_2026-07-20.md](./AUDIT_REPORT_2026-07-20.md).
+
+### Изменения версии 1.2
+
+Версия синхронизирована с принятым состоянием на 29.07.2026. Agent OS 1.0 прошёл независимую приёмку, production API опубликован через постоянный HTTPS endpoint, а прямой server-side SalesDrive contour для цены, наличия, способов доставки и оплаты принят с fail-closed freshness. Устаревшие утверждения о локальном прототипе и семи тестах заменены подтверждённым baseline 69/69. Раздел этапов преобразован в forward roadmap; персональный статус заказа оставлен отдельным privacy-gated расширением вне обязательного MVP.
 
 ## 1. Назначение документа
 
@@ -111,22 +115,33 @@
 - `Retry-After` для rate limit и graceful shutdown с очисткой локальных buckets;
 - системные заголовки безопасности;
 - API `/health` и `/api/chat`;
-- семь модульных тестов, проходящих успешно.
+- постоянный Windows runtime с SYSTEM-owned host, локальным и внешним health-monitoring;
+- публичный HTTPS endpoint `https://ai.ledprojector.com.ua`;
+- прямые SalesDrive YML/API resolvers для идентификации товара, актуальной цены, явного наличия, способов доставки и оплаты;
+- детерминированные русские и украинские ответы по live-фактам с `FRESH` / `STALE` / `UNAVAILABLE` и fail-closed fallback;
+- контролируемый learning log с редакторским review, выключенный по умолчанию;
+- Agent OS 1.0 с приёмкой T01–T11 90/90 и legacy suite 19/19;
+- основной source test suite 69/69 PASS на baseline 29.07.2026.
 
-### 5.2. Требуется реализовать до production
+Принятый production snapshot на 29.07.2026 также подтвердил source/runtime release diff 0 и локальный/публичный `/health` HTTP 200. Это историческая acceptance-точка, а не замена текущей health-проверки перед новой runtime-операцией.
 
+### 5.2. Открытый roadmap после production-базы
+
+- каноническая product schema и alias mapping между SalesDrive SKU/ID, URL магазина и публичными характеристиками;
 - контекстное перемещение персонажа к рекомендованному товару;
 - отображение рекомендованных товаров внутри чата;
 - надёжное сопоставление результата каталога с карточкой товара в DOM;
 - адаптация селекторов под фактический шаблон OpenCart;
-- production-хостинг backend и статических файлов по HTTPS;
-- постоянное или распределённое ограничение запросов для нескольких процессов;
-- структурированные логи и продуктовая аналитика без хранения текста диалога по умолчанию;
-- структурное разделение системных инструкций, пользовательского ввода и контекста страницы;
+- сравнение и рекомендации по проверенным структурированным характеристикам;
+- продуктовая аналитика без хранения текста диалога или персональных данных;
+- отдельный readiness/SLO-контур поверх существующих liveness и uptime checks;
+- распределённый rate limit только при переходе к нескольким backend-процессам;
 - обработка недоступности каталога и AI-провайдера на уровне UI;
 - staging-интеграция и проверка на копии магазина;
 - резервное копирование файлов и базы перед установкой;
-- полный mobile/desktop/browser smoke-test.
+- полный mobile/desktop/browser, accessibility и Web Vitals smoke-test;
+- опциональный manager handoff;
+- опциональный персональный статус заказа только после отдельно утверждённого ownership/auth contract.
 
 ## 6. Целевые пользовательские сценарии
 
@@ -644,49 +659,84 @@ MVP принимается, если одновременно выполнены
 17. Accessibility-проверка подтверждает возврат фокуса, корректную модальность и контраст WCAG AA.
 18. Performance-gate подтверждает соблюдение transfer-бюджета и отсутствие измеримого CLS.
 
-## 18. Этапы реализации
+## 18. Forward roadmap
 
-### Этап 1. Локальный прототип — выполнен
+Roadmap выполняется отдельными Agent OS задачами и прозрачными savepoint/commit-пакетами. Один contour не должен одновременно смешивать source, runtime, OpenCart и customer-data изменения.
 
-- базовый UI;
-- персонаж;
-- CLI/API-переключение;
-- поиск каталога;
-- базовая безопасность;
-- unit-тесты.
+### P0. Source of truth
 
-### Этап 2. Product-aware UX — следующий этап
+| ID | Контур | Результат | Статус |
+|---|---|---|---|
+| C00 | Canonical documentation reconciliation | Синхронизировать ТЗ, аудит и README с принятым production baseline и открытыми зависимостями | Выполнен в версии 1.2 |
 
-- товарные карточки в чате;
-- DOM-адаптер OpenCart;
-- подсветка и позиционирование персонажа;
-- кнопка «Показать товар»;
-- mobile и reduced-motion поведение;
-- UI-тесты.
+### P1. Product-aware MVP без персональных данных
 
-### Этап 3. Production backend
+| ID | Контур | Зависимость | Результат |
+|---|---|---|---|
+| C10 | Product schema and aliases | C00 | Связать SalesDrive ID/SKU, канонический URL, названия, aliases, характеристики, изображения и provenance |
+| C11 | Recommendation and comparison | C10 | Подбор и сравнение только по подтверждённым ограничениям и характеристикам |
+| C12 | Product cards in chat | C10 | Отрисовывать до трёх рекомендаций из существующего поля `catalog` |
+| C13 | OpenCart DOM adapter | C10, реальные fixtures | Стабильно сопоставлять рекомендацию с карточкой магазина |
+| C14 | Product navigation and mascot UX | C12, C13 | Подсветка, «Показать товар», безопасное позиционирование и возврат |
+| C15 | UI acceptance | C12–C14 | Desktop/mobile, keyboard, reduced motion, browser matrix и error states |
 
-- API-ключ и менеджер секретов;
-- HTTPS и reverse proxy;
-- распределённый rate limit;
-- структурированные логи и мониторинг;
-- staging deployment.
+### P2. Privacy-gated order status
 
-### Этап 4. Интеграция с магазином
+Этот этап не входит в обязательный MVP и не начинается с API-вызова.
 
-- резервные копии;
-- подключение к шаблону OpenCart;
-- проверка реальных селекторов;
-- регрессионное тестирование;
-- ограниченный production-запуск.
+| ID | Контур | Зависимость | Результат |
+|---|---|---|---|
+| C20 | Ownership/auth contract | C00 | Design-only контракт доказательства владения заказом, fail-closed и anti-enumeration |
+| C21 | Verification mechanism | Решение владельца после C20 | Одноразовая проверка через согласованный доверенный канал |
+| C22 | Narrow order DTO | C20, C21 | Только allow-listed status/payment/delivery/tracking fields без raw customer data |
+| C23 | GET-only order client | C21, C22 | Server-side projection до logging/model boundary |
+| C24 | Deterministic order response | C23 | Ответ только после успешного ownership proof |
+| C25 | Order security acceptance | C21–C24 | Enumeration, replay, rate-limit, PII и log-safety проверки |
 
-### Этап 5. Оптимизация
+Anonymous order lookup запрещён. Raw SalesDrive order/contact payload не передаётся модели, браузеру или обычным логам.
 
-- аналитика конверсий;
-- улучшение prompt и сценариев;
-- настройка стоимости и задержки модели;
-- расширение базы знаний;
-- при необходимости — передача диалога менеджеру.
+### P3. Manager and knowledge operations
+
+| ID | Контур | Результат |
+|---|---|---|
+| C30 | Manager handoff | Передавать ограниченный вопрос менеджеру без полноценной CRM-переписки и лишней истории |
+| C31 | Knowledge coverage | Закрывать устойчивые FAQ-пробелы через официальный source/review/upsert workflow |
+| C32 | Learning review operations | Регламентировать review `pending` без автоматической мутации knowledge |
+| C33 | Product specification ingestion | Продвигать проверенные публичные характеристики в product evidence, не в статичные коммерческие факты |
+
+### P4. Operations, privacy and quality
+
+| ID | Контур | Условие |
+|---|---|---|
+| C40 | Privacy-safe product analytics | Отдельное решение по перечню событий и retention |
+| C41 | Readiness and SLO | После стабилизации product-aware MVP |
+| C42 | Distributed rate limit | Только при multi-instance backend |
+| C43 | Security maintenance | Перед staging acceptance и далее по регламенту |
+| C44 | Cost/quality benchmark | После стабилизации тестового набора пользовательских сценариев |
+| C45 | Performance and Web Vitals | Требует staging |
+
+### P5. Staging and controlled rollout
+
+| ID | Контур | Зависимость |
+|---|---|---|
+| C50 | OpenCart staging preflight | Явно разрешённый доступ и подтверждённый способ установки |
+| C51 | Backup and restore proof | Авторизованный доступ к файлам и БД |
+| C52 | Staging installation | C50, C51 |
+| C53 | Store regression | C52 |
+| C54 | Limited rollout and rollback gate | C53 |
+
+OpenCart/cPanel, Tunnel, active runtime, secrets и remote изменяются только по отдельной явной команде.
+
+### P6. Deferred beyond current scope
+
+- дополнительные языки поверх RU/UK;
+- A/B-тесты подсказок и поведения персонажа;
+- multi-region или multi-instance инфраструктура без подтверждённой нагрузки;
+- голосовой ввод и голосовой ответ;
+- полноценная CRM-переписка;
+- долгосрочная история диалогов;
+- оформление/изменение заказа и приём оплаты;
+- автоматическая мутация knowledge или данных SalesDrive/OpenCart.
 
 ## 19. Риски и меры снижения
 

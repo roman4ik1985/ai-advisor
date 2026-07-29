@@ -4,6 +4,21 @@
 
 Комплексный аудит архитектуры, безопасности, API, доступности и производительности: [AUDIT_REPORT_2026-07-20.md](./AUDIT_REPORT_2026-07-20.md).
 
+## Канонический baseline
+
+На 29.07.2026 source savepoint `294b730` фиксирует:
+
+- Agent OS 1.0: T01–T11 90/90 PASS, legacy suite 19/19 PASS;
+- основной source suite: 69/69 PASS;
+- production API через `https://ai.ledprojector.com.ua`;
+- прямые server-side SalesDrive resolvers для актуальной цены, явного наличия, способов доставки и оплаты;
+- `FRESH` / `STALE` / `UNAVAILABLE` и fail-closed ответы без модельного вызова при обязательном stale/unavailable evidence;
+- неизменный публичный success contract: `answer`, `catalog`, `catalogDiagnostics`, `knowledge`, `provider`.
+
+Последняя runtime acceptance на этой точке зафиксировала source/runtime diff 0 и локальный/публичный `/health` HTTP 200. Перед любой новой runtime-операцией health и diff проверяются заново; этот README не утверждает их текущий live-статус.
+
+Канонический forward roadmap C00–C54 и deferred-зоны находятся в разделе 18 [TECHNICAL_SPECIFICATION.md](./TECHNICAL_SPECIFICATION.md#18-forward-roadmap). Персональный статус заказа не включён: до отдельного ownership/auth contract запрещены anonymous lookup, order API calls и доступ к customer data.
+
 Плавающий AI-консультант для `ledprojector.com.ua` с двумя режимами:
 
 - `cli` — локальное тестирование через текущую авторизацию Codex CLI/ChatGPT;
