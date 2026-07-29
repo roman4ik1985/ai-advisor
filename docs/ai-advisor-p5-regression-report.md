@@ -54,10 +54,20 @@ Web Vitals measurement.
    were removed, and production remained on its pre-canary cache.
 5. A one-shot web-level `opcache_reset()` probe returned unavailable and its
    temporary file was immediately removed.
+6. After the authorized operator cache action, the Lightning working cache file
+   was absent, but the generated OCMOD footer retained its 2026-07-23 timestamp.
+   The public document contains the widget CSS, no widget script, and mounts
+   zero `.lp-agent-root` elements. This isolates the remaining blocker to the
+   unrefreshed OCMOD/template compilation step rather than page-cache warming.
+7. A production mobile baseline at 390x844 measured LCP 2,080 ms, CLS 0,
+   TTFB 1,658.8 ms, DOMContentLoaded 2,366.6 ms, load 2,682.4 ms and navigation
+   transfer size 48,116 bytes. INP was unavailable after the short safe menu
+   interaction. Because the widget did not mount, this is not a widget-on
+   performance acceptance result.
 
 ## Verdict
 
-C50–C52 are accepted. C53 is accepted for desktop functional behavior, with
-mobile viewport and exact LCP/CLS/INP still pending. C54 remains blocked until
-the hosting/OpenCart control plane refreshes the compiled template/Lightning
-runtime and the public HTML contains the widget assets.
+C50–C52 are accepted. C53 is accepted for desktop functional behavior; the
+production mobile baseline is recorded, while staging widget-on LCP/CLS/INP
+remains pending. C54 remains blocked until OpenCart Modifications is actually
+refreshed and the public HTML contains the widget script and mounted root.

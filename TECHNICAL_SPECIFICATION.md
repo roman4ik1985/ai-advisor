@@ -777,8 +777,8 @@ P3 acceptance:
 | C50 | OpenCart staging preflight | PASS 29.07.2026: изолированный `/dev`, отдельные DB/user, Basic Auth |
 | C51 | Backup and restore proof | PASS with limitation: JetBackup 12 restore points + byte-for-byte footer restore; новый Softaculous archive не создан |
 | C52 | Staging installation | PASS: CyberStore source + OCMOD footer, staging-only cache refresh |
-| C53 | Store regression | Desktop functional PASS; legacy staging PHP warnings, mobile viewport и LCP/CLS/INP pending |
-| C54 | Limited rollout and rollback gate | BLOCKED: production compiled Lightning/template runtime не публикует уже существующий snippet; cache canary fully rolled back |
+| C53 | Store regression | Desktop functional PASS; production mobile baseline 390x844 без виджета: LCP 2,080 ms, CLS 0; staging widget-on LCP/CLS/INP pending |
+| C54 | Limited rollout and rollback gate | BLOCKED: Lightning cache clear выполнен, но generated OCMOD footer не refreshed; public HTML содержит CSS, но не widget script/root |
 
 OpenCart/cPanel, Tunnel, active runtime, secrets и remote изменяются только по отдельной явной команде.
 

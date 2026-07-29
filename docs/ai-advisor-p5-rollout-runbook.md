@@ -65,5 +65,12 @@ Rollback immediately if any of the following occurs:
 - Staging OCMOD-footer restore check: PASS.
 - Production Lightning cache rotation: did not activate the widget.
 - Production Lightning cache rollback: PASS, original 8,711 page files restored.
+- Authorized production Lightning clear: completed; working cache file absent.
+- Production OCMOD refresh: not completed; generated footer timestamp remained
+  `2026-07-23 15:51:55 +0300`.
+- Public post-clear result: widget CSS present, widget script absent, mounted
+  widget roots 0.
+- Production mobile 390x844 baseline without widget: LCP 2,080 ms, CLS 0,
+  TTFB 1,658.8 ms, load 2,682.4 ms; INP unavailable.
 - Temporary web reset probe: removed.
 - Temporary staging authentication user: removed and rejected with HTTP 401.

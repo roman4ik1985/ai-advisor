@@ -10,8 +10,8 @@ Agent OS task: `TASK-2026-07-29-122006-657`
 | C50 OpenCart staging preflight | PASS | Existing isolated `https://ledprojector.com.ua/dev/` installation is registered in Softaculous, uses its own database and database user, and is protected by HTTP Basic authentication. |
 | C51 backup and restore proof | PASS with limitation | JetBackup 5 exposes 12 incremental Home Directory and database restore points; latest visible point is 2026-07-27. Both staging footer files were copied outside the web root and restored byte-for-byte by SHA-256 before installation. The attempted new Softaculous full backup stalled at database backup and produced no archive, so it is not counted as evidence. |
 | C52 staging installation | PASS | Widget CSS/script were added to the source and active OCMOD copies of the CyberStore footer. Only staging files and staging cache were changed. |
-| C53 store regression | FUNCTIONAL PASS / PERF PENDING | Widget and store routes pass the functional matrix below. Exact LCP/CLS/INP collection and a real mobile viewport remain pending. |
-| C54 limited rollout | BLOCKED | Production files already contain the widget snippet, but the web runtime continues to serve a compiled/template-optimized version without it. A recoverable Lightning page-cache canary did not fix this and was fully rolled back. Web `opcache_reset()` is unavailable. |
+| C53 store regression | FUNCTIONAL PASS / STAGING PERF PENDING | Widget and store routes pass the functional matrix below. A production mobile baseline was collected at 390x844, but exact staging widget-on LCP/CLS/INP and widget delta remain pending. |
+| C54 limited rollout | BLOCKED | Production files already contain the widget snippet, but the web runtime continues to serve a compiled/template-optimized version without it. The authorized Lightning cache clear completed, while the generated OCMOD footer still has its 2026-07-23 timestamp and was not refreshed. Public HTML contains the widget CSS but no widget script or mounted root. |
 
 ## Staging installation
 
@@ -59,9 +59,24 @@ content, including `microdatapro.php` and CyberStore menu/slider code. They are
 present across store routes and are not introduced by AI Advisor. Production
 does not render these warnings.
 
-The browser surface used for the authorized acceptance did not expose a mobile
-viewport or Web Vitals instrumentation. Therefore exact LCP, CLS and INP remain
-`STAGING_REQUIRED`; no performance pass is claimed.
+The staging browser surface used for the authorized acceptance did not expose a
+mobile viewport or Web Vitals instrumentation. A later production baseline was
+collected through CDP at 390x844 after the authorized Lightning cache clear:
+LCP 2,080 ms, CLS 0, TTFB 1,658.8 ms, DOMContentLoaded 2,366.6 ms, load
+2,682.4 ms and navigation transfer size 48,116 bytes. INP was not produced by
+the short safe menu interaction. The widget root count was zero, so these
+numbers are a storefront-without-widget baseline and do not satisfy the staging
+widget performance gate.
+
+## Production post-refresh audit
+
+- Lightning working cache file was absent after the authorized clear action.
+- The generated production OCMOD footer retained timestamp
+  `2026-07-23 15:51:55 +0300`; no OCMOD refresh occurred.
+- Public HTML contains the `lp-agent` CSS variables/rules.
+- Public HTML contains no `widget.js` or `ai-advisor` script marker.
+- `.lp-agent-root` count is zero on desktop and mobile.
+- Production storefront remained available; no rollback trigger fired.
 
 ## Access cleanup
 
