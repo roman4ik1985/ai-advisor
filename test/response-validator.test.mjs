@@ -51,6 +51,22 @@ test('response validator blocks availability and promised delivery without a liv
   assert.deepEqual(result.reasons, ['UNVERIFIED_AVAILABILITY', 'UNVERIFIED_DELIVERY_DEADLINE']);
 });
 
+test('response validator rejects stale or expired live availability evidence', () => {
+  for (const inventory of [
+    { status: 'STALE', freshness: 'STALE', checkedAt: '2026-07-28T10:04:00Z', capabilities: ['stock'] },
+    { status: 'AVAILABLE', freshness: 'FRESH', checkedAt: '2026-07-28T09:54:59Z', capabilities: ['stock'] },
+  ]) {
+    const result = validateAssistantAnswer({
+      answer: 'Товар есть в наличии.',
+      question: 'Есть ли товар?',
+      freshness: { live: { inventory } },
+      now: validationNow,
+    });
+    assert.equal(result.accepted, false);
+    assert.deepEqual(result.reasons, ['UNVERIFIED_AVAILABILITY']);
+  }
+});
+
 test('response validator accepts a warranty term only when knowledge supports it', () => {
   const result = validateAssistantAnswer({
     answer: 'Гарантия составляет 24 месяца.',
@@ -139,7 +155,7 @@ test('test-only provider returns the fallback without changing the successful ch
   assert.equal(response.status, 200);
   assert.deepEqual(Object.keys(payload).sort(), ['answer', 'catalog', 'catalogDiagnostics', 'knowledge', 'provider']);
   assert.equal(payload.provider, 'test');
-  assert.match(payload.answer, /^Чтобы не дать неточную информацию/u);
+  assert.match(payload.answer, /^Чтобы дать точный ответ/u);
 
   const faqResponse = await fetch(`http://127.0.0.1:${port}/api/chat`, {
     method: 'POST',

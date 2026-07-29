@@ -10,8 +10,8 @@ export function validateAssistantAnswer({ answer, catalog = [], knowledge = [], 
 
   if (!safeAnswer) reasons.push('EMPTY_ANSWER');
   if (hasUnverifiedPrice(safeAnswer, catalog, freshness, now)) reasons.push('UNVERIFIED_PRICE');
-  if (hasUnverifiedAvailability(safeAnswer, freshness)) reasons.push('UNVERIFIED_AVAILABILITY');
-  if (hasUnverifiedDelivery(safeAnswer, freshness)) reasons.push('UNVERIFIED_DELIVERY_DEADLINE');
+  if (hasUnverifiedAvailability(safeAnswer, freshness, now)) reasons.push('UNVERIFIED_AVAILABILITY');
+  if (hasUnverifiedDelivery(safeAnswer, freshness, now)) reasons.push('UNVERIFIED_DELIVERY_DEADLINE');
   if (hasUnverifiedWarranty(safeAnswer, knowledge, freshness, now)) reasons.push('UNVERIFIED_WARRANTY_TERM');
 
   const action = validationAction(reasons, route);
@@ -32,17 +32,24 @@ function hasUnverifiedPrice(answer, catalog, freshness, now) {
   return answerPrices.some((price) => !catalogPrices.has(price));
 }
 
-function hasUnverifiedAvailability(answer, freshness) {
-  return AVAILABILITY_PATTERN.test(answer) && !hasAvailableLiveResolver(freshness, 'inventory');
+function hasUnverifiedAvailability(answer, freshness, now) {
+  return AVAILABILITY_PATTERN.test(answer) && !hasAvailableLiveResolver(freshness, 'inventory', null, now);
 }
 
-function hasUnverifiedDelivery(answer, freshness) {
-  return DELIVERY_DEADLINE_PATTERN.test(answer) && !hasAvailableLiveResolver(freshness, 'delivery', 'deadline');
+function hasUnverifiedDelivery(answer, freshness, now) {
+  return DELIVERY_DEADLINE_PATTERN.test(answer) && !hasAvailableLiveResolver(freshness, 'delivery', 'deadline', now);
 }
 
-function hasAvailableLiveResolver(freshness, resolver, capability) {
+function hasAvailableLiveResolver(freshness, resolver, capability, now) {
   const evidence = freshness?.live?.[resolver];
-  const available = evidence?.status === 'AVAILABLE' && Number.isFinite(Date.parse(String(evidence.checkedAt || '')));
+  const checkedAt = Date.parse(String(evidence?.checkedAt || ''));
+  const current = asTime(now);
+  const available = evidence?.status === 'AVAILABLE'
+    && evidence?.freshness === 'FRESH'
+    && Number.isFinite(checkedAt)
+    && Number.isFinite(current)
+    && checkedAt <= current
+    && current - checkedAt <= 10 * 60 * 1000;
   return available && (!capability || Array.isArray(evidence?.capabilities) && evidence.capabilities.includes(capability));
 }
 

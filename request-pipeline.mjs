@@ -47,11 +47,27 @@ export async function executeRequestPipeline({
     };
   }
 
+  const liveFailure = requiredLiveEvidenceFailure(route, live.evidence);
+  if (liveFailure) {
+    const fallback = managerFallback(question);
+    return {
+      answer: fallback,
+      catalog: live.catalog,
+      catalogDiagnostics: live.catalogDiagnostics,
+      knowledge,
+      route,
+      freshness,
+      validation: { accepted: false, action: 'ESCALATE', answer: fallback, reasons: [liveFailure] },
+      verification: { status: 'SKIPPED', reason: 'LIVE_EVIDENCE_UNAVAILABLE' },
+    };
+  }
+
   const deterministicAnswer = renderDeterministicLiveAnswer({
     question,
     route,
     catalog: live.catalog,
     liveFacts: live.liveFacts,
+    liveEvidence: live.evidence,
   });
   const answer = deterministicAnswer || await askSupport({
     prompt: `${buildPrompt({ messages, page, catalog: live.catalog, knowledge })}\n${routeInstruction(route.intent)}\n${liveEvidenceInstruction(live.liveFacts)}`,
@@ -67,6 +83,7 @@ export async function executeRequestPipeline({
     question,
     freshness,
     route,
+    now,
   });
   const verification = deterministicAnswer
     ? { status: 'SKIPPED', reason: 'DETERMINISTIC_LIVE_FACT' }
@@ -105,6 +122,16 @@ export async function executeRequestPipeline({
     validation,
     verification,
   };
+}
+
+function requiredLiveEvidenceFailure(route, evidence) {
+  const required = new Set(route?.requiredResolvers || []);
+  for (const resolver of ['price', 'inventory', 'delivery']) {
+    if (!required.has(resolver)) continue;
+    const status = String(evidence?.[resolver]?.status || 'UNAVAILABLE');
+    if (status !== 'AVAILABLE') return `LIVE_${resolver.toUpperCase()}_${status}`;
+  }
+  return null;
 }
 
 async function verifyWhenRequired({ route, question, answer, validation, freshness, catalog, knowledge, liveFacts, askVerifier }) {

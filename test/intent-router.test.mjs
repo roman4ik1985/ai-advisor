@@ -75,9 +75,25 @@ test('complex pipeline verifies the draft once after deterministic validation', 
     question: 'Порадьте проектор для PS5: чи є в наявності та коли доставка?',
     messages: [{ role: 'user', content: 'Порадьте проектор для PS5: чи є в наявності та коли доставка?' }],
     page: {},
-    queryCatalog: async () => ({
-      products: [{ name: 'XGIMI Horizon', url: 'https://ledprojector.com.ua/xgimi-horizon', prices: ['13 599 грн.'] }],
+    querySalesdriveCatalog: async () => ({
+      products: [{
+        name: 'XGIMI Horizon',
+        sku: 'XGIMI-HORIZON',
+        url: 'https://ledprojector.com.ua/xgimi-horizon',
+        prices: ['13 599 грн.'],
+        availability: { state: 'IN_STOCK', stockQuantity: 2 },
+      }],
       diagnostics: { code: 'OK' },
+      source: 'salesdrive_yml',
+      fetchedAt: '2026-07-29T00:00:00Z',
+      freshness: 'FRESH',
+    }),
+    querySalesdriveDelivery: async () => ({
+      items: [{ id: '7', label: 'Нова пошта' }],
+      diagnostics: { code: 'OK' },
+      source: 'salesdrive_api',
+      fetchedAt: '2026-07-29T00:00:00Z',
+      freshness: 'FRESH',
     }),
     queryKnowledge: async () => [{ title: 'Порада', text: 'Для PS5 варто врахувати затримку вводу.', sourceUrl: 'https://ledprojector.com.ua/', reviewedAt: '2026-07-28' }],
     buildPrompt: () => 'support prompt',
@@ -88,7 +104,7 @@ test('complex pipeline verifies the draft once after deterministic validation', 
     askVerifier: async (evidence) => {
       calls.verifier += 1;
       assert.equal(evidence.route.route, 'COMPLEX');
-      assert.equal(evidence.resolverResults.inventory.status, 'UNAVAILABLE');
+      assert.equal(evidence.resolverResults.inventory.status, 'AVAILABLE');
       assert.equal(evidence.facts.catalog[0].name, 'XGIMI Horizon');
       return { approved: true };
     },
@@ -122,6 +138,7 @@ test('direct SalesDrive evidence enables stock but does not turn delivery method
   });
 
   assert.equal(result.freshness.live.inventory.status, 'AVAILABLE');
+  assert.equal(result.freshness.live.inventory.freshness, 'FRESH');
   assert.deepEqual(result.freshness.live.delivery.capabilities, ['methods']);
   assert.equal(result.validation.accepted, false);
   assert.deepEqual(result.validation.reasons, ['UNVERIFIED_DELIVERY_DEADLINE']);

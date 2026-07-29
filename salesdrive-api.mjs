@@ -43,7 +43,13 @@ export function createSalesdriveApiClient({
       if (!response?.ok) return unavailable('SALES_DRIVE_API_UNAVAILABLE');
       const payload = await response.json();
       const items = Array.isArray(payload?.data) ? payload.data.map(normalizeDictionaryItem).filter(Boolean) : [];
-      return { items, diagnostics: { code: items.length ? 'OK' : 'EMPTY_RESULTS', source: 'salesdrive_api' }, source: 'salesdrive_api', fetchedAt: now().toISOString() };
+      return {
+        items,
+        diagnostics: { code: items.length ? 'OK' : 'EMPTY_RESULTS', source: 'salesdrive_api' },
+        source: 'salesdrive_api',
+        fetchedAt: now().toISOString(),
+        freshness: 'FRESH',
+      };
     } catch (error) {
       return unavailable(error?.name === 'AbortError' ? 'SALES_DRIVE_API_TIMEOUT' : 'SALES_DRIVE_API_UNAVAILABLE');
     } finally {
@@ -67,5 +73,11 @@ function normalizeSubdomain(value) {
 }
 
 function unavailable(code) {
-  return { items: [], diagnostics: { code, source: 'salesdrive_api' }, source: 'salesdrive_api', fetchedAt: null };
+  return {
+    items: [],
+    diagnostics: { code, source: 'salesdrive_api' },
+    source: 'salesdrive_api',
+    fetchedAt: null,
+    freshness: 'UNAVAILABLE',
+  };
 }

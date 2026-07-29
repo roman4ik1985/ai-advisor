@@ -1,6 +1,7 @@
 function unavailableResolver(reason) {
   return {
     status: 'UNAVAILABLE',
+    freshness: 'UNAVAILABLE',
     source: null,
     checkedAt: null,
     reason,
@@ -10,6 +11,7 @@ function unavailableResolver(reason) {
 function notRequiredResolver() {
   return {
     status: 'NOT_REQUIRED',
+    freshness: null,
     source: null,
     checkedAt: null,
     reason: null,
@@ -40,34 +42,45 @@ export async function resolveLiveEvidence({
     const result = querySalesdriveCatalog
       ? await querySalesdriveCatalog(question)
       : await queryCatalog();
-    catalog = Array.isArray(result?.products) ? result.products : [];
-    catalogDiagnostics = result?.diagnostics || { code: 'UNKNOWN' };
+    const resultFreshness = normalizeFreshness(result);
+    const rawCatalog = Array.isArray(result?.products) ? result.products : [];
+    const isFresh = resultFreshness === 'FRESH';
+    catalog = isFresh ? rawCatalog : [];
+    catalogDiagnostics = {
+      ...(result?.diagnostics || { code: 'UNKNOWN' }),
+      freshness: resultFreshness,
+    };
     const checkedAt = now().toISOString();
     const source = result?.source || 'public_catalog_search';
     const fetchedAt = result?.fetchedAt || checkedAt;
-    const hasProducts = catalog.length > 0 && catalogDiagnostics.code === 'OK';
+    const hasProducts = isFresh && catalog.length > 0 && catalogDiagnostics.code === 'OK';
     catalogResolver = {
-      status: hasProducts ? 'AVAILABLE' : 'UNAVAILABLE',
-      source: hasProducts ? source : null,
-      checkedAt: fetchedAt,
+      status: hasProducts ? 'AVAILABLE' : resolverFailureStatus(resultFreshness),
+      freshness: resultFreshness,
+      source: hasProducts || resultFreshness === 'STALE' ? source : null,
+      checkedAt: hasProducts || resultFreshness === 'STALE' ? fetchedAt : null,
       reason: hasProducts ? null : catalogDiagnostics.code,
     };
     if (requiredResolvers.has('price')) {
       const hasPrice = catalog.some((product) => Array.isArray(product?.prices) && product.prices.length > 0);
       priceResolver = {
-        status: hasPrice ? 'AVAILABLE' : 'UNAVAILABLE',
-        source: hasPrice ? source : null,
-        checkedAt: fetchedAt,
+        status: hasPrice ? 'AVAILABLE' : resolverFailureStatus(resultFreshness),
+        freshness: resultFreshness,
+        source: hasPrice || resultFreshness === 'STALE' ? source : null,
+        checkedAt: hasPrice || resultFreshness === 'STALE' ? fetchedAt : null,
         reason: hasPrice ? null : catalogDiagnostics.code,
       };
     }
     if (requiredResolvers.has('inventory')) {
       const inventoryProducts = catalog.filter((product) => ['IN_STOCK', 'OUT_OF_STOCK'].includes(product?.availability?.state));
       inventoryResolver = {
-        status: inventoryProducts.length > 0 ? 'AVAILABLE' : 'UNAVAILABLE',
-        source: inventoryProducts.length > 0 ? source : null,
-        checkedAt: inventoryProducts.length > 0 ? fetchedAt : null,
-        reason: inventoryProducts.length > 0 ? null : 'SALES_DRIVE_STOCK_NOT_PRESENT',
+        status: inventoryProducts.length > 0 ? 'AVAILABLE' : resolverFailureStatus(resultFreshness),
+        freshness: resultFreshness,
+        source: inventoryProducts.length > 0 || resultFreshness === 'STALE' ? source : null,
+        checkedAt: inventoryProducts.length > 0 || resultFreshness === 'STALE' ? fetchedAt : null,
+        reason: inventoryProducts.length > 0
+          ? null
+          : resultFreshness === 'FRESH' ? 'SALES_DRIVE_STOCK_NOT_PRESENT' : catalogDiagnostics.code,
         capabilities: inventoryProducts.length > 0 ? ['stock'] : [],
       };
       if (inventoryProducts.length > 0) liveFacts.inventory = inventoryProducts.map((product) => ({
@@ -83,11 +96,13 @@ export async function resolveLiveEvidence({
       ? await querySalesdriveDelivery()
       : { items: [], diagnostics: { code: 'NO_AUTHORIZED_READ_ONLY_SOURCE' }, fetchedAt: null };
     const items = Array.isArray(result?.items) ? result.items : [];
-    const hasDeliveryMethods = items.length > 0 && result?.diagnostics?.code === 'OK';
+    const resultFreshness = normalizeFreshness(result);
+    const hasDeliveryMethods = resultFreshness === 'FRESH' && items.length > 0 && result?.diagnostics?.code === 'OK';
     deliveryResolver = {
-      status: hasDeliveryMethods ? 'AVAILABLE' : 'UNAVAILABLE',
-      source: hasDeliveryMethods ? (result?.source || 'salesdrive_api') : null,
-      checkedAt: hasDeliveryMethods ? (result?.fetchedAt || now().toISOString()) : null,
+      status: hasDeliveryMethods ? 'AVAILABLE' : resolverFailureStatus(resultFreshness),
+      freshness: resultFreshness,
+      source: hasDeliveryMethods || resultFreshness === 'STALE' ? (result?.source || 'salesdrive_api') : null,
+      checkedAt: hasDeliveryMethods || resultFreshness === 'STALE' ? (result?.fetchedAt || now().toISOString()) : null,
       reason: hasDeliveryMethods ? null : String(result?.diagnostics?.code || 'SALES_DRIVE_API_UNAVAILABLE'),
       capabilities: hasDeliveryMethods ? ['methods'] : [],
     };
@@ -105,4 +120,15 @@ export async function resolveLiveEvidence({
     },
     liveFacts,
   };
+}
+
+function normalizeFreshness(result) {
+  const explicit = String(result?.freshness || '').toUpperCase();
+  if (['FRESH', 'STALE', 'UNAVAILABLE'].includes(explicit)) return explicit;
+  if (result?.diagnostics?.code === 'STALE_LAST_KNOWN_GOOD') return 'STALE';
+  return result?.diagnostics?.code === 'OK' ? 'FRESH' : 'UNAVAILABLE';
+}
+
+function resolverFailureStatus(freshness) {
+  return freshness === 'STALE' ? 'STALE' : 'UNAVAILABLE';
 }

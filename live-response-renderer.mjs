@@ -1,12 +1,31 @@
-export function renderDeterministicLiveAnswer({ question = '', route = {}, catalog = [], liveFacts = {} } = {}) {
+export function renderDeterministicLiveAnswer({
+  question = '',
+  route = {},
+  catalog = [],
+  liveFacts = {},
+  liveEvidence = {},
+} = {}) {
   const resolvers = new Set(route?.requiredResolvers || []);
   if (resolvers.has('delivery')) {
+    if (!isFreshAvailable(liveEvidence.delivery, 'methods')) return null;
     if (asksForDeliveryDeadline(question)) return null;
     return renderDeliveryMethods(question, liveFacts.deliveryMethods);
   }
-  if (resolvers.has('inventory')) return renderInventory(question, catalog, liveFacts.inventory, resolvers.has('price'));
-  if (resolvers.has('price')) return renderPrice(question, catalog);
+  if (resolvers.has('inventory')) {
+    if (!isFreshAvailable(liveEvidence.inventory, 'stock')) return null;
+    if (resolvers.has('price') && !isFreshAvailable(liveEvidence.price)) return null;
+    return renderInventory(question, catalog, liveFacts.inventory, resolvers.has('price'));
+  }
+  if (resolvers.has('price')) {
+    if (!isFreshAvailable(liveEvidence.price)) return null;
+    return renderPrice(question, catalog);
+  }
   return null;
+}
+
+function isFreshAvailable(evidence, capability) {
+  const available = evidence?.status === 'AVAILABLE' && evidence?.freshness === 'FRESH';
+  return available && (!capability || Array.isArray(evidence?.capabilities) && evidence.capabilities.includes(capability));
 }
 
 function renderDeliveryMethods(question, methods) {

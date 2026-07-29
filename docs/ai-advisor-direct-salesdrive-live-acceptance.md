@@ -66,3 +66,12 @@ The corrected renderer was hash-verified in the active runtime and loaded by a n
 - A multi-product inventory query returned a model/SKU clarification and named none of the returned products.
 
 Every response returned HTTP 200 with the unchanged success keys and a request ID. Local/public health returned HTTP 200; marker-only runtime-log scan found no key, YML URL or `publicKey` marker. Bilingual routing hardening acceptance: **PASS**.
+
+## Freshness fail-closed hardening, 2026-07-29
+
+- Direct SalesDrive YML/API results now carry explicit `FRESH`, `STALE` or `UNAVAILABLE` state.
+- Stale last-known-good YML remains available only to the internal client diagnostic path. The request pipeline removes stale products from the public catalog and live facts.
+- Deterministic price, stock and delivery rendering requires an `AVAILABLE + FRESH` resolver. The validator also rejects live timestamps older than ten minutes.
+- A required stale or unavailable price/inventory/delivery resolver returns a language-aware manager fallback without invoking the model.
+- Fault-injection coverage includes YML fresh-to-stale-to-expired transitions, SalesDrive API HTTP failure/timeout, stale renderer inputs, expired validator evidence and pipeline suppression of stale public catalog data.
+- Source verification passes 67/67 tests. Public `/api/chat` success keys remain unchanged. Runtime release and live acceptance are recorded after deployment.

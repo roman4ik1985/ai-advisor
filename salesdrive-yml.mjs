@@ -29,6 +29,7 @@ export function createSalesdriveYmlClient({
         },
         source: 'salesdrive_yml',
         fetchedAt: feed.fetchedAt,
+        freshness: 'FRESH',
       };
     } catch (error) {
       if (cache && Date.parse(cache.fetchedAt) + maxStaleMs >= now().getTime()) {
@@ -38,6 +39,7 @@ export function createSalesdriveYmlClient({
           diagnostics: { code: 'STALE_LAST_KNOWN_GOOD', source: 'salesdrive_yml' },
           source: 'salesdrive_yml',
           fetchedAt: cache.fetchedAt,
+          freshness: 'STALE',
         };
       }
       return unavailable(error?.code || 'SALES_DRIVE_YML_UNAVAILABLE');
@@ -241,7 +243,13 @@ function parseYmlUrl(value) {
 }
 
 function unavailable(code) {
-  return { products: [], diagnostics: { code, source: 'salesdrive_yml' }, source: 'salesdrive_yml', fetchedAt: null };
+  return {
+    products: [],
+    diagnostics: { code, source: 'salesdrive_yml' },
+    source: 'salesdrive_yml',
+    fetchedAt: null,
+    freshness: 'UNAVAILABLE',
+  };
 }
 
 function codedError(code) {
