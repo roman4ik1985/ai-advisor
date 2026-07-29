@@ -774,13 +774,18 @@ P3 acceptance:
 
 | ID | Контур | Зависимость |
 |---|---|---|
-| C50 | OpenCart staging preflight | Явно разрешённый доступ и подтверждённый способ установки |
-| C51 | Backup and restore proof | Авторизованный доступ к файлам и БД |
-| C52 | Staging installation | C50, C51 |
-| C53 | Store regression | C52 |
-| C54 | Limited rollout and rollback gate | C53 |
+| C50 | OpenCart staging preflight | PASS 29.07.2026: изолированный `/dev`, отдельные DB/user, Basic Auth |
+| C51 | Backup and restore proof | PASS with limitation: JetBackup 12 restore points + byte-for-byte footer restore; новый Softaculous archive не создан |
+| C52 | Staging installation | PASS: CyberStore source + OCMOD footer, staging-only cache refresh |
+| C53 | Store regression | Desktop functional PASS; legacy staging PHP warnings, mobile viewport и LCP/CLS/INP pending |
+| C54 | Limited rollout and rollback gate | BLOCKED: production compiled Lightning/template runtime не публикует уже существующий snippet; cache canary fully rolled back |
 
 OpenCart/cPanel, Tunnel, active runtime, secrets и remote изменяются только по отдельной явной команде.
+
+Подробная P5 evidence:
+[staging acceptance](./docs/ai-advisor-p5-staging-acceptance.md),
+[regression report](./docs/ai-advisor-p5-regression-report.md) и
+[rollout/rollback runbook](./docs/ai-advisor-p5-rollout-runbook.md).
 
 ### P6. Deferred beyond current scope
 

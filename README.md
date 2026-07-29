@@ -38,6 +38,18 @@ cost-quality benchmark и asset budgets выполняются командам�
 остаются `STAGING_REQUIRED`. Acceptance:
 [docs/ai-advisor-p4-operations-acceptance.md](./docs/ai-advisor-p4-operations-acceptance.md).
 
+P5 C50–C52 завершены на изолированной OpenCart-копии `/dev`: подтверждены
+JetBackup restore points, выполнены byte-for-byte footer restore drills и
+установлен виджет в source + OCMOD CyberStore footer. Desktop functional
+regression проходит на homepage/category/product/cart/checkout без browser
+errors; старые PHP 8 warnings staging отмечены отдельно. C53 ещё требует real
+mobile viewport и LCP/CLS/INP. C54 не активирован: production footer на диске
+содержит snippet, но compiled Lightning/template runtime его не публикует;
+page-cache canary был полностью откачен. Acceptance и следующий gate:
+[docs/ai-advisor-p5-staging-acceptance.md](./docs/ai-advisor-p5-staging-acceptance.md),
+[docs/ai-advisor-p5-regression-report.md](./docs/ai-advisor-p5-regression-report.md),
+[docs/ai-advisor-p5-rollout-runbook.md](./docs/ai-advisor-p5-rollout-runbook.md).
+
 ### Product-aware MVP source package
 
 C10–C15 реализованы в source:
