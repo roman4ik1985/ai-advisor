@@ -41,9 +41,27 @@ export async function resolveLiveEvidence({
   const liveFacts = {};
 
   if (requiredResolvers.has('catalog') || requiredResolvers.has('price')) {
-    const result = querySalesdriveCatalog
+    let result = querySalesdriveCatalog
       ? await querySalesdriveCatalog(question)
       : await queryCatalog();
+    if (
+      route?.intent === 'product_advice'
+      && querySalesdriveCatalog
+      && normalizeFreshness(result) === 'FRESH'
+      && (!Array.isArray(result?.products) || result.products.length === 0)
+    ) {
+      const broadResult = await querySalesdriveCatalog('');
+      if (normalizeFreshness(broadResult) === 'FRESH' && Array.isArray(broadResult?.products) && broadResult.products.length > 0) {
+        result = {
+          ...broadResult,
+          diagnostics: {
+            ...(broadResult.diagnostics || {}),
+            code: 'OK',
+            strategy: 'BROAD_PRODUCT_ADVICE',
+          },
+        };
+      }
+    }
     const resultFreshness = normalizeFreshness(result);
     const rawCatalog = Array.isArray(result?.products) ? result.products : [];
     const isFresh = resultFreshness === 'FRESH';

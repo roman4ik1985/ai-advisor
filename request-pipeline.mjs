@@ -1,5 +1,6 @@
 import { buildFreshnessEvidence, buildRouteDecision, getRoutePolicy, routeInstruction } from './intent-router.mjs';
 import { resolveLiveEvidence } from './live-resolvers.mjs';
+import { buildProductRecommendation } from './product-recommender.mjs';
 import { renderDeterministicLiveAnswer } from './live-response-renderer.mjs';
 import { validateAssistantAnswer } from './response-validator.mjs';
 
@@ -64,47 +65,62 @@ export async function executeRequestPipeline({
     };
   }
 
-  const deterministicAnswer = renderDeterministicLiveAnswer({
+  const deterministicLiveAnswer = renderDeterministicLiveAnswer({
     question,
     route,
     catalog: live.catalog,
     liveFacts: live.liveFacts,
     liveEvidence: live.evidence,
   });
+  const recommendation = deterministicLiveAnswer
+    ? null
+    : buildProductRecommendation({ question, products: live.catalog });
+  const hasDeterministicProductAnswer = recommendation && recommendation.mode !== 'NONE';
+  const publicCatalog = hasDeterministicProductAnswer
+    ? recommendation.status === 'READY' ? recommendation.products : []
+    : live.catalog;
+  const deterministicAnswer = deterministicLiveAnswer
+    || (hasDeterministicProductAnswer ? recommendation.answer : null);
+  const deterministicReason = deterministicLiveAnswer
+    ? 'DETERMINISTIC_LIVE_FACT'
+    : hasDeterministicProductAnswer ? `DETERMINISTIC_PRODUCT_${recommendation.status}` : null;
+  const effectiveFreshness = hasDeterministicProductAnswer && recommendation.status === 'READY'
+    ? withSelectedCatalogPriceEvidence(freshness, publicCatalog)
+    : freshness;
   const answer = deterministicAnswer || await askSupport({
-    prompt: `${buildPrompt({ messages, page, catalog: live.catalog, knowledge })}\n${routeInstruction(route.intent)}\n${liveEvidenceInstruction(live.liveFacts)}`,
+    prompt: `${buildPrompt({ messages, page, catalog: publicCatalog, knowledge })}\n${routeInstruction(route.intent)}\n${liveEvidenceInstruction(live.liveFacts)}`,
     messages,
     page,
-    catalog: live.catalog,
+    catalog: publicCatalog,
     knowledge,
   });
   const validation = validateAssistantAnswer({
     answer,
-    catalog: live.catalog,
+    catalog: publicCatalog,
     knowledge,
     question,
-    freshness,
+    freshness: effectiveFreshness,
     route,
     now,
   });
   const verification = deterministicAnswer
-    ? { status: 'SKIPPED', reason: 'DETERMINISTIC_LIVE_FACT' }
+    ? { status: 'SKIPPED', reason: deterministicReason }
     : await verifyWhenRequired({
-    route,
-    question,
-    answer: validation.answer,
-    validation,
-    freshness,
-    catalog: live.catalog,
-    knowledge,
-    liveFacts: live.liveFacts,
+      route,
+      question,
+      answer: validation.answer,
+      validation,
+      freshness: effectiveFreshness,
+      catalog: publicCatalog,
+      knowledge,
+      liveFacts: live.liveFacts,
       askVerifier,
     });
 
   if (verification.status === 'REJECTED') {
     return {
       answer: managerFallback(question),
-      catalog: live.catalog,
+      catalog: publicCatalog,
       catalogDiagnostics: live.catalogDiagnostics,
       knowledge,
       route,
@@ -116,11 +132,11 @@ export async function executeRequestPipeline({
 
   return {
     answer: validation.answer,
-    catalog: live.catalog,
+    catalog: publicCatalog,
     catalogDiagnostics: live.catalogDiagnostics,
     knowledge,
     route,
-    freshness,
+    freshness: effectiveFreshness,
     validation,
     verification,
   };
@@ -134,6 +150,34 @@ function requiredLiveEvidenceFailure(route, evidence) {
     if (status !== 'AVAILABLE') return `LIVE_${resolver.toUpperCase()}_${status}`;
   }
   return null;
+}
+
+function withSelectedCatalogPriceEvidence(freshness, catalog) {
+  const pricedProducts = (Array.isArray(catalog) ? catalog : [])
+    .filter((product) => Array.isArray(product?.prices) && product.prices.length > 0);
+  if (pricedProducts.length === 0 || freshness?.live?.price?.status === 'AVAILABLE') return freshness;
+  const checkedAt = pricedProducts
+    .map((product) => product?.fetchedAt)
+    .filter((value) => Number.isFinite(Date.parse(String(value || ''))))
+    .sort()[0] || null;
+  if (!checkedAt) return freshness;
+  return {
+    ...freshness,
+    catalog: {
+      ...freshness.catalog,
+      fetchedAt: checkedAt,
+    },
+    live: {
+      ...freshness.live,
+      price: {
+        status: 'AVAILABLE',
+        freshness: 'FRESH',
+        source: 'selected_catalog',
+        checkedAt,
+        reason: null,
+      },
+    },
+  };
 }
 
 async function verifyWhenRequired({ route, question, answer, validation, freshness, catalog, knowledge, liveFacts, askVerifier }) {

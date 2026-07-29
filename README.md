@@ -19,6 +19,18 @@
 
 Канонический forward roadmap C00–C54 и deferred-зоны находятся в разделе 18 [TECHNICAL_SPECIFICATION.md](./TECHNICAL_SPECIFICATION.md#18-forward-roadmap). Персональный статус заказа не включён: до отдельного ownership/auth contract запрещены anonymous lookup, order API calls и доступ к customer data.
 
+### Product-aware MVP source package
+
+C10–C15 реализованы в source:
+
+- canonical product DTO связывает SalesDrive identity/SKU с безопасным URL, aliases, specifications, images, provenance и freshness;
+- рекомендации и сравнения детерминированны, ограничены тремя свежими подтверждёнными товарами и не выдумывают победителя;
+- виджет отображает карточки из существующего `catalog`, находит реальную OpenCart-карточку по URL/ID/SKU/точному alias и перемещается к ней только после явного действия;
+- mobile и reduced-motion используют highlight/focus без перемещения персонажа;
+- полный source suite проходит 96/96.
+
+Source acceptance: [docs/ai-advisor-product-aware-mvp.md](./docs/ai-advisor-product-aware-mvp.md). Active runtime и публичный магазин этим пакетом не изменены; real-store release/staging acceptance выполняется только по отдельной команде.
+
 Плавающий AI-консультант для `ledprojector.com.ua` с двумя режимами:
 
 - `cli` — локальное тестирование через текущую авторизацию Codex CLI/ChatGPT;

@@ -121,7 +121,7 @@
 - детерминированные русские и украинские ответы по live-фактам с `FRESH` / `STALE` / `UNAVAILABLE` и fail-closed fallback;
 - контролируемый learning log с редакторским review, выключенный по умолчанию;
 - Agent OS 1.0 с приёмкой T01–T11 90/90 и legacy suite 19/19;
-- основной source test suite 69/69 PASS на baseline 29.07.2026.
+- основной source test suite 69/69 PASS на C00 baseline и 96/96 PASS после source-реализации P1 C10–C15.
 
 Принятый production snapshot на 29.07.2026 также подтвердил source/runtime release diff 0 и локальный/публичный `/health` HTTP 200. Это историческая acceptance-точка, а не замена текущей health-проверки перед новой runtime-операцией.
 
@@ -671,14 +671,16 @@ Roadmap выполняется отдельными Agent OS задачами и
 
 ### P1. Product-aware MVP без персональных данных
 
-| ID | Контур | Зависимость | Результат |
-|---|---|---|---|
-| C10 | Product schema and aliases | C00 | Связать SalesDrive ID/SKU, канонический URL, названия, aliases, характеристики, изображения и provenance |
-| C11 | Recommendation and comparison | C10 | Подбор и сравнение только по подтверждённым ограничениям и характеристикам |
-| C12 | Product cards in chat | C10 | Отрисовывать до трёх рекомендаций из существующего поля `catalog` |
-| C13 | OpenCart DOM adapter | C10, реальные fixtures | Стабильно сопоставлять рекомендацию с карточкой магазина |
-| C14 | Product navigation and mascot UX | C12, C13 | Подсветка, «Показать товар», безопасное позиционирование и возврат |
-| C15 | UI acceptance | C12–C14 | Desktop/mobile, keyboard, reduced motion, browser matrix и error states |
+Source package C10–C15 выполнен 29.07.2026 и принят 96/96 автоматическими тестами, fake-DOM contracts и локальными desktop/mobile/reduced-motion browser checks. Active runtime и реальный OpenCart не изменялись; их приёмка остаётся отдельным release/staging gate. Подробности: [docs/ai-advisor-product-aware-mvp.md](./docs/ai-advisor-product-aware-mvp.md).
+
+| ID | Контур | Зависимость | Результат | Статус |
+|---|---|---|---|---|
+| C10 | Product schema and aliases | C00 | Связать SalesDrive ID/SKU, канонический URL, названия, aliases, характеристики, изображения и provenance | Source PASS |
+| C11 | Recommendation and comparison | C10 | Подбор и сравнение только по подтверждённым ограничениям и характеристикам | Source PASS |
+| C12 | Product cards in chat | C10 | Отрисовывать до трёх рекомендаций из существующего поля `catalog` | Source PASS |
+| C13 | OpenCart DOM adapter | C10, реальные fixtures | Стабильно сопоставлять рекомендацию с карточкой магазина | Fixture/local browser PASS; real store pending C50–C53 |
+| C14 | Product navigation and mascot UX | C12, C13 | Подсветка, «Показать товар», безопасное позиционирование и возврат | Local browser PASS |
+| C15 | UI acceptance | C12–C14 | Desktop/mobile, keyboard, reduced motion, browser matrix и error states | Source/local PASS; full staging matrix pending C45/C53 |
 
 ### P2. Privacy-gated order status
 

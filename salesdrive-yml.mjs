@@ -1,3 +1,5 @@
+import { toPublicProduct } from './product-schema.mjs';
+
 const DEFAULT_TIMEOUT_MS = 8_000;
 const DEFAULT_MAX_BYTES = 4 * 1024 * 1024;
 const DEFAULT_CACHE_TTL_MS = 2 * 60 * 1000;
@@ -11,6 +13,7 @@ export function createSalesdriveYmlClient({
   maxBytes = DEFAULT_MAX_BYTES,
   cacheTtlMs = DEFAULT_CACHE_TTL_MS,
   maxStaleMs = DEFAULT_MAX_STALE_MS,
+  allowedStoreOrigins,
 } = {}) {
   const configuredUrl = parseYmlUrl(ymlUrl);
   let cache = null;
@@ -20,7 +23,11 @@ export function createSalesdriveYmlClient({
 
     try {
       const feed = await getFeed();
-      const products = selectProducts(feed.products, query);
+      const products = publicProducts(selectProducts(feed.products, query), {
+        fetchedAt: feed.fetchedAt,
+        freshness: 'FRESH',
+        allowedStoreOrigins,
+      });
       return {
         products,
         diagnostics: {
@@ -33,7 +40,11 @@ export function createSalesdriveYmlClient({
       };
     } catch (error) {
       if (cache && Date.parse(cache.fetchedAt) + maxStaleMs >= now().getTime()) {
-        const products = selectProducts(cache.products, query);
+        const products = publicProducts(selectProducts(cache.products, query), {
+          fetchedAt: cache.fetchedAt,
+          freshness: 'STALE',
+          allowedStoreOrigins,
+        });
         return {
           products,
           diagnostics: { code: 'STALE_LAST_KNOWN_GOOD', source: 'salesdrive_yml' },
@@ -83,18 +94,30 @@ function parseOffer(attributes, body) {
   const name = tag(body, 'name') || tag(body, 'model') || tag(body, 'vendor') || '';
   const sku = tag(body, 'vendorCode') || tag(body, 'sku') || attribute(attributes, 'id') || null;
   const id = attribute(attributes, 'id') || sku || name || null;
+  const model = tag(body, 'model');
+  const vendor = tag(body, 'vendor');
+  const images = tags(body, 'picture');
 
   return {
     id,
     sku,
     name,
     url: tag(body, 'url') || null,
-    image: tag(body, 'picture') || null,
+    image: images[0] || null,
+    images,
     category: tag(body, 'categoryId') || null,
     prices: price ? [formatPrice(price, currency)] : [],
     oldPrice: tag(body, 'oldprice') ? formatPrice(tag(body, 'oldprice'), currency) : null,
     availability,
+    aliases: [model, vendor && model ? `${vendor} ${model}` : null].filter(Boolean),
+    specifications: parameters(body),
   };
+}
+
+function publicProducts(products, context) {
+  return products
+    .map((product) => toPublicProduct(product, context))
+    .filter(Boolean);
 }
 
 function selectProducts(products, query) {
@@ -189,6 +212,24 @@ function tag(body, name) {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
   const match = new RegExp(`<${escaped}\\b[^>]*>([\\s\\S]*?)<\\/${escaped}>`, 'iu').exec(body);
   return match ? cleanXmlText(match[1]) : null;
+}
+
+function tags(body, name) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+  return [...body.matchAll(new RegExp(`<${escaped}\\b[^>]*>([\\s\\S]*?)<\\/${escaped}>`, 'giu'))]
+    .map((match) => cleanXmlText(match[1]))
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
+function parameters(body) {
+  const result = {};
+  for (const match of body.matchAll(/<param\b([^>]*)>([\s\S]*?)<\/param>/giu)) {
+    const name = attribute(match[1], 'name');
+    const value = cleanXmlText(match[2]);
+    if (name && value && Object.keys(result).length < 48) result[name] = value;
+  }
+  return result;
 }
 
 function numberTag(body, names) {

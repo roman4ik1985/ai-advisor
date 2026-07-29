@@ -3,19 +3,21 @@ import assert from 'node:assert/strict';
 import { createSalesdriveYmlClient, parseSalesdriveYml } from '../salesdrive-yml.mjs';
 
 const yml = `<?xml version="1.0"?><yml_catalog><shop><offers>
-  <offer id="wanbo-t6" available="true"><name>Wanbo T6 Max</name><vendorCode>T6-MAX</vendorCode><price>13599</price><currencyId>UAH</currencyId><stock_quantity>3</stock_quantity><url>https://store.example/wanbo-t6</url></offer>
+  <offer id="wanbo-t6" available="true"><name>Wanbo T6 Max</name><vendor>Wanbo</vendor><model>T6 Max</model><vendorCode>T6-MAX</vendorCode><price>13599</price><currencyId>UAH</currencyId><stock_quantity>3</stock_quantity><url>https://store.example/wanbo-t6</url><picture>https://store.example/img/t6.jpg</picture><param name="Resolution">Full HD</param></offer>
   <offer id="sold-out" available="false"><name>Sold Out Projector</name><price>9999</price><currencyId>UAH</currencyId><stock_quantity>0</stock_quantity></offer>
 </offers></shop></yml_catalog>`;
 
 test('SalesDrive YML parser normalizes price, SKU and stock evidence', () => {
   assert.deepEqual(parseSalesdriveYml(yml), [
     {
-      id: 'wanbo-t6', sku: 'T6-MAX', name: 'Wanbo T6 Max', url: 'https://store.example/wanbo-t6', image: null, category: null,
+      id: 'wanbo-t6', sku: 'T6-MAX', name: 'Wanbo T6 Max', url: 'https://store.example/wanbo-t6', image: 'https://store.example/img/t6.jpg', images: ['https://store.example/img/t6.jpg'], category: null,
       prices: ['13 599 грн.'], oldPrice: null, availability: { state: 'IN_STOCK', stockQuantity: 3 },
+      aliases: ['T6 Max', 'Wanbo T6 Max'], specifications: { Resolution: 'Full HD' },
     },
     {
-      id: 'sold-out', sku: 'sold-out', name: 'Sold Out Projector', url: null, image: null, category: null,
+      id: 'sold-out', sku: 'sold-out', name: 'Sold Out Projector', url: null, image: null, images: [], category: null,
       prices: ['9 999 грн.'], oldPrice: null, availability: { state: 'OUT_OF_STOCK', stockQuantity: 0 },
+      aliases: [], specifications: {},
     },
   ]);
 });
@@ -29,6 +31,7 @@ test('SalesDrive YML client caches a bounded direct response and ranks SKU match
       return new Response(yml, { status: 200, headers: { 'content-type': 'application/xml' } });
     },
     now: () => new Date('2026-07-29T00:00:00Z'),
+    allowedStoreOrigins: ['https://store.example'],
   });
 
   const first = await client.search('T6-MAX цена');
@@ -38,6 +41,11 @@ test('SalesDrive YML client caches a bounded direct response and ranks SKU match
   assert.equal(first.freshness, 'FRESH');
   assert.equal(first.source, 'salesdrive_yml');
   assert.equal(first.products[0].sku, 'T6-MAX');
+  assert.equal(first.products[0].canonicalUrl, 'https://store.example/wanbo-t6');
+  assert.equal(first.products[0].provenance.sourceId, 'wanbo-t6');
+  assert.equal(first.products[0].fetchedAt, '2026-07-29T00:00:00.000Z');
+  assert.equal(first.products[0].freshness, 'FRESH');
+  assert.deepEqual(first.products[0].specifications, { Resolution: 'Full HD' });
   assert.equal(second.products[0].name, 'Wanbo T6 Max');
 });
 
