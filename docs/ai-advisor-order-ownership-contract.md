@@ -1,45 +1,52 @@
 # C20 — ownership/auth contract for order status
 
 Date: 2026-07-29
-Status: source contract implemented; order lookup remains disabled
+Status: C20 and C21 source contracts implemented; bot and order lookup remain disabled
 
 ## Scope
 
-C20 defines the proof boundary that must exist before any personal order lookup.
-It does not select or implement a verification channel, call SalesDrive, read an
-order, process customer data, add a public endpoint, or change the active runtime.
+C20 defines the proof boundary before personal order lookup. C21 implements the
+source-only Telegram contact-binding contract. Neither module calls Telegram,
+SalesDrive, OpenCart or ERP, reads a real order, adds an endpoint, persists a
+binding, or changes the active runtime.
 
 The executable source contract is `order-ownership-contract.mjs`. It accepts only
 an opaque server-produced proof envelope and returns an authorization gate. It
 does not accept an order number, order-existence flag, contact detail, status, or
 other order data.
 
-## Simplified store policy
+## Selected store flow
 
-This is an ordinary retail-order flow, not high-assurance identity proofing. The
-selected C21 mechanism is intentionally simple:
+This is an ordinary menu-only retail-order flow:
 
-1. The visitor enters the order number.
-2. The server sends a six-digit one-time code through Telegram Gateway to the
-   phone already stored on that order.
-3. A correct code opens one order lookup for ten minutes.
-4. The code allows at most five attempts and can be used only once.
+1. The web assistant creates a ten-minute opaque deep-link session and displays
+   `Перевірити замовлення в Telegram`.
+2. The customer opens a private bot chat from that link.
+3. The bot requests the current user's phone through Telegram `request_contact`.
+4. Backend accepts only a private chat where `chat.id`, `from.id` and
+   `contact.user_id` identify the same Telegram user.
+5. The normalized shared phone must match the phone already held for the selected
+   customer/order.
+6. Backend atomically consumes the link session and stores only the resulting
+   `telegramUserId → customerRef` binding. The phone is not part of the binding DTO.
+7. Subsequent order actions are available only through the six fixed menu buttons.
 
-No OpenCart-account binding, Telegram Login, Mini App, device fingerprint, second
-factor, or manager approval is required for the normal path. If Telegram delivery
-is unavailable, the visitor is sent to the existing manager fallback.
+Typed phone text, forwarded contacts, group chats, reused/expired links and
+mismatched Telegram identities are rejected. There is no free-text order input,
+intent recognition or AI/model call in this flow.
 
 ## Fail-closed decision
 
 Order lookup is denied unless every condition below is true:
 
-1. Contract version and purpose match `1.1` and `ORDER_STATUS`.
+1. Contract version and purpose match `1.2` and `ORDER_STATUS`.
 2. Proof state is `VERIFIED`.
 3. The opaque proof-session identifier is valid.
-4. The Telegram one-time challenge is verified in no more than five attempts.
-5. The proof has valid timestamps, is not expired, and its lifetime is at most
+4. A private Telegram customer binding is verified.
+5. Backend confirms that the requested order belongs to that bound customer.
+6. The proof has valid timestamps, is not expired, and its lifetime is at most
    ten minutes.
-6. The proof has not been consumed.
+7. The proof has not been consumed.
 
 An allowed decision authorizes only the next lookup gate and requires atomic
 single-use consumption before a future order request. It is not order evidence.
@@ -52,7 +59,7 @@ single-use consumption before a future order request. It is not order evidence.
   locator exists.
 - A future challenge request must keep equivalent public status/body shape and
   timing for existing and non-existing locators.
-- A basic rate limit applies per visitor and order digest.
+- A basic rate limit applies per visitor, link session and bound Telegram user.
 - Proof secrets, channel destinations, raw identifiers, and rejection reasons
   must not enter browser-visible data, model context, analytics, or ordinary logs.
 
@@ -68,18 +75,19 @@ credentials, CRM notes, cost/margin fields, internal identifiers, and other
 orders. Raw SalesDrive payloads are projected to this allow-list before reaching
 the browser or model.
 
-C21 now has an owner-selected mechanism, but its Telegram/API implementation is
-still pending. C22–C25 also remain unimplemented. Anonymous lookup remains
-forbidden.
+C21 source validation is implemented in `telegram-order-binding.mjs`. Telegram
+webhook/API integration and persistent binding storage are still pending.
+C22–C25 also remain unimplemented. Anonymous lookup remains forbidden.
 
 ## Verification
 
-`test/order-ownership-contract.test.mjs` covers the valid gate plus missing proof,
-all non-verified states, missing challenge proof, attempt limit, expiry, clock skew, excessive TTL,
-replay, invalid opaque identifiers, forbidden fields, and neutral RU/UK public
-results. It also proves that a structurally forged allow object cannot be passed
-to the public formatter.
+`test/order-ownership-contract.test.mjs` covers the final lookup gate, Telegram
+binding, backend ownership, expiry, replay and neutral public results.
+`test/telegram-order-binding.test.mjs` covers deep-link entropy/expiry, private
+own-contact validation, Ukrainian phone normalization, typed/forwarded contact
+rejection, group/mismatched identity rejection, phone-free binding projection
+and neutral public failures.
 
 No existing endpoint, request field, response field, or HTTP status changes in
 C20. The current client contract is therefore backward-compatible and unchanged.
-The focused C20 suite passes 11/11 and the full source suite passes 107/107.
+The focused C20+C21 suites pass 22/22 and the full source suite passes 118/118.

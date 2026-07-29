@@ -121,7 +121,7 @@
 - детерминированные русские и украинские ответы по live-фактам с `FRESH` / `STALE` / `UNAVAILABLE` и fail-closed fallback;
 - контролируемый learning log с редакторским review, выключенный по умолчанию;
 - Agent OS 1.0 с приёмкой T01–T11 90/90 и legacy suite 19/19;
-- основной source test suite 69/69 PASS на C00 baseline, 96/96 PASS после P1 C10–C15 и 107/107 PASS после design-only C20.
+- основной source test suite 69/69 PASS на C00 baseline, 96/96 PASS после P1 C10–C15, 107/107 PASS после C20 и 118/118 PASS после source-only C21.
 
 Принятый production snapshot на 29.07.2026 также подтвердил source/runtime release diff 0 и локальный/публичный `/health` HTTP 200. Это историческая acceptance-точка, а не замена текущей health-проверки перед новой runtime-операцией.
 
@@ -689,10 +689,10 @@ Source package C10–C15 выполнен 29.07.2026 и принят 96/96 ав�
 | ID | Контур | Зависимость | Результат | Статус |
 |---|---|---|---|---|
 | C20 | Ownership/auth contract | C00 | Design-only контракт доказательства владения заказом, fail-closed и anti-enumeration | Source PASS |
-| C21 | Verification mechanism | Решение владельца после C20 | Шестизначный Telegram Gateway OTP на телефон заказа, 10 минут, 5 попыток, single-use | Decision selected; implementation deferred |
+| C21 | Verification mechanism | Решение владельца после C20 | Одноразовый deep link + private Telegram `request_contact` + `telegramUserId → customerRef` | Source PASS; webhook/storage pending |
 | C22 | Narrow order DTO | C20, C21 | Номер, товары/количество, сумма, status/payment/delivery/tracking без контактов и служебных полей | Policy selected; implementation deferred |
 | C23 | GET-only order client | C21, C22 | Server-side projection до logging/model boundary | Deferred |
-| C24 | Deterministic order response | C23 | Ответ только после успешного ownership proof | Deferred |
+| C24 | Deterministic order response | C23 | Фиксированное меню и RU/UK templates без свободного текста и AI | Deferred |
 | C25 | Order security acceptance | C21–C24 | Enumeration, replay, rate-limit, PII и log-safety проверки | Deferred |
 
 Anonymous order lookup запрещён. Raw SalesDrive order/contact payload не передаётся модели, браузеру или обычным логам.
@@ -700,16 +700,23 @@ Anonymous order lookup запрещён. Raw SalesDrive order/contact payload н
 C20 выполнен как изолированный executable policy contract
 `order-ownership-contract.mjs`, не подключённый к HTTP/runtime path. Контракт
 принимает только opaque server-produced proof envelope без order locator и PII.
-Выбран упрощённый retail-flow: шестизначный Telegram Gateway OTP отправляется на
-телефон из заказа, действует не более десяти минут, допускает пять попыток и
-открывает один lookup. Lookup gate требует `VERIFIED` challenge, корректный срок
-и отсутствие признака consumption.
+Выбран упрощённый retail-flow: одноразовая десятиминутная deep-link сессия
+переводит клиента в private bot chat, где принимается только собственный Telegram
+`request_contact`. Source-only C21 валидирует совпадение `chat.id`, `from.id` и
+`contact.user_id`, нормализует украинский номер, сверяет его с клиентом и
+проецирует phone-free binding `telegramUserId → customerRef`. Typed/forwarded
+contacts, group chat, identity mismatch, expiry и replay отклоняются. Lookup gate
+требует подтверждённую Telegram-привязку, backend ownership check, корректный
+срок и отсутствие признака consumption.
 Любая неизвестная или лишняя структура, неверное состояние, expiry или replay
 закрываются одинаковым public denial result. Разрешение требует будущего
 атомарного consumption и само по себе не подтверждает существование заказа.
 После proof C22 разрешает показать номер заказа, товары/количество, сумму,
 нормализованные статусы, доставку и tracking. Полные контакты, платёжные
 реквизиты, CRM/служебные поля и другие заказы не выдаются.
+Telegram order-flow является menu-only: шесть фиксированных callback operations,
+детерминированные RU/UK templates, без свободного текста, intent recognition,
+prompt, model context или OpenAI request.
 Полный контракт: [docs/ai-advisor-order-ownership-contract.md](./docs/ai-advisor-order-ownership-contract.md).
 
 ### P3. Manager and knowledge operations
