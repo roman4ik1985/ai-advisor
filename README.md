@@ -33,16 +33,18 @@ Source acceptance: [docs/ai-advisor-product-aware-mvp.md](./docs/ai-advisor-prod
 
 ### Privacy-gated order status
 
-C20 реализован только как source-контракт: `order-ownership-contract.mjs`
-fail-closed проверяет непросроченный одноразовый server-bound proof и выдаёт
-разрешение лишь на следующий lookup gate. Он не принимает номер заказа,
-контактные данные, признак существования заказа или order DTO. Все причины
-отказа получают одинаковый anti-enumeration public result.
+C20 реализован как простой source-контракт: номер заказа подтверждается
+шестизначным одноразовым кодом Telegram на телефон, уже записанный в заказе.
+Код действует до десяти минут, допускает пять попыток и открывает один lookup.
+Сам proof не принимает контактные данные, признак существования заказа или order
+DTO; до проверки все причины отказа получают одинаковый public result.
 
 Контракт и границы: [docs/ai-advisor-order-ownership-contract.md](./docs/ai-advisor-order-ownership-contract.md).
-C21–C25, order API, customer data, новый endpoint и runtime-интеграция остаются
-отключены до отдельного выбора доверенного verification mechanism. После C20
-полный source suite проходит 107/107.
+После успешного кода будущий C22 может показать номер заказа, товары/количество,
+сумму, статусы заказа/оплаты/отправки, доставку и ТТН. Контакты, платёжные
+реквизиты, CRM-заметки, внутренние поля и чужие заказы исключаются. C21–C25,
+order API, новый endpoint и runtime-интеграция пока не реализованы. Полный source
+suite проходит 107/107.
 
 Плавающий AI-консультант для `ledprojector.com.ua` с двумя режимами:
 

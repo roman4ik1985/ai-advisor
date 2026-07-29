@@ -14,15 +14,29 @@ an opaque server-produced proof envelope and returns an authorization gate. It
 does not accept an order number, order-existence flag, contact detail, status, or
 other order data.
 
+## Simplified store policy
+
+This is an ordinary retail-order flow, not high-assurance identity proofing. The
+selected C21 mechanism is intentionally simple:
+
+1. The visitor enters the order number.
+2. The server sends a six-digit one-time code through Telegram Gateway to the
+   phone already stored on that order.
+3. A correct code opens one order lookup for ten minutes.
+4. The code allows at most five attempts and can be used only once.
+
+No OpenCart-account binding, Telegram Login, Mini App, device fingerprint, second
+factor, or manager approval is required for the normal path. If Telegram delivery
+is unavailable, the visitor is sent to the existing manager fallback.
+
 ## Fail-closed decision
 
 Order lookup is denied unless every condition below is true:
 
-1. Contract version and purpose match `1.0` and `ORDER_STATUS`.
+1. Contract version and purpose match `1.1` and `ORDER_STATUS`.
 2. Proof state is `VERIFIED`.
 3. The opaque proof-session identifier is valid.
-4. Server-side subject, trusted-channel, nonce, and bounded-attempt bindings are
-   explicitly verified.
+4. The Telegram one-time challenge is verified in no more than five attempts.
 5. The proof has valid timestamps, is not expired, and its lifetime is at most
    ten minutes.
 6. The proof has not been consumed.
@@ -38,28 +52,30 @@ single-use consumption before a future order request. It is not order evidence.
   locator exists.
 - A future challenge request must keep equivalent public status/body shape and
   timing for existing and non-existing locators.
-- Rate limits must combine visitor/session, opaque proof session, and a
-  non-reversible server-side locator digest. Raw locators are not log keys.
+- A basic rate limit applies per visitor and order digest.
 - Proof secrets, channel destinations, raw identifiers, and rejection reasons
   must not enter browser-visible data, model context, analytics, or ordinary logs.
 
-## Required decision before C21
+## User-visible order data after proof
 
-C21 remains blocked until the owner chooses a trusted verification mechanism.
-Acceptable candidates must be assessed separately, for example an authenticated
-customer account or a one-time challenge delivered to the order contact through
-a trusted server-side channel. The choice must define delivery ownership,
-attempt/rate limits, nonce storage, expiry, atomic consumption, recovery, and
-support escalation.
+After a successful code the assistant may show the ordinary order details the
+customer expects: full order number, product names and quantities, total and
+currency, normalized order/payment/fulfillment status, delivery method, tracking
+number/link, confirmed delivery date, and last update time.
 
-Only after C21 is approved may C22 define a narrow order DTO. C23–C25 remain
-disabled. Anonymous lookup and direct use of raw SalesDrive order/customer
-payloads remain forbidden.
+The response still excludes full phone/email/address, payment-card or transaction
+credentials, CRM notes, cost/margin fields, internal identifiers, and other
+orders. Raw SalesDrive payloads are projected to this allow-list before reaching
+the browser or model.
+
+C21 now has an owner-selected mechanism, but its Telegram/API implementation is
+still pending. C22–C25 also remain unimplemented. Anonymous lookup remains
+forbidden.
 
 ## Verification
 
 `test/order-ownership-contract.test.mjs` covers the valid gate plus missing proof,
-all non-verified states, missing bindings, expiry, clock skew, excessive TTL,
+all non-verified states, missing challenge proof, attempt limit, expiry, clock skew, excessive TTL,
 replay, invalid opaque identifiers, forbidden fields, and neutral RU/UK public
 results. It also proves that a structurally forged allow object cannot be passed
 to the public formatter.

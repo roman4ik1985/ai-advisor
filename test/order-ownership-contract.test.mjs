@@ -10,33 +10,31 @@ const NOW = Date.parse('2026-07-29T04:00:00.000Z');
 
 function verifiedProof(overrides = {}) {
   return {
-    version: '1.0',
+    version: '1.1',
     state: 'VERIFIED',
     purpose: 'ORDER_STATUS',
     proofSessionId: 'proof_session_0123456789abcdef',
     verifiedAt: '2026-07-29T03:55:00.000Z',
     expiresAt: '2026-07-29T04:05:00.000Z',
     consumedAt: null,
-    subjectBindingVerified: true,
-    channelBindingVerified: true,
-    nonceBindingVerified: true,
-    attemptPolicyVerified: true,
+    challengeVerified: true,
+    attemptsUsed: 1,
     ...overrides,
   };
 }
 
 test('C20 contract explicitly forbids anonymous lookup and raw customer data', () => {
-  assert.equal(ORDER_OWNERSHIP_CONTRACT.version, '1.0');
+  assert.equal(ORDER_OWNERSHIP_CONTRACT.version, '1.1');
   assert.ok(ORDER_OWNERSHIP_CONTRACT.forbids.includes('anonymous order lookup'));
   assert.ok(ORDER_OWNERSHIP_CONTRACT.forbids.some((rule) => rule.includes('raw order or customer data')));
-  assert.ok(ORDER_OWNERSHIP_CONTRACT.requires.includes('atomic consumption before order lookup'));
+  assert.ok(ORDER_OWNERSHIP_CONTRACT.requires.includes('single use before order lookup'));
 });
 
 test('a complete fresh server-bound proof authorizes only the next lookup gate', () => {
   assert.deepEqual(
     assessOrderOwnershipProof(verifiedProof(), { now: NOW }),
     {
-      contractVersion: '1.0',
+      contractVersion: '1.1',
       decision: 'ALLOW_LOOKUP',
       publicCode: 'OWNERSHIP_VERIFIED',
       canLookupOrder: true,
@@ -58,15 +56,14 @@ test('missing proof and every non-verified state fail closed identically', () =>
   assert.equal(decisions[0].canLookupOrder, false);
 });
 
-test('all required server-side bindings and attempt policy are mandatory', () => {
-  for (const key of [
-    'subjectBindingVerified',
-    'channelBindingVerified',
-    'nonceBindingVerified',
-    'attemptPolicyVerified',
-  ]) {
-    const decision = assessOrderOwnershipProof(verifiedProof({ [key]: false }), { now: NOW });
-    assert.equal(decision.canLookupOrder, false, key);
+test('verified Telegram challenge and a maximum of five attempts are mandatory', () => {
+  assert.equal(
+    assessOrderOwnershipProof(verifiedProof({ challengeVerified: false }), { now: NOW }).canLookupOrder,
+    false,
+  );
+  for (const attemptsUsed of [0, 6, 1.5, null]) {
+    const decision = assessOrderOwnershipProof(verifiedProof({ attemptsUsed }), { now: NOW });
+    assert.equal(decision.canLookupOrder, false, String(attemptsUsed));
   }
 });
 
@@ -141,7 +138,7 @@ test('public success confirms proof only and does not expose order facts', () =>
 
 test('public formatter rejects a structurally forged allow decision', () => {
   const result = toPublicOwnershipResult({
-    contractVersion: '1.0',
+    contractVersion: '1.1',
     decision: 'ALLOW_LOOKUP',
     publicCode: 'OWNERSHIP_VERIFIED',
     canLookupOrder: true,

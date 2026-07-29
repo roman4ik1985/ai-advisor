@@ -1,4 +1,4 @@
-const CONTRACT_VERSION = '1.0';
+const CONTRACT_VERSION = '1.1';
 const PURPOSE = 'ORDER_STATUS';
 const MAX_PROOF_TTL_MS = 10 * 60 * 1000;
 const MAX_FUTURE_SKEW_MS = 30 * 1000;
@@ -12,10 +12,8 @@ const ALLOWED_ENVELOPE_KEYS = new Set([
   'verifiedAt',
   'expiresAt',
   'consumedAt',
-  'subjectBindingVerified',
-  'channelBindingVerified',
-  'nonceBindingVerified',
-  'attemptPolicyVerified',
+  'challengeVerified',
+  'attemptsUsed',
 ]);
 
 export const ORDER_OWNERSHIP_CONTRACT = Object.freeze({
@@ -33,17 +31,16 @@ export const ORDER_OWNERSHIP_CONTRACT = Object.freeze({
   maxFutureClockSkewMs: MAX_FUTURE_SKEW_MS,
   requires: Object.freeze([
     'opaque proof session',
-    'server-side subject binding',
-    'trusted-channel binding',
-    'single-use nonce binding',
-    'bounded attempt policy',
-    'atomic consumption before order lookup',
+    'verified one-time Telegram code',
+    'maximum five code attempts',
+    'ten-minute expiry',
+    'single use before order lookup',
   ]),
   forbids: Object.freeze([
     'anonymous order lookup',
     'order existence disclosure before proof',
     'raw order or customer data in the proof envelope',
-    'proof secrets in browser, model context, or ordinary logs',
+    'full customer contacts, payment credentials, or CRM notes in the response',
   ]),
 });
 
@@ -77,10 +74,10 @@ export function assessOrderOwnershipProof(envelope, { now = Date.now() } = {}) {
     || envelope.state !== 'VERIFIED'
     || !PROOF_SESSION_ID.test(String(envelope.proofSessionId || ''))
     || envelope.consumedAt != null
-    || envelope.subjectBindingVerified !== true
-    || envelope.channelBindingVerified !== true
-    || envelope.nonceBindingVerified !== true
-    || envelope.attemptPolicyVerified !== true
+    || envelope.challengeVerified !== true
+    || !Number.isInteger(envelope.attemptsUsed)
+    || envelope.attemptsUsed < 1
+    || envelope.attemptsUsed > 5
   ) {
     return DENIED;
   }

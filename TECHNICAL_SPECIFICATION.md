@@ -689,8 +689,8 @@ Source package C10–C15 выполнен 29.07.2026 и принят 96/96 ав�
 | ID | Контур | Зависимость | Результат | Статус |
 |---|---|---|---|---|
 | C20 | Ownership/auth contract | C00 | Design-only контракт доказательства владения заказом, fail-closed и anti-enumeration | Source PASS |
-| C21 | Verification mechanism | Решение владельца после C20 | Одноразовая проверка через согласованный доверенный канал | Deferred: owner decision required |
-| C22 | Narrow order DTO | C20, C21 | Только allow-listed status/payment/delivery/tracking fields без raw customer data | Deferred |
+| C21 | Verification mechanism | Решение владельца после C20 | Шестизначный Telegram Gateway OTP на телефон заказа, 10 минут, 5 попыток, single-use | Decision selected; implementation deferred |
+| C22 | Narrow order DTO | C20, C21 | Номер, товары/количество, сумма, status/payment/delivery/tracking без контактов и служебных полей | Policy selected; implementation deferred |
 | C23 | GET-only order client | C21, C22 | Server-side projection до logging/model boundary | Deferred |
 | C24 | Deterministic order response | C23 | Ответ только после успешного ownership proof | Deferred |
 | C25 | Order security acceptance | C21–C24 | Enumeration, replay, rate-limit, PII и log-safety проверки | Deferred |
@@ -700,11 +700,16 @@ Anonymous order lookup запрещён. Raw SalesDrive order/contact payload н
 C20 выполнен как изолированный executable policy contract
 `order-ownership-contract.mjs`, не подключённый к HTTP/runtime path. Контракт
 принимает только opaque server-produced proof envelope без order locator и PII.
-Lookup gate открывается лишь для `VERIFIED` proof с subject/channel/nonce/attempt
-bindings, корректным сроком не более десяти минут и без признака consumption.
+Выбран упрощённый retail-flow: шестизначный Telegram Gateway OTP отправляется на
+телефон из заказа, действует не более десяти минут, допускает пять попыток и
+открывает один lookup. Lookup gate требует `VERIFIED` challenge, корректный срок
+и отсутствие признака consumption.
 Любая неизвестная или лишняя структура, неверное состояние, expiry или replay
 закрываются одинаковым public denial result. Разрешение требует будущего
 атомарного consumption и само по себе не подтверждает существование заказа.
+После proof C22 разрешает показать номер заказа, товары/количество, сумму,
+нормализованные статусы, доставку и tracking. Полные контакты, платёжные
+реквизиты, CRM/служебные поля и другие заказы не выдаются.
 Полный контракт: [docs/ai-advisor-order-ownership-contract.md](./docs/ai-advisor-order-ownership-contract.md).
 
 ### P3. Manager and knowledge operations
