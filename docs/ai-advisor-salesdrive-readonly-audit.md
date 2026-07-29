@@ -87,3 +87,10 @@ These values must be supplied through protected server configuration during a se
 - Existing server-side SalesDrive subdomain/API-key material was detected only by presence and used for one direct, read-only dictionary probe. The request failed before an HTTP response with a socket-level connection failure; no key, URL, response body or customer data was printed or persisted.
 - Active runtime release and restart are intentionally withheld: releasing without a configured YML source would degrade product/price evidence, and the direct API path has no successful connectivity proof.
 - ERP dependency: removed from the target architecture.
+
+## Direct runtime verification, 2026-07-29
+
+- The active-runtime configuration now contains all three required values. Validation was presence- and format-only; no secret, full YML URL or configuration value was printed.
+- Read-only direct probes passed: product YML returned normalized price and explicit availability evidence; delivery, payment and status dictionaries returned non-empty allow-listed results.
+- The 15-file tracked release, including both direct SalesDrive resolver modules, was applied to `F:\Services\AI Advisor` with SHA-256 verification. The release helper does not copy `.env`.
+- Reload is pending an elevated start of the SYSTEM-owned `AI Advisor API Host`: the current non-elevated session received Windows `Access is denied`. No API-host restart, public request, customer-data query, OpenCart/cPanel, Tunnel or remote change was performed after that denial.
