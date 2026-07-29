@@ -64,10 +64,17 @@ Web Vitals measurement.
    transfer size 48,116 bytes. INP was unavailable after the short safe menu
    interaction. Because the widget did not mount, this is not a widget-on
    performance acceptance result.
+8. The operator subsequently completed the OpenCart Modifications refresh and
+   Lightning Clear Caches in the required order. Fresh cache-busted public HTML
+   still contained neither the widget script nor a mounted root. Initial
+   cold-cache storefront requests timed out at 20-60 seconds, but the control
+   homepage then recovered to HTTP 200 in 1,561 ms while AI API health stayed
+   HTTP 200. No rollback was required.
 
 ## Verdict
 
 C50–C52 are accepted. C53 is accepted for desktop functional behavior; the
 production mobile baseline is recorded, while staging widget-on LCP/CLS/INP
-remains pending. C54 remains blocked until OpenCart Modifications is actually
-refreshed and the public HTML contains the widget script and mounted root.
+remains pending. C54 remains blocked on a read-only source-versus-generated
+footer comparison because the completed OCMOD/Lightning refresh still produced
+public HTML without the widget script or mounted root.

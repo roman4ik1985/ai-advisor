@@ -46,7 +46,7 @@ errors; старые PHP 8 warnings staging отмечены отдельно. C
 staging widget-on LCP/CLS/INP. Production mobile baseline at 390x844 without the
 mounted widget is LCP 2,080 ms and CLS 0. C54 не активирован: production footer
 на диске содержит snippet, Lightning cache clear выполнен, но generated OCMOD
-footer не был refreshed и compiled runtime не публикует widget script/root;
+refresh + повторный Lightning clear всё равно не публикуют widget script/root;
 page-cache canary был полностью откачен. Acceptance и следующий gate:
 [docs/ai-advisor-p5-staging-acceptance.md](./docs/ai-advisor-p5-staging-acceptance.md),
 [docs/ai-advisor-p5-regression-report.md](./docs/ai-advisor-p5-regression-report.md),
