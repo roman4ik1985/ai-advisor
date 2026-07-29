@@ -75,3 +75,16 @@ Every response returned HTTP 200 with the unchanged success keys and a request I
 - A required stale or unavailable price/inventory/delivery resolver returns a language-aware manager fallback without invoking the model.
 - Fault-injection coverage includes YML fresh-to-stale-to-expired transitions, SalesDrive API HTTP failure/timeout, stale renderer inputs, expired validator evidence and pipeline suppression of stale public catalog data.
 - Source verification passes 67/67 tests. Public `/api/chat` success keys remain unchanged. Runtime release and live acceptance are recorded after deployment.
+
+### Freshness runtime acceptance
+
+The 13-file hash-verified release was applied without copying `.env`; a new SYSTEM-host listener replaced the previous process, and a post-release dry-run reported zero differing tracked runtime files.
+
+Four non-personal local `/api/chat` checks passed:
+
+- A fresh exact-item price request returned HTTP 200, `catalogDiagnostics.code=OK`, `freshness=FRESH`, direct SalesDrive wording and a price.
+- A fresh exact-item inventory request returned HTTP 200, `catalogDiagnostics.code=OK`, `freshness=FRESH` and explicit availability.
+- A delivery-methods-only request returned HTTP 200, no catalog cards and no deadline promise.
+- An unknown-product price request returned HTTP 200, an empty catalog, no price and the manager fallback without a model-generated live claim.
+
+All four responses retained the existing success keys and request IDs. Local/public health returned HTTP 200. A boundary-aware scan of 13 runtime log files found no SalesDrive/OpenAI key, YML URL or `publicKey` marker; two broad-pattern hits were verified as historical `task-scheduler-*` filename text rather than tokens. Freshness fail-closed acceptance: **PASS**.
