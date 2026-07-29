@@ -12,6 +12,7 @@ export async function executeRequestPipeline({
   querySalesdriveCatalog,
   querySalesdriveDelivery,
   querySalesdrivePayment,
+  productSpecificationEvidence,
   queryKnowledge,
   buildPrompt,
   askSupport,
@@ -26,6 +27,7 @@ export async function executeRequestPipeline({
     querySalesdriveCatalog,
     querySalesdriveDelivery,
     querySalesdrivePayment,
+    productSpecificationEvidence,
     now,
   });
   const knowledge = getRoutePolicy(route.intent).knowledge ? await queryKnowledge() : [];

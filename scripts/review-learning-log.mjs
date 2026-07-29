@@ -1,49 +1,52 @@
-import { createReadStream } from 'node:fs';
-import { access } from 'node:fs/promises';
+import { appendFile, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
+import {
+  buildLearningReviewQueue,
+  createLearningReviewDecision,
+  parseLearningDecisions,
+  parseLearningRecords,
+} from '../learning-review.mjs';
 
-const projectRoot = fileURLToPath(new URL('..', import.meta.url));
+const root = fileURLToPath(new URL('..', import.meta.url));
 const args = parseArgs(process.argv.slice(2));
-const logPath = resolve(projectRoot, args.logPath || 'logs/ai-advisor-learning.log');
+const logPath = resolve(root, args.log || 'logs/ai-advisor-learning.log');
+const ledgerPath = resolve(root, args.ledger || 'data/learning-review-decisions.jsonl');
+const records = parseLearningRecords(await optionalRead(logPath));
+const decisions = parseLearningDecisions(await optionalRead(ledgerPath));
 
-try {
-  await access(logPath);
-} catch {
-  console.log(`No learning log found: ${logPath}`);
-  process.exit(0);
+if (args.action) {
+  const decision = createLearningReviewDecision({
+    requestId: args.requestId,
+    action: args.action,
+    note: args.note,
+    sourceUrl: args.sourceUrl,
+    reviewer: args.reviewer,
+  });
+  if (args.apply) await appendFile(ledgerPath, `${JSON.stringify(decision)}\n`, 'utf8');
+  console.log(JSON.stringify({ mode: args.apply ? 'applied' : 'preview', ledgerPath, decision }, null, 2));
+} else {
+  const queue = buildLearningReviewQueue(records, decisions);
+  console.log(JSON.stringify({
+    logPath,
+    ledgerPath,
+    pendingCount: queue.filter((item) => item.status === 'PENDING' || item.status === 'DEFER').length,
+    candidates: queue,
+  }, null, 2));
 }
-
-const candidates = [];
-const reader = createInterface({ input: createReadStream(logPath, 'utf8'), crlfDelay: Infinity });
-for await (const line of reader) {
-  if (!line.trim()) continue;
-  try {
-    const record = JSON.parse(line);
-    if (record?.candidate?.status === 'pending') candidates.push(record);
-  } catch {
-    // A partial trailing line must not block review of earlier records.
-  }
-}
-
-console.log(JSON.stringify({
-  logPath,
-  pendingCount: candidates.length,
-  candidates: candidates.map((record) => ({
-    timestamp: record.timestamp,
-    requestId: record.requestId,
-    reason: record.candidate.reason,
-    question: record.question,
-    answer: record.answer,
-    knowledgeIds: record.knowledgeIds,
-  })),
-}, null, 2));
 
 function parseArgs(values) {
-  const result = { logPath: '' };
-  for (const value of values) {
-    if (value.startsWith('--log=')) result.logPath = value.slice('--log='.length);
+  const result = { apply: false };
+  for (const item of values) {
+    if (item === '--apply') result.apply = true;
+    else if (item.startsWith('--')) {
+      const [key, ...rest] = item.slice(2).split('=');
+      result[key.replace(/-([a-z])/gu, (_, letter) => letter.toUpperCase())] = rest.join('=');
+    }
   }
   return result;
+}
+
+async function optionalRead(path) {
+  try { return await readFile(path, 'utf8'); } catch { return ''; }
 }

@@ -11,6 +11,8 @@
     "start:api:background": "pwsh -NoProfile -File scripts/start-api-background.ps1",
     "test:log-rotation": "pwsh -NoProfile -File scripts/test-log-rotation.ps1",
     "learning:review": "node scripts/review-learning-log.mjs",
+    "knowledge:coverage": "node scripts/knowledge-coverage.mjs",
+    "product-specifications:ingest": "node scripts/product-specification-ingest.mjs",
     "release:active:dry-run": "pwsh -NoProfile -File scripts/release-active-runtime.ps1",
     "test": "node --test test/*.test.mjs",
     "test:cli": "node test/cli-smoke.mjs",

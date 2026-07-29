@@ -17,6 +17,7 @@ import { executeRequestPipeline } from './request-pipeline.mjs';
 import { createSalesdriveYmlClient } from './salesdrive-yml.mjs';
 import { createSalesdriveApiClient } from './salesdrive-api.mjs';
 import { createTelegramOrderRuntime } from './telegram-order-runtime.mjs';
+import { loadProductSpecificationEvidence } from './product-specification-evidence.mjs';
 
 const config = readConfig();
 const publicDir = fileURLToPath(new URL('./public/', import.meta.url));
@@ -30,6 +31,9 @@ const sockets = new Set();
 let shuttingDown = false;
 const salesdriveYml = createSalesdriveYmlClient();
 const salesdriveApi = createSalesdriveApiClient();
+const productSpecificationEvidence = await loadProductSpecificationEvidence(
+  fileURLToPath(new URL('./knowledge/product-specifications.json', import.meta.url)),
+);
 let telegramOrderRuntime = null;
 
 if (config.provider === 'api' && !config.apiKey) {
@@ -162,6 +166,7 @@ const server = createServer(async (request, response) => {
           querySalesdrivePayment: config.provider === 'test'
             ? undefined
             : () => salesdriveApi.listPaymentMethods(),
+          productSpecificationEvidence,
           queryKnowledge: () => searchKnowledge({ messages, page: body.page }),
           buildPrompt: buildAssistantPrompt,
           askSupport: (input) => askAssistant({ ...input, safetyIdentifier }),

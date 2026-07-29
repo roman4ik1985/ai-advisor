@@ -752,9 +752,12 @@ Source acceptance: [docs/ai-advisor-order-status-source-acceptance.md](./docs/ai
 | ID | Контур | Результат |
 |---|---|---|
 | C30 | Manager handoff | Source PASS: ограниченный Telegram-запрос менеджеру, notification toggle и durable outbox без заказа, контактов и истории; config/live pending |
-| C31 | Knowledge coverage | Закрывать устойчивые FAQ-пробелы через официальный source/review/upsert workflow |
-| C32 | Learning review operations | Регламентировать review `pending` без автоматической мутации knowledge |
-| C33 | Product specification ingestion | Продвигать проверенные публичные характеристики в product evidence, не в статичные коммерческие факты |
+| C31 | Knowledge coverage | Source PASS: read-only coverage/staleness/gap report поверх 44 карточек и pending review |
+| C32 | Learning review operations | Source PASS: append-only DEFER/DISMISS/DRAFT ledger; DRAFT требует официальный URL и не мутирует knowledge |
+| C33 | Product specification ingestion | Source PASS: 10 provenance-backed public product records; commercial facts rejected, live SalesDrive precedence preserved |
+
+P3 acceptance:
+[docs/ai-advisor-p3-operations-acceptance.md](./docs/ai-advisor-p3-operations-acceptance.md).
 
 ### P4. Operations, privacy and quality
 

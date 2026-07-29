@@ -19,6 +19,13 @@
 
 Канонический forward roadmap C00–C54 и deferred-зоны находятся в разделе 18 [TECHNICAL_SPECIFICATION.md](./TECHNICAL_SPECIFICATION.md#18-forward-roadmap). Персональный статус заказа не активирован: C20–C30, transport, provisioning, manager/notification sinks и durable outbox синхронизированы в active-runtime, но feature flag остаётся false. До config/test-bot acceptance запрещены anonymous lookup и реальные order API/customer-data операции.
 
+P3 C30–C33 завершён в source. `npm run knowledge:coverage` строит read-only
+coverage/gap отчёт; `npm run learning:review` ведёт явные `DEFER` / `DISMISS` /
+`DRAFT` решения без автоматической публикации; `npm run
+product-specifications:ingest` продвигает только проверенные характеристики
+официальных product pages в отдельный evidence-файл. Цена, наличие, акции и
+доставка не могут попасть в этот статический product evidence.
+
 ### Product-aware MVP source package
 
 C10–C15 реализованы в source:

@@ -1,3 +1,5 @@
+import { enrichProductsWithSpecificationEvidence } from './product-specification-evidence.mjs';
+
 function unavailableResolver(reason) {
   return {
     status: 'UNAVAILABLE',
@@ -25,6 +27,7 @@ export async function resolveLiveEvidence({
   querySalesdriveCatalog,
   querySalesdriveDelivery,
   querySalesdrivePayment,
+  productSpecificationEvidence = [],
   now = () => new Date(),
 }) {
   const requiredResolvers = new Set(route?.requiredResolvers || []);
@@ -65,7 +68,9 @@ export async function resolveLiveEvidence({
     const resultFreshness = normalizeFreshness(result);
     const rawCatalog = Array.isArray(result?.products) ? result.products : [];
     const isFresh = resultFreshness === 'FRESH';
-    catalog = isFresh ? rawCatalog : [];
+    catalog = isFresh
+      ? enrichProductsWithSpecificationEvidence(rawCatalog, productSpecificationEvidence)
+      : [];
     catalogDiagnostics = {
       ...(result?.diagnostics || { code: 'UNKNOWN' }),
       freshness: resultFreshness,
