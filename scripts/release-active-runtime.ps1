@@ -30,6 +30,8 @@ $releaseItems = @(
   'telegram-order-webhook.mjs',
   'telegram-order-runtime.mjs',
   'telegram-order-provisioning.mjs',
+  'telegram-order-action-sink.mjs',
+  'telegram-order-outbox.mjs',
   'package.json',
   'package-lock.json',
   'README.md',

@@ -17,7 +17,7 @@
 
 Последняя runtime acceptance на этой точке зафиксировала source/runtime diff 0 и локальный/публичный `/health` HTTP 200. Перед любой новой runtime-операцией health и diff проверяются заново; этот README не утверждает их текущий live-статус.
 
-Канонический forward roadmap C00–C54 и deferred-зоны находятся в разделе 18 [TECHNICAL_SPECIFICATION.md](./TECHNICAL_SPECIFICATION.md#18-forward-roadmap). Персональный статус заказа не включён в active runtime: C20–C29 и disabled-by-default transport source готовы, но до provisioning/config/release-приёмки запрещены anonymous lookup и реальные order API/customer-data операции.
+Канонический forward roadmap C00–C54 и deferred-зоны находятся в разделе 18 [TECHNICAL_SPECIFICATION.md](./TECHNICAL_SPECIFICATION.md#18-forward-roadmap). Персональный статус заказа не включён в active runtime: C20–C30, disabled-by-default transport, provisioning, manager/notification sinks и durable outbox готовы в source, но до config/test-bot/release-приёмки запрещены anonymous lookup и реальные order API/customer-data операции.
 
 ### Product-aware MVP source package
 
@@ -200,7 +200,7 @@ SHUTDOWN_TIMEOUT_MS=30000
 
 ### Direct SalesDrive configuration
 
-Для live-данных backend читает только server-side переменные: `SALESDRIVE_YML_URL`, `SALESDRIVE_SUBDOMAIN` и `SALESDRIVE_API_KEY`. Полный YML URL (включая `publicKey`) и API key являются секретами: не добавляйте их в Git, HTML, `widget.js`, логи или сообщения чата. При отсутствии настроек resolver закрывается безопасно: цена/наличие не подтверждаются, а пользователь получает manager fallback. Персональный статус заказа пока не включён в active runtime; transport source выключен по умолчанию и требует отдельной provisioning/config/release-приёмки.
+Для live-данных backend читает только server-side переменные: `SALESDRIVE_YML_URL`, `SALESDRIVE_SUBDOMAIN` и `SALESDRIVE_API_KEY`. Полный YML URL (включая `publicKey`) и API key являются секретами: не добавляйте их в Git, HTML, `widget.js`, логи или сообщения чата. При отсутствии настроек resolver закрывается безопасно: цена/наличие не подтверждаются, а пользователь получает manager fallback. Персональный статус заказа пока не включён в active runtime; transport source выключен по умолчанию и требует `TELEGRAM_ORDER_BOT_USERNAME`, bot/webhook secrets, Redis URL, manager chat ID, test-bot acceptance и отдельной config/release-приёмки.
 
 ## База знаний консультанта
 

@@ -42,6 +42,7 @@ try {
     config: {
       ...config,
       telegramOrderBotUsername: String(process.env.TELEGRAM_ORDER_BOT_USERNAME || ''),
+      telegramOrderManagerChatId: String(process.env.TELEGRAM_ORDER_MANAGER_CHAT_ID || ''),
     },
   });
 } catch {

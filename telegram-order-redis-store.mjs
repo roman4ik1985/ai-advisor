@@ -21,6 +21,13 @@ redis.call('SET', KEYS[3], ARGV[2], 'PX', ARGV[3])
 return 1
 `.trim();
 
+const TOGGLE_NOTIFICATIONS_SCRIPT = `
+local current = redis.call('GET', KEYS[1])
+local next = current == '1' and '0' or '1'
+redis.call('SET', KEYS[1], next, 'PX', ARGV[1])
+return next
+`.trim();
+
 export const TELEGRAM_ORDER_REDIS_STATE_CONTRACT = Object.freeze({
   atomicOperations: Object.freeze(['claim update', 'create token', 'consume token', 'complete binding']),
   storesPhoneOnlyInExpiringLink: true,
@@ -123,6 +130,34 @@ export function createTelegramOrderRedisStore({
       return normalizeSourceOrderIds(JSON.parse(stringValue(value)));
     } catch {
       return [];
+    }
+  }
+
+  async function toggleNotifications({ telegramUserId, customerRef } = {}) {
+    const userId = normalizeTelegramId(telegramUserId);
+    const binding = userId ? await getBinding(userId) : null;
+    if (!binding || binding.customerRef !== String(customerRef ?? '')) return null;
+    try {
+      const value = await command([
+        'EVAL',
+        TOGGLE_NOTIFICATIONS_SCRIPT,
+        '1',
+        key('notifications', userId),
+        String(BINDING_TTL_MS),
+      ]);
+      return String(value) === '1';
+    } catch {
+      return null;
+    }
+  }
+
+  async function notificationsEnabled(telegramUserId) {
+    const userId = normalizeTelegramId(telegramUserId);
+    if (!userId || !await getBinding(userId)) return false;
+    try {
+      return String(await command(['GET', key('notifications', userId)])) === '1';
+    } catch {
+      return false;
     }
   }
 
@@ -250,6 +285,8 @@ export function createTelegramOrderRedisStore({
     completeBinding,
     getBinding,
     getOwnedSourceOrderIds,
+    toggleNotifications,
+    notificationsEnabled,
     issueOrderChoice,
     consumeOrderChoice,
     getSelection,

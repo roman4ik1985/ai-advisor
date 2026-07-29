@@ -1,7 +1,7 @@
 # Telegram order transport source acceptance
 
 Date: 2026-07-29
-Status: source and provisioning wired, disabled by default; configuration and live release pending
+Status: source, provisioning, actions and outbox wired; disabled configuration and live activation pending
 
 ## Implemented
 
@@ -16,8 +16,12 @@ Status: source and provisioning wired, disabled by default; configuration and li
   SalesDrive customer-filter; every ID is re-read through the existing exact-ID
   ownership client and one-time proof.
 - `telegram-order-runtime.mjs` assembles Redis state, distributed limiting,
-  owned-order service, webhook and sender. It acknowledges callbacks and turns
-  unconfigured manager/notification actions into an honest unavailable message.
+  owned-order service, webhook, sender, C30 action sink and durable outbox.
+  Resulting actions are persisted before the webhook update is acknowledged.
+- `telegram-order-action-sink.mjs` implements bounded manager handoff and
+  verified-binding notification settings without order-history disclosure.
+- `telegram-order-outbox.mjs` provides Redis enqueue deduplication, visibility
+  retry and a bounded dead-letter path with honest at-least-once semantics.
 - `server.mjs` contains the fixed
   `POST /api/telegram/order-webhook` route. It exists only when
   `TELEGRAM_ORDER_ENABLED=true`; otherwise the current server behavior is
@@ -31,6 +35,7 @@ Status: source and provisioning wired, disabled by default; configuration and li
 - `TELEGRAM_ORDER_WEBHOOK_SECRET`
 - `TELEGRAM_ORDER_BOT_TOKEN`
 - `TELEGRAM_ORDER_REDIS_URL`
+- `TELEGRAM_ORDER_MANAGER_CHAT_ID`
 - `TELEGRAM_ORDER_RATE_LIMIT_PER_MINUTE` — bounded to 1–60.
 
 Missing required configuration stops startup only when the contour is enabled.
@@ -38,8 +43,8 @@ Values are never sent to the browser or added to normal logs.
 
 ## Verification
 
-- Focused transport/config tests: 11/11 PASS.
-- Full source suite: 166/166 PASS.
+- Focused C30/action/outbox/runtime tests: 11/11 PASS.
+- Full source suite: 182/182 PASS.
 - `npm audit`: 0 vulnerabilities.
 - Existing API/CLI server tests pass with the feature disabled.
 - No Redis connection, Telegram request, SalesDrive order request, `.env` read,
@@ -49,12 +54,12 @@ Values are never sent to the browser or added to normal logs.
 
 1. Provision an approved Redis namespace and credentials.
 2. Create/configure the Telegram bot username, webhook secret and bot token.
-3. Connect actual manager and notification action sinks.
-4. Add a durable outbound outbox if delivery must survive a process crash after
-   Telegram update dedupe.
-5. Run concurrency/failover, Telegram test-bot and authorized synthetic
+3. Configure an approved manager chat.
+4. Run concurrency/failover, Telegram test-bot and authorized synthetic
    SalesDrive acceptance.
-6. Perform an explicit source-to-runtime release and redacted health/log checks.
+5. Perform an explicit source-to-runtime release and redacted health/log checks.
 
 Provisioning acceptance:
 [docs/ai-advisor-telegram-order-provisioning-source-acceptance.md](./ai-advisor-telegram-order-provisioning-source-acceptance.md).
+C30/action acceptance:
+[docs/ai-advisor-telegram-order-actions-source-acceptance.md](./ai-advisor-telegram-order-actions-source-acceptance.md).

@@ -733,8 +733,11 @@ Fixed HTTP route, Redis client, Telegram sender и verified-ID owned-order servi
 подключены в source под disabled-by-default feature flag. Link provisioning,
 реализован как real/decoy ten-minute session с одинаковым public contract:
 SalesDrive candidate ищется GET-only по exact `externalId`, а widget order number
-не входит в AI conversation. Реальные credentials/action sinks, durable outbound
-outbox и live acceptance остаются отдельным configuration/runtime release contour.
+не входит в AI conversation. C30 добавляет ограниченный Telegram manager
+handoff, Redis-backed notification toggle и durable at-least-once outbox с
+enqueue-deduplication, visibility retry и bounded dead-letter. Реальные
+credentials, test-bot/Redis/SalesDrive acceptance и live activation остаются
+отдельным configuration/runtime release contour.
 Полный контракт: [docs/ai-advisor-order-ownership-contract.md](./docs/ai-advisor-order-ownership-contract.md).
 Source acceptance: [docs/ai-advisor-order-status-source-acceptance.md](./docs/ai-advisor-order-status-source-acceptance.md).
 [C26–C29 acceptance](./docs/ai-advisor-telegram-order-webhook-source-acceptance.md).
@@ -745,7 +748,7 @@ Source acceptance: [docs/ai-advisor-order-status-source-acceptance.md](./docs/ai
 
 | ID | Контур | Результат |
 |---|---|---|
-| C30 | Manager handoff | Передавать ограниченный вопрос менеджеру без полноценной CRM-переписки и лишней истории |
+| C30 | Manager handoff | Source PASS: ограниченный Telegram-запрос менеджеру, notification toggle и durable outbox без заказа, контактов и истории; config/live pending |
 | C31 | Knowledge coverage | Закрывать устойчивые FAQ-пробелы через официальный source/review/upsert workflow |
 | C32 | Learning review operations | Регламентировать review `pending` без автоматической мутации knowledge |
 | C33 | Product specification ingestion | Продвигать проверенные публичные характеристики в product evidence, не в статичные коммерческие факты |

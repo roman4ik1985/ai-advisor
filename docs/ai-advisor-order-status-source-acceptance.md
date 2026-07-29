@@ -1,7 +1,7 @@
 # C22–C25 — Telegram order status source acceptance
 
 Date: 2026-07-29
-Status: source transport and provisioning wired and disabled; config/live release pending
+Status: source transport, provisioning, C30 actions and outbox wired and disabled; config/live activation pending
 
 ## Implemented boundary
 
@@ -53,20 +53,21 @@ commission, expense or profit fields.
 ## Verification
 
 - Focused C22–C25: 22/22 PASS.
-- Full source suite after provisioning: 174/174 PASS.
+- Full source suite after C30/outbox: 182/182 PASS.
 - Tests use injected synthetic data and an injected fetch implementation only.
 - No Telegram, SalesDrive, OpenCart or ERP request was made.
 
-## Deferred runtime work
+## Deferred live activation
 
-The source package is deliberately not wired to the active server. C26–C29 now
-provide injected webhook orchestration, Redis-backed one-time state, opaque
-selection tokens and a distributed limiter. A future release task must connect
-an approved Redis client and HTTP/Telegram transports, add dictionary hydration,
-manager and notification operations, secret-safe observability, and perform
-authorized live acceptance.
+The disabled-by-default server wiring now includes webhook/provisioning,
+Redis-backed one-time state, opaque selection, distributed limiting, C30 manager
+and notification actions, and a durable at-least-once outbox. Live activation
+still requires approved Redis/bot/webhook/manager configuration, test-bot and
+Redis failover acceptance, authorized synthetic SalesDrive acceptance and
+secret-safe runtime verification.
 
 C26–C29 and transport acceptance:
 [docs/ai-advisor-telegram-order-webhook-source-acceptance.md](./ai-advisor-telegram-order-webhook-source-acceptance.md).
 [docs/ai-advisor-telegram-order-transport-source-acceptance.md](./ai-advisor-telegram-order-transport-source-acceptance.md).
 [docs/ai-advisor-telegram-order-provisioning-source-acceptance.md](./ai-advisor-telegram-order-provisioning-source-acceptance.md).
+[docs/ai-advisor-telegram-order-actions-source-acceptance.md](./ai-advisor-telegram-order-actions-source-acceptance.md).

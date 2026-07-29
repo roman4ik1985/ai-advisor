@@ -7,6 +7,8 @@ import { createTelegramOrderWebhook } from './telegram-order-webhook.mjs';
 import { createTelegramOrderSender } from './telegram-order-sender.mjs';
 import { createSalesdriveOrderProvisioningResolver } from './salesdrive-order-provisioning.mjs';
 import { createTelegramOrderProvisioner } from './telegram-order-provisioning.mjs';
+import { createTelegramOrderActionSink } from './telegram-order-action-sink.mjs';
+import { createTelegramOrderOutbox } from './telegram-order-outbox.mjs';
 
 export async function createTelegramOrderRuntime({
   config,
@@ -15,7 +17,10 @@ export async function createTelegramOrderRuntime({
   createSender = createTelegramOrderSender,
   createCandidateResolver = createSalesdriveOrderProvisioningResolver,
   createProvisioner = createTelegramOrderProvisioner,
-  actionSink,
+  createActionSink = createTelegramOrderActionSink,
+  createOutbox = createTelegramOrderOutbox,
+  setIntervalFn = setInterval,
+  clearIntervalFn = clearInterval,
 } = {}) {
   if (!config?.telegramOrderEnabled) return null;
   requireConfig(config);
@@ -41,6 +46,22 @@ export async function createTelegramOrderRuntime({
     orderService,
   });
   const sender = createSender({ botToken: config.telegramOrderBotToken });
+  const actionSink = createActionSink({
+    sender,
+    stateStore,
+    managerChatId: config.telegramOrderManagerChatId,
+  });
+  const dispatch = async (action) => {
+    if (action.type === 'SEND_MESSAGE' || action.type === 'ANSWER_CALLBACK') {
+      return sender.dispatch(action);
+    }
+    return actionSink.dispatch(action);
+  };
+  const outbox = createOutbox({ sendCommand: redis.sendCommand, dispatch });
+  const timer = setIntervalFn(() => {
+    void outbox.drain({ limit: 20 });
+  }, 1_000);
+  timer?.unref?.();
   async function provision(input) {
     const candidateResolver = createCandidateResolver();
     if (!candidateResolver.configured) throw new Error('TELEGRAM_ORDER_PROVISIONING_SOURCE_NOT_CONFIGURED');
@@ -60,23 +81,17 @@ export async function createTelegramOrderRuntime({
         callbackQueryId: String(update.callback_query.id),
       });
     }
-    for (const action of actions) {
-      let dispatched;
-      if (action.type === 'SEND_MESSAGE' || action.type === 'ANSWER_CALLBACK') {
-        dispatched = await sender.dispatch(action);
-      } else if (actionSink?.dispatch) {
-        dispatched = await actionSink.dispatch(action);
-      } else {
-        dispatched = await sender.dispatch({
-          type: 'SEND_MESSAGE',
-          chatId: action.telegramUserId,
-          text: 'Ця функція поки недоступна. Спробуйте пізніше.',
-        });
-      }
-      if (dispatched !== true) {
+    for (let actionIndex = 0; actionIndex < actions.length; actionIndex += 1) {
+      const action = actions[actionIndex];
+      const queued = await outbox.enqueue({
+        deliveryId: `telegram-update:${update.update_id}:${actionIndex}:${action.type}`,
+        action,
+      });
+      if (!queued) {
         return Object.freeze({ httpStatus: 503, body: Object.freeze({ ok: false }) });
       }
     }
+    if (actions.length) await outbox.drain({ limit: actions.length });
     return Object.freeze({
       httpStatus: webhookResult.httpStatus,
       body: Object.freeze({ ok: webhookResult.httpStatus < 400 }),
@@ -86,8 +101,12 @@ export async function createTelegramOrderRuntime({
   return Object.freeze({
     handle,
     provision,
+    drainOutbox: outbox.drain,
     stateStore,
-    async close() { await redis.close(); },
+    async close() {
+      clearIntervalFn(timer);
+      await redis.close();
+    },
   });
 }
 
@@ -96,6 +115,7 @@ function requireConfig(config) {
     TELEGRAM_ORDER_REDIS_URL: config.telegramOrderRedisUrl,
     TELEGRAM_ORDER_WEBHOOK_SECRET: config.telegramOrderWebhookSecret,
     TELEGRAM_ORDER_BOT_TOKEN: config.telegramOrderBotToken,
+    TELEGRAM_ORDER_MANAGER_CHAT_ID: config.telegramOrderManagerChatId,
   })) {
     if (!String(value ?? '').trim()) throw new Error(`${key}_REQUIRED`);
   }

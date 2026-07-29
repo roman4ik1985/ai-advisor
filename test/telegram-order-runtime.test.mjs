@@ -7,6 +7,7 @@ const config = {
   telegramOrderRedisUrl: 'redis://127.0.0.1:6379',
   telegramOrderWebhookSecret: 'synthetic_webhook_secret_123',
   telegramOrderBotToken: '123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghi',
+  telegramOrderManagerChatId: '900800700',
   telegramOrderRateLimit: 10,
 };
 
@@ -52,4 +53,58 @@ test('enabled runtime rejects missing server-side configuration before connectin
     }),
     /TELEGRAM_ORDER_BOT_TOKEN_REQUIRED/,
   );
+});
+
+test('runtime durably enqueues transport actions before acknowledging an update', async () => {
+  const queued = [];
+  let drained = 0;
+  let timerCleared = false;
+  const runtime = await createTelegramOrderRuntime({
+    config,
+    createRedisClient: () => ({
+      async connect() {},
+      async sendCommand(args) {
+        if (args[0] === 'SET') return 'OK';
+        if (args[0] === 'GET') return null;
+        throw new Error(`unexpected Redis command: ${args[0]}`);
+      },
+      async close() {},
+    }),
+    createOrderClient: () => ({
+      configured: true,
+      async listOwnedOrders() { return { orders: [] }; },
+      async getOwnedOrder() { return { ok: false }; },
+    }),
+    createSender: () => ({ async dispatch() { return true; } }),
+    createActionSink: () => ({ async dispatch() { return true; } }),
+    createOutbox: () => ({
+      async enqueue(delivery) {
+        queued.push(delivery);
+        return true;
+      },
+      async drain() {
+        drained += 1;
+        return [];
+      },
+    }),
+    setIntervalFn: () => ({ unref() {} }),
+    clearIntervalFn: () => { timerCleared = true; },
+  });
+  const result = await runtime.handle({
+    secretHeader: config.telegramOrderWebhookSecret,
+    update: {
+      update_id: 42,
+      message: {
+        from: { id: 100200300 },
+        chat: { id: 100200300, type: 'private' },
+        text: '/start invalid',
+      },
+    },
+  });
+  assert.deepEqual(result, { httpStatus: 200, body: { ok: true } });
+  assert.equal(queued.length, 1);
+  assert.equal(queued[0].deliveryId, 'telegram-update:42:0:SEND_MESSAGE');
+  assert.equal(drained, 1);
+  await runtime.close();
+  assert.equal(timerCleared, true);
 });
