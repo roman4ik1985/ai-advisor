@@ -10,6 +10,7 @@ $releaseItems = @(
   'response-validator.mjs',
   'intent-router.mjs',
   'live-resolvers.mjs',
+  'live-response-renderer.mjs',
   'request-pipeline.mjs',
   'salesdrive-yml.mjs',
   'salesdrive-api.mjs',

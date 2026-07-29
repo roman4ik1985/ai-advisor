@@ -26,3 +26,10 @@ The release is operational and safe for price lookup plus conservative delivery 
 ## Follow-up boundary
 
 Do not add order-status lookup or customer data. The next implementation slice should make availability and delivery-method rendering deterministic from the already-projected SalesDrive evidence, then repeat this same redacted acceptance suite.
+
+## Deterministic rendering remediation, 2026-07-29
+
+- Added a pre-model renderer for confirmed inventory and delivery-method facts. It only uses the projected SalesDrive DTOs already available to the pipeline.
+- Inventory output requires an exact YML `IN_STOCK` or `OUT_OF_STOCK` match and includes price only when the router requested a fresh price resolver.
+- Delivery output contains allow-listed method labels only. A request for a deadline bypasses the renderer and remains on the existing validator path.
+- Source verification passed: 58 automated tests, unchanged successful HTTP response shape, and no secret marker in the source diff. Runtime acceptance is recorded separately after release.

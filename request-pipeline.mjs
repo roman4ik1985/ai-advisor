@@ -1,5 +1,6 @@
 import { buildFreshnessEvidence, buildRouteDecision, getRoutePolicy, routeInstruction } from './intent-router.mjs';
 import { resolveLiveEvidence } from './live-resolvers.mjs';
+import { renderDeterministicLiveAnswer } from './live-response-renderer.mjs';
 import { validateAssistantAnswer } from './response-validator.mjs';
 
 export async function executeRequestPipeline({
@@ -46,7 +47,13 @@ export async function executeRequestPipeline({
     };
   }
 
-  const answer = await askSupport({
+  const deterministicAnswer = renderDeterministicLiveAnswer({
+    question,
+    route,
+    catalog: live.catalog,
+    liveFacts: live.liveFacts,
+  });
+  const answer = deterministicAnswer || await askSupport({
     prompt: `${buildPrompt({ messages, page, catalog: live.catalog, knowledge })}\n${routeInstruction(route.intent)}\n${liveEvidenceInstruction(live.liveFacts)}`,
     messages,
     page,
@@ -61,7 +68,9 @@ export async function executeRequestPipeline({
     freshness,
     route,
   });
-  const verification = await verifyWhenRequired({
+  const verification = deterministicAnswer
+    ? { status: 'SKIPPED', reason: 'DETERMINISTIC_LIVE_FACT' }
+    : await verifyWhenRequired({
     route,
     question,
     answer: validation.answer,
@@ -70,8 +79,8 @@ export async function executeRequestPipeline({
     catalog: live.catalog,
     knowledge,
     liveFacts: live.liveFacts,
-    askVerifier,
-  });
+      askVerifier,
+    });
 
   if (verification.status === 'REJECTED') {
     return {

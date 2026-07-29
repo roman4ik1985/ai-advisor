@@ -411,6 +411,7 @@ flowchart LR
 | `intent-router.mjs` | Детерминированный выбор intent, уровня риска, route и требуемых resolvers |
 | `request-pipeline.mjs` | Последовательность routing, evidence, Support Agent, validator и risk-gated verification |
 | `live-resolvers.mjs` | Контракт live evidence: прямой SalesDrive YML для catalog/price/inventory и GET-only SalesDrive API для методов доставки |
+| `live-response-renderer.mjs` | Детерминированный публичный ответ из подтверждённых YML stock/price и allow-listed delivery methods без срока доставки |
 | `response-validator.mjs` | Детерминированное действие `ALLOW`, `REWRITE`, `REGENERATE` или `ESCALATE` перед отправкой ответа |
 | `salesdrive-yml.mjs` | Ограниченный HTTPS YML fetch, безопасный разбор без DTD/ENTITY, bounded cache и нормализация цены/остатка |
 | `salesdrive-api.mjs` | GET-only allowlist публичных SalesDrive dictionaries с проекцией DTO |
@@ -432,7 +433,7 @@ flowchart LR
 | `COMPLEX` | Support Agent, затем validator и независимая проверка компактного evidence package | Только после `ALLOW` validator |
 | `ESCALATE` | Локальный manager fallback без выдуманного ответа | Нет |
 
-Прямой SalesDrive YML является live-источником идентификации, цены и наличия товара; response validator принимает наличие только при явном нормализованном состоянии `IN_STOCK` или `OUT_OF_STOCK`. SalesDrive API используется GET-only для публичных словарей способов доставки; такой словарь не подтверждает дату/срок доставки, поэтому validator по-прежнему переводит сроковое обещание в manager fallback. API ключ и YML URL существуют только server-side; order lookup не реализуется до отдельного ownership/auth contract. Внутренние route, freshness, validation и verification evidence пишутся только в request-id-safe диагностический лог; успешный HTTP-контракт виджета не расширяется внутренними данными.
+Прямой SalesDrive YML является live-источником идентификации, цены и наличия товара; при подтверждённом совпадении `live-response-renderer.mjs` формирует ответ без модельного решения. Response validator принимает наличие только при явном нормализованном состоянии `IN_STOCK` или `OUT_OF_STOCK`. SalesDrive API используется GET-only для публичных словарей способов доставки; renderer выводит только их названия, а такой словарь не подтверждает дату/срок доставки, поэтому validator по-прежнему переводит сроковое обещание в manager fallback. API ключ и YML URL существуют только server-side; order lookup не реализуется до отдельного ownership/auth contract. Внутренние route, freshness, validation и verification evidence пишутся только в request-id-safe диагностический лог; успешный HTTP-контракт виджета не расширяется внутренними данными.
 
 ## 12. Интеграция с OpenCart
 
