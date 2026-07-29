@@ -42,12 +42,12 @@ P5 C50–C52 завершены на изолированной OpenCart-коп�
 JetBackup restore points, выполнены byte-for-byte footer restore drills и
 установлен виджет в source + OCMOD CyberStore footer. Desktop functional
 regression проходит на homepage/category/product/cart/checkout без browser
-errors; старые PHP 8 warnings staging отмечены отдельно. C53 ещё требует real
-staging widget-on LCP/CLS/INP. Production mobile baseline at 390x844 without the
-mounted widget is LCP 2,080 ms and CLS 0. C54 не активирован: production footer
-на диске содержит snippet, Lightning cache clear выполнен, но generated OCMOD
-refresh + повторный Lightning clear всё равно не публикуют widget script/root;
-page-cache canary был полностью откачен. Acceptance и следующий gate:
+errors; старые PHP 8 warnings staging отмечены отдельно. После OCMOD refresh и
+Lightning clear production clean-cache browser монтирует виджет, open/close/focus
+и пять storefront routes проходят, browser errors 0. Warm mobile 390x844:
+LCP 964 ms, CLS 0; tested interaction не создал Event Timing entry ≥16 ms.
+C50-C54 приняты; ранний zero-root был stale test-browser cache, а не потеря
+server embed. Acceptance и rollback evidence:
 [docs/ai-advisor-p5-staging-acceptance.md](./docs/ai-advisor-p5-staging-acceptance.md),
 [docs/ai-advisor-p5-regression-report.md](./docs/ai-advisor-p5-regression-report.md),
 [docs/ai-advisor-p5-rollout-runbook.md](./docs/ai-advisor-p5-rollout-runbook.md).

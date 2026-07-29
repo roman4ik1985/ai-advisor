@@ -1,7 +1,7 @@
 # AI Advisor P5 rollout and rollback runbook
 
 Date: 2026-07-29
-Current state: C54 blocked; production storefront unchanged
+Current state: C50-C54 accepted; production widget active
 
 ## Release gate
 
@@ -66,11 +66,14 @@ Rollback immediately if any of the following occurs:
 - Production Lightning cache rotation: did not activate the widget.
 - Production Lightning cache rollback: PASS, original 8,711 page files restored.
 - Authorized production OCMOD refresh and subsequent Lightning clear: completed.
-- Public post-refresh result: widget script absent, mounted widget roots 0.
+- Public post-refresh result: active Lightning bundle published; clean-cache
+  browser mounted one widget root.
 - Cold-cache storefront requests initially exceeded 20-60 seconds, then the
   homepage recovered to HTTP 200 in 1,561 ms; AI API health remained HTTP 200.
-- Next diagnostic gate: read-only source/generated footer comparison before any
-  further production file or cache change.
+- Read-only source/generated footer comparison: PASS; both contain the embed.
+- Clean-cache open/close/focus and five-route production smoke: PASS.
+- Warm mobile 390x844: LCP 964 ms, CLS 0; no interaction entry at or above
+  16 ms.
 - Production mobile 390x844 baseline without widget: LCP 2,080 ms, CLS 0,
   TTFB 1,658.8 ms, load 2,682.4 ms; INP unavailable.
 - Temporary web reset probe: removed.

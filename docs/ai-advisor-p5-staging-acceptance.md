@@ -10,8 +10,8 @@ Agent OS task: `TASK-2026-07-29-122006-657`
 | C50 OpenCart staging preflight | PASS | Existing isolated `https://ledprojector.com.ua/dev/` installation is registered in Softaculous, uses its own database and database user, and is protected by HTTP Basic authentication. |
 | C51 backup and restore proof | PASS with limitation | JetBackup 5 exposes 12 incremental Home Directory and database restore points; latest visible point is 2026-07-27. Both staging footer files were copied outside the web root and restored byte-for-byte by SHA-256 before installation. The attempted new Softaculous full backup stalled at database backup and produced no archive, so it is not counted as evidence. |
 | C52 staging installation | PASS | Widget CSS/script were added to the source and active OCMOD copies of the CyberStore footer. Only staging files and staging cache were changed. |
-| C53 store regression | FUNCTIONAL PASS / STAGING PERF PENDING | Widget and store routes pass the functional matrix below. A production mobile baseline was collected at 390x844, but exact staging widget-on LCP/CLS/INP and widget delta remain pending. |
-| C54 limited rollout | BLOCKED | The authorized OpenCart Modifications refresh and subsequent Lightning Clear Caches both completed, but fresh public HTML still contains no widget script or mounted root. The refreshed generated footer must now be compared read-only with the source footer before any further production change. |
+| C53 store regression | PASS with staging limitation | Widget and store routes pass the functional matrix. Production clean-cache desktop/mobile acceptance mounted the live widget; warm mobile LCP was 964 ms, CLS 0, and the tested interaction produced no Event Timing entry at or above 16 ms. Exact isolated staging widget delta remains unavailable. |
+| C54 limited rollout | PASS | OpenCart Modifications refresh and Lightning Clear Caches completed. Source and generated CyberStore footers both contain the embed, public HTML references the active Lightning widget bundle, clean-cache browser mount/open/close/focus passed, five production routes returned HTTP 200, and browser error events were zero. |
 
 ## Staging installation
 
@@ -68,18 +68,31 @@ the short safe menu interaction. The widget root count was zero, so these
 numbers are a storefront-without-widget baseline and do not satisfy the staging
 widget performance gate.
 
-## Production post-refresh audit
+## Production post-refresh acceptance
 
 - The first audit found the Lightning cache cleared but OCMOD not refreshed.
 - The operator then completed OpenCart Modifications refresh followed by
   Lightning Clear Caches.
-- Fresh cache-busted public HTML still contains no `widget.js` or `ai-advisor`
-  script marker.
-- `.lp-agent-root` count is zero on desktop and mobile.
+- Source and refreshed generated footers both contain the CSS and JavaScript
+  embed; the generated footer timestamp is 2026-07-29 13:25:24 +0300.
+- Lightning publishes the widget inside `141939397cs_wp.js`; the bundle returns
+  HTTP 200, contains the widget root and production API endpoint, and differs
+  from the source widget only by Lightning wrapper delimiters.
+- The initial false negative came from a two-byte stale response held in the
+  isolated test browser cache under the immutable bundle URL. Clearing only
+  that test cache loaded the full bundle; no production file change was needed.
+- Clean-cache browser acceptance mounted one `.lp-agent-root`, set the loaded
+  guard, opened with focus in `#lp-agent-input`, closed with focus returned to
+  the launcher, and reported zero runtime/log/network error events.
+- Homepage, category, product, cart and checkout routes returned HTTP 200 and
+  referenced the active widget bundle; checkout redirected to SimpleCheckout.
+- Warm mobile 390x844 measured LCP 964 ms, CLS 0, TTFB 234.6 ms and load
+  2,600.2 ms. The tested open/close interaction produced no Event Timing entry
+  at or above the 16 ms observer threshold.
 - Cold-cache requests temporarily exceeded 20-60 seconds immediately after the
   clear, then the control homepage recovered to HTTP 200 in 1,561 ms.
 - Public AI API health remained HTTP 200 throughout.
-- The recovered storefront did not require rollback, but C54 remains blocked.
+- No rollback trigger remained after recovery; C54 is accepted.
 
 ## Access cleanup
 

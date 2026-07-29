@@ -70,11 +70,20 @@ Web Vitals measurement.
    cold-cache storefront requests timed out at 20-60 seconds, but the control
    homepage then recovered to HTTP 200 in 1,561 ms while AI API health stayed
    HTTP 200. No rollback was required.
+9. Read-only server comparison proved that both source and generated footers
+   contain the embed. Public HTML references `141939397cs_wp.js`, whose complete
+   HTTP response contains the widget and API endpoint. The earlier zero-root
+   result was caused by an isolated test browser retaining a two-byte stale
+   response for that immutable URL. Clearing only the test browser cache loaded
+   the complete bundle and mounted the widget without a server-file change.
+10. Clean-cache production acceptance passed mount, open/close, input focus,
+    launcher focus restoration, five HTTP 200 storefront routes and zero
+    browser error events. Warm mobile 390x844 measured LCP 964 ms and CLS 0;
+    the tested interaction produced no Event Timing entry at or above 16 ms.
 
 ## Verdict
 
-C50–C52 are accepted. C53 is accepted for desktop functional behavior; the
-production mobile baseline is recorded, while staging widget-on LCP/CLS/INP
-remains pending. C54 remains blocked on a read-only source-versus-generated
-footer comparison because the completed OCMOD/Lightning refresh still produced
-public HTML without the widget script or mounted root.
+C50–C54 are accepted. The isolated staging environment still lacks a directly
+comparable widget-on/widget-off Web Vitals delta, but production clean-cache
+desktop/mobile functional acceptance, warm LCP/CLS evidence, route coverage and
+rollback gates pass. No order or customer mutation was used.
