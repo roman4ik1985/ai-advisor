@@ -1,7 +1,7 @@
 # C22–C25 — Telegram order status source acceptance
 
 Date: 2026-07-29
-Status: source transport, provisioning, C30 actions and outbox wired and disabled; config/live activation pending
+Status: source/runtime code synchronized and disabled; config/live activation pending
 
 ## Implemented boundary
 
@@ -56,6 +56,8 @@ commission, expense or profit fields.
 - Full source suite after C30/outbox: 182/182 PASS.
 - Tests use injected synthetic data and an injected fetch implementation only.
 - No Telegram, SalesDrive, OpenCart or ERP request was made.
+- Disabled runtime acceptance: source/runtime diff 0, local/public health HTTP
+  200 and local/public order-link HTTP 404.
 
 ## Deferred live activation
 

@@ -1,7 +1,7 @@
 # C30 — Telegram manager actions and durable outbox acceptance
 
 Date: 2026-07-29
-Status: source PASS; configuration absent, feature disabled
+Status: source PASS; code released disabled, configuration absent
 
 ## Implemented
 
@@ -48,9 +48,17 @@ All values stay server-side. Missing required values stop startup only when
 - No Telegram, Redis or SalesDrive network request and no real customer/order
   payload was used.
 
+## Disabled runtime release
+
+The hash-verified source-to-runtime release copied 61 accumulated tracked files
+from the accepted C10–C30 source baseline. The SYSTEM API host restarted from
+PID 29552 to PID 39316. Source/runtime release diff is zero; local and public
+`/health` return HTTP 200. Local and public `/api/telegram/order-link` return
+HTTP 404 because `TELEGRAM_ORDER_ENABLED` remains false.
+
 ## Live readiness
 
 Both source and active-runtime `.env` lack the required Telegram/Redis
-configuration as of this acceptance. A disabled release is safe; test-bot,
+configuration as of this acceptance. The disabled release is safe; test-bot,
 Redis concurrency/failover and authorized synthetic SalesDrive acceptance
 remain blocked until operator-provided server-side configuration exists.

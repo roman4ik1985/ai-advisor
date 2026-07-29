@@ -738,6 +738,9 @@ handoff, Redis-backed notification toggle и durable at-least-once outbox с
 enqueue-deduplication, visibility retry и bounded dead-letter. Реальные
 credentials, test-bot/Redis/SalesDrive acceptance и live activation остаются
 отдельным configuration/runtime release contour.
+Disabled source-to-runtime release синхронизировал C10–C30 с active runtime:
+diff 0, local/public health HTTP 200, а order-link локально и публично отвечает
+404 при `TELEGRAM_ORDER_ENABLED=false`.
 Полный контракт: [docs/ai-advisor-order-ownership-contract.md](./docs/ai-advisor-order-ownership-contract.md).
 Source acceptance: [docs/ai-advisor-order-status-source-acceptance.md](./docs/ai-advisor-order-status-source-acceptance.md).
 [C26–C29 acceptance](./docs/ai-advisor-telegram-order-webhook-source-acceptance.md).
