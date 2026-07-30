@@ -65,3 +65,34 @@ in the account before purchase.
 The live smoke uses only synthetic keys under `aiadvisor:accept:*`, sends no
 Telegram or SalesDrive request and removes its fixed test keys before exit.
 
+## Zero-paid-plan decision (2026-07-31)
+
+Paid Valkey/Redis plans are excluded. A current vendor comparison found no
+mature managed free tier that provides both a primary and replica with
+automatic failover:
+
+| Option | Free replication / HA | Project compatibility | Decision |
+| --- | --- | --- | --- |
+| Aiven Valkey | No; free tier is one node | Valkey 9.1, TLS, Lua and RDB fit | Keep only for managed single-node acceptance |
+| Upstash Redis | No; replication is enabled for paid databases and Prod Pack is unavailable on Free | Required commands/Lua are broadly available | Reject as free HA |
+| Redis Cloud | No; free Essentials explicitly excludes replication | Protocol-compatible but not Valkey 9.1 | Reject as free HA |
+| Clever Cloud Materia KV | Three-datacenter synchronous replication is free during alpha | No `EVAL`, `GETDEL`, sorted sets or full Redis API; vendor forbids production-grade data | Reject |
+| Oracle Cloud Always Free compute | Enough free VM capacity for a self-managed primary, replica and a third Sentinel voter | Can run official Valkey 9.1 with TLS, ACL, AOF/RDB and Sentinel | Only viable zero-infrastructure-charge HA candidate |
+
+Oracle is not a managed datastore. It requires account verification (normally
+phone and payment card), Linux administration, patching, monitoring, backups,
+TLS/ACL rotation and a tested Sentinel failover runbook. Free capacity can be
+temporarily unavailable in the selected home region, idle accounts can be
+suspended, and there is no paid production SLA/support. Two Valkey data nodes
+alone are not a safe quorum design; use three Sentinel voters across three
+Always Free VMs.
+
+Sources:
+
+- <https://aiven.io/docs/products/valkey/concepts/valkey-free-tier>
+- <https://upstash.com/docs/redis/features/replication>
+- <https://upstash.com/pricing/redis>
+- <https://redis.io/docs/latest/operate/rc/databases/configuration/high-availability/>
+- <https://www.clever-cloud.com/developers/doc/addons/materia-kv/>
+- <https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm>
+- <https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier.htm>
