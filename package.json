@@ -19,6 +19,8 @@
     "performance:budget": "node scripts/check-performance-budget.mjs",
     "production:smoke": "node scripts/check-production-widget.mjs",
     "valkey:acceptance": "pwsh -NoProfile -File scripts/run-valkey-wsl-acceptance.ps1",
+    "valkey:aiven:validate": "node scripts/validate-aiven-valkey-readiness.mjs template",
+    "valkey:aiven:smoke": "node scripts/validate-aiven-valkey-readiness.mjs live",
     "analytics:rotate": "node scripts/rotate-product-analytics.mjs",
     "release:active:dry-run": "pwsh -NoProfile -File scripts/release-active-runtime.ps1",
     "test": "node --test test/*.test.mjs",
