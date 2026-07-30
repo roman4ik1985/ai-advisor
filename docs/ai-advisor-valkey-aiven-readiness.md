@@ -87,6 +87,39 @@ suspended, and there is no paid production SLA/support. Two Valkey data nodes
 alone are not a safe quorum design; use three Sentinel voters across three
 Always Free VMs.
 
+### What the three Oracle VMs mean
+
+Oracle supplies general-purpose compute, network and block storage rather than
+a managed Valkey service. The minimum robust Sentinel layout is:
+
+- VM 1: Valkey primary plus Sentinel 1;
+- VM 2: Valkey replica plus Sentinel 2;
+- VM 3: Sentinel 3 as the independent quorum voter; it can be small and does
+  not need to hold a third data copy.
+
+The Sentinel quorum is 2 of 3. If VM 1 fails, Sentinel 2 and Sentinel 3 can
+agree that the primary is unavailable and promote the replica on VM 2. With
+only two machines, loss of the primary machine also removes one voter and
+leaves no safe majority. Allowing the remaining voter to promote alone during
+a network partition could create two writable primaries (split brain). The
+third VM is therefore mainly an independent arbitrator, not extra capacity.
+
+Self-management also makes this project responsible for OS and Valkey
+installation/upgrades, firewall rules, TLS certificates, ACL credentials,
+monitoring and alerts, backup/restore drills, Sentinel failover tests and
+incident response. Oracle free capacity can be unavailable, eligible idle
+instances can be reclaimed, and infrastructure maintenance can still reboot a
+VM when live migration is not possible. Sentinel replication is asynchronous,
+so acknowledged writes can be lost during some failures.
+
+The current Node Redis integration is configured through one connection URL
+and does not implement Sentinel discovery. Using this topology would therefore
+require a separate application/client change or an additional proxy endpoint,
+plus secure connectivity from the Windows runtime to the Oracle VMs. For the
+current low-volume pilot, this operational and application complexity
+outweighs the availability benefit; managed single-node Aiven remains the
+recommended zero-paid-plan starting point.
+
 Sources:
 
 - <https://aiven.io/docs/products/valkey/concepts/valkey-free-tier>
@@ -96,6 +129,8 @@ Sources:
 - <https://www.clever-cloud.com/developers/doc/addons/materia-kv/>
 - <https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm>
 - <https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier.htm>
+- <https://docs.oracle.com/en-us/iaas/Content/Compute/References/infrastructure-maintenance.htm>
+- <https://valkey.io/topics/sentinel/>
 
 ## Low-volume availability decision (2026-07-31)
 
