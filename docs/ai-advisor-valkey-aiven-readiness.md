@@ -96,3 +96,56 @@ Sources:
 - <https://www.clever-cloud.com/developers/doc/addons/materia-kv/>
 - <https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm>
 - <https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier.htm>
+
+## Low-volume availability decision (2026-07-31)
+
+At the current average of five store orders per day, with only a fraction of
+customers expected to use Telegram order status, a second Valkey node is a
+`should-have`, not a launch `must-have`.
+
+If 10–30% of orders use Telegram, the expected volume is approximately
+0.5–1.5 users per day. Under a simplified uniform-arrival model, a random
+one-hour Valkey outage would overlap approximately 0.02–0.06 initial Telegram
+uses on average; a full-day outage would affect approximately 0.5–1.5 users.
+Actual impact can be higher when requests cluster after shipping notifications,
+so this is capacity framing rather than an uptime prediction.
+
+The standby node protects primarily against loss of the primary process,
+virtual machine, hardware or maintenance replacement. It does not protect
+against every failure:
+
+- local AI Advisor runtime or Internet outage;
+- provider-wide, regional, DNS or TLS failure;
+- free-tier inactivity power-off or account suspension;
+- an expired credential, wrong ACL, IP filter or application configuration;
+- logical corruption, accidental deletion or a software bug replicated to the
+  standby;
+- loss of both nodes or data written after the last usable backup.
+
+Aiven documents that single-node services automatically restart minor process
+failures. If the whole node is lost, Aiven creates a replacement and restores
+the latest backup, but the service is unavailable during recovery and writes
+after that backup can be lost. Free services have no 99.99% SLA and may be
+powered off after non-continuative activity with notice.
+
+### Initial reliability target
+
+- Classification: single-node managed Valkey is accepted for the current
+  low-volume pilot.
+- Internal availability SLO: 99.0% per calendar month, measured by a synthetic
+  TLS `PING` plus a harmless scoped write/read check. This is an internal target,
+  not an Aiven free-tier SLA.
+- Error budget: approximately 7 hours 18 minutes of unavailability per month.
+- Detection target: probe every 5 minutes and alert after two consecutive
+  failures, for a maximum nominal detection delay of 10 minutes.
+- Recovery target: restore service within 4 hours during operator availability
+  and within 12 hours outside it.
+- Data-loss target: not accepted until a real backup/restore drill measures the
+  effective recovery point. SalesDrive remains the order source of truth;
+  Valkey loss can require Telegram re-linking and can lose pending notification
+  state, but cannot delete the underlying order.
+
+Reconsider a second node when Telegram usage reaches roughly 30–50 status
+actions per day, customers require continuous 24/7 status access, measured
+single-node downtime exceeds the error budget, or the operational cost of an
+incident exceeds the cost of HA.
