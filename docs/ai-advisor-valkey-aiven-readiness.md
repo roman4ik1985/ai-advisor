@@ -20,9 +20,15 @@ outputs.
 - Provider/version research: PASS.
 - Aiven public TLS architecture: PASS.
 - Terraform readiness contract: PASS.
-- Aiven account authorization: BLOCKED — neither available browser had an
-  authenticated Aiven session.
-- Free managed service creation: NOT STARTED.
+- Aiven account authorization: PASS.
+- Aiven organization/project creation: PASS — organization `My Organization`,
+  project `ai-advisor`.
+- Free managed service creation: PASS — service `ai-advisor-valkey`, Valkey
+  9.1, Free-1, one CPU, 1 GB RAM, DigitalOcean Amsterdam; the creation summary
+  showed `Free` before submission.
+- Network restriction: INCOMPLETE — the service was created with the free-tier
+  default `0.0.0.0/0` and `::/0`; replace both with the current trusted egress
+  CIDR before copying credentials or running the live smoke.
 - Live TLS/command/Lua/concurrency/RDB smoke: NOT STARTED.
 - Two-node primary/replica failover: NOT STARTED; requires a paid Business plan.
 - Telegram menu-only test-bot: NOT STARTED.
@@ -64,6 +70,20 @@ in the account before purchase.
 
 The live smoke uses only synthetic keys under `aiadvisor:accept:*`, sends no
 Telegram or SalesDrive request and removes its fixed test keys before exit.
+
+### Secure continuation after service creation
+
+1. In the Aiven service overview, set the IP allowlist to only the current
+   trusted egress IPv4 address with a `/32` suffix; remove both open-to-all
+   defaults.
+2. After the service reports `Running`, copy the full `rediss://` service URI
+   to the local clipboard without pasting it into chat or a file.
+3. Load the clipboard into the process-scoped `VALKEY_AIVEN_TEST_URL` variable
+   and run `npm run valkey:aiven:smoke`.
+4. Clear the variable from the process and verify that the fixed synthetic
+   keys were removed.
+5. Verify the initial backup in Aiven before marking the free datastore
+   acceptance complete.
 
 ## Zero-paid-plan decision (2026-07-31)
 
