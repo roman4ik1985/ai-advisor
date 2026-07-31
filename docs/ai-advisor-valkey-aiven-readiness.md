@@ -28,8 +28,15 @@ outputs.
   showed `Free` before submission.
 - Network restriction: INCOMPLETE — the service was created with the free-tier
   default `0.0.0.0/0` and `::/0`; replace both with the current trusted egress
-  CIDR before copying credentials or running the live smoke.
-- Live TLS/command/Lua/concurrency/RDB smoke: NOT STARTED.
+  CIDR. The live smoke subsequently connected from the current egress, but the
+  final allowlist contents still require an independent UI check.
+- Live TLS/command/Lua/concurrency/RDB smoke: PASS — the process-scoped
+  credential connected over TLS to Valkey 9.1.x; native SET NX PX/GETDEL, Lua,
+  16-way concurrency and durable outbox deduplication passed. Fixed synthetic
+  keys were deleted and the process variable plus clipboard were cleared.
+- Managed backup evidence: PENDING — the initial backup started during service
+  creation, but the completed backup record was not independently read because
+  browser control became unavailable.
 - Two-node primary/replica failover: NOT STARTED; requires a paid Business plan.
 - Telegram menu-only test-bot: NOT STARTED.
 - `TELEGRAM_ORDER_ENABLED`: remains false.
@@ -84,6 +91,12 @@ Telegram or SalesDrive request and removes its fixed test keys before exit.
    keys were removed.
 5. Verify the initial backup in Aiven before marking the free datastore
    acceptance complete.
+
+Live acceptance executed on 2026-07-31:
+
+```json
+{"status":"PASS","mode":"live","provider":"aiven","engine":"valkey","version":"9.1.x","tls":true,"nativeCommands":"PASS","luaAtomicity":"PASS","concurrency":"PASS","outboxDeduplication":"PASS","telegramEnabled":false}
+```
 
 ## Zero-paid-plan decision (2026-07-31)
 
