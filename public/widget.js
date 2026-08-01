@@ -1,4 +1,4 @@
-(() => {
+void (async () => {
   const STORE_HOSTS = new Set(['ledprojector.com.ua', 'www.ledprojector.com.ua']);
   const PRODUCT_CARD_SELECTORS = [
     '[data-product-id]',
@@ -173,6 +173,24 @@
     return 'error';
   }
 
+  async function readWidgetVisibility(configUrl) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
+    try {
+      const response = await fetch(configUrl, {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) return true;
+      const config = await response.json();
+      return config?.enabled !== false;
+    } catch {
+      return true;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   if (window.__ledProjectorAgentTestOnly) {
     window.__ledProjectorAgentTestHooks = Object.freeze({
       canonicalStoreUrl,
@@ -181,6 +199,7 @@
       matchProductCandidate,
       normalizeProduct,
       normalizeText,
+      readWidgetVisibility,
       selectProducts,
     });
     return;
@@ -191,6 +210,8 @@
 
   const script = document.currentScript;
   const endpoint = script?.dataset.endpoint || 'https://ai.ledprojector.com.ua/api/chat';
+  const widgetConfigEndpoint = new URL('/widget-config.json', new URL(endpoint, location.href).origin).toString();
+  if (!await readWidgetVisibility(widgetConfigEndpoint)) return;
   const orderLinkEndpoint = new URL('/api/telegram/order-link', new URL(endpoint, location.href).origin).toString();
   const productAnalyticsEnabled = script?.dataset.productAnalytics === 'true';
   const productAnalyticsEndpoint = new URL('/api/analytics/product', new URL(endpoint, location.href).origin).toString();

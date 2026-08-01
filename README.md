@@ -203,6 +203,17 @@ npm run start:api:background
 
 Для production сохраняйте `ALLOWED_ORIGINS=https://ledprojector.com.ua`. Не размещайте `OPENAI_API_KEY` в HTML или `widget.js`.
 
+### Переключатель видимости виджета
+
+Видимость управляется публичным файлом `public/widget-config.json`. Команда изменяет только булево поле `enabled` в текущей копии проекта:
+
+```powershell
+.\scripts\set-widget-visibility.ps1 -Enabled $true
+.\scripts\set-widget-visibility.ps1 -Enabled $false
+```
+
+`false` не создаёт интерфейс виджета на новых загрузках страницы, `true` возвращает его. Конфигурация отдаётся без кеширования и доступна для чтения только разрешённым origin. Если конфигурацию невозможно получить или проверить, сохраняется прежнее безопасное поведение — виджет отображается. Изменение в `C:\AI Advisor` относится только к source; production начнёт использовать переключатель после отдельного явно подтверждённого release в active runtime. Перезапуск API для последующих переключений не требуется, но уже открытая страница должна быть перезагружена.
+
 В `widget.js` сохранён абсолютный fallback на `https://ai.ledprojector.com.ua/api/chat`: оптимизатор Lightning может объединять внешний скрипт и удалять его атрибут `data-endpoint`. Для принудительного обновления объединённого скрипта production footer использует `widget.js?v=20260723c`.
 
 ### Защита API от перегрузки

@@ -281,7 +281,12 @@ const server = createServer(async (request, response) => {
     }
   }
 
-  if (request.method === 'GET') return serveStatic(requestUrl.pathname, response);
+  if (request.method === 'GET') {
+    if (requestUrl.pathname === '/widget-config.json' && !applyCors(request, response)) {
+      return sendError(response, 403, 'Origin is not allowed.', 'ORIGIN_NOT_ALLOWED', requestId);
+    }
+    return serveStatic(requestUrl.pathname, response);
+  }
   return sendError(response, 404, 'Not found.', 'NOT_FOUND', requestId);
 });
 
@@ -312,7 +317,7 @@ function applyCors(request, response) {
     response.setHeader('Access-Control-Allow-Origin', origin);
     response.setHeader('Vary', 'Origin');
     response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   }
   return allowed;
 }
@@ -357,7 +362,9 @@ async function serveStatic(pathname, response) {
     if (!info.isFile()) throw new Error('Not a file');
     response.writeHead(200, {
       'Content-Type': mimeType(extname(filePath)),
-      'Cache-Control': filePath.endsWith('demo.html') ? 'no-store' : 'public, max-age=300',
+      'Cache-Control': filePath.endsWith('demo.html') || filePath.endsWith('widget-config.json')
+        ? 'no-store'
+        : 'public, max-age=300',
     });
     createReadStream(filePath).pipe(response);
   } catch {
@@ -370,6 +377,7 @@ function mimeType(extension) {
     '.html': 'text/html; charset=utf-8',
     '.js': 'text/javascript; charset=utf-8',
     '.css': 'text/css; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
     '.png': 'image/png',
     '.svg': 'image/svg+xml',
   })[extension] || 'application/octet-stream';
