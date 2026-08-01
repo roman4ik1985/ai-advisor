@@ -71,7 +71,7 @@ test('visibility command writes only a boolean config value', async (context) =>
   }
 });
 
-test('widget config is no-store and readable only from an allowed origin', async (context) => {
+test('widget config is a public no-store boolean readable without credentials', async (context) => {
   const port = await getAvailablePort();
   const allowedOrigin = 'https://ledprojector.com.ua';
   const child = spawn(process.execPath, ['server.mjs', '--provider=test'], {
@@ -99,15 +99,16 @@ test('widget config is no-store and readable only from an allowed origin', async
   });
   assert.equal(allowed.status, 200);
   assert.deepEqual(await allowed.json(), { enabled: true });
-  assert.equal(allowed.headers.get('access-control-allow-origin'), allowedOrigin);
+  assert.equal(allowed.headers.get('access-control-allow-origin'), '*');
   assert.equal(allowed.headers.get('cache-control'), 'no-store');
   assert.match(allowed.headers.get('content-type') || '', /^application\/json/u);
 
-  const forbidden = await fetch(`http://127.0.0.1:${port}/widget-config.json`, {
+  const otherOrigin = await fetch(`http://127.0.0.1:${port}/widget-config.json`, {
     headers: { Origin: 'https://evil.example' },
   });
-  assert.equal(forbidden.status, 403);
-  assert.equal((await forbidden.json()).code, 'ORIGIN_NOT_ALLOWED');
+  assert.equal(otherOrigin.status, 200);
+  assert.deepEqual(await otherOrigin.json(), { enabled: true });
+  assert.equal(otherOrigin.headers.get('access-control-allow-origin'), '*');
 });
 
 async function getAvailablePort() {

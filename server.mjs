@@ -282,8 +282,8 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === 'GET') {
-    if (requestUrl.pathname === '/widget-config.json' && !applyCors(request, response)) {
-      return sendError(response, 403, 'Origin is not allowed.', 'ORIGIN_NOT_ALLOWED', requestId);
+    if (requestUrl.pathname === '/widget-config.json') {
+      response.setHeader('Access-Control-Allow-Origin', '*');
     }
     return serveStatic(requestUrl.pathname, response);
   }
