@@ -1,3 +1,9 @@
+export const TRACKED_SECRET_MARKER_PATTERN = [
+  'sk-proj-[A-Za-z0-9_-]{20,}',
+  ['OPENAI_API_KEY', '[^[:space:]]+'].join('='),
+  ['TELEGRAM_ORDER_BOT_TOKEN', '[0-9]+:'].join('='),
+].join('|');
+
 export function assessSecurityMaintenance({
   audit = {},
   secretFiles = [],

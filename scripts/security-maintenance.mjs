@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
-import { assessSecurityMaintenance } from '../security-maintenance.mjs';
+import { assessSecurityMaintenance, TRACKED_SECRET_MARKER_PATTERN } from '../security-maintenance.mjs';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const auditResult = spawnSync('npm.cmd', ['audit', '--json'], { cwd: root, encoding: 'utf8' });
@@ -10,7 +10,7 @@ let audit = {};
 try { audit = JSON.parse(auditResult.stdout || '{}'); } catch { audit = {}; }
 const grep = spawnSync('git.exe', [
   'grep', '-I', '-l', '-E',
-  '(sk-proj-[A-Za-z0-9_-]{20,}|OPENAI_API_KEY=[^[:space:]]+|TELEGRAM_ORDER_BOT_TOKEN=[0-9]+:)',
+  `(${TRACKED_SECRET_MARKER_PATTERN})`,
   '--', '.',
 ], { cwd: root, encoding: 'utf8' });
 const secretFiles = grep.status === 0

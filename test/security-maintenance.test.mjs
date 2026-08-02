@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assessSecurityMaintenance } from '../security-maintenance.mjs';
+import { readFile } from 'node:fs/promises';
+import { assessSecurityMaintenance, TRACKED_SECRET_MARKER_PATTERN } from '../security-maintenance.mjs';
 
 const headers = ['Content-Security-Policy', 'X-Content-Type-Options', 'Referrer-Policy'];
 
@@ -24,4 +25,13 @@ test('high vulnerabilities, tracked secret markers, and missing headers block re
   });
   assert.equal(report.status, 'BLOCKED');
   assert.equal(report.blockingCount, 3);
+});
+
+test('tracked-secret scanner pattern does not match its own source while retaining all marker families', async () => {
+  const scanner = await readFile(new URL('../scripts/security-maintenance.mjs', import.meta.url), 'utf8');
+  const selfMatch = ['OPENAI_API_KEY', '=', '[^[:space:]]+'].join('');
+  assert.equal(scanner.includes(selfMatch), false);
+  assert.equal(TRACKED_SECRET_MARKER_PATTERN.includes('sk-proj-'), true);
+  assert.equal(TRACKED_SECRET_MARKER_PATTERN.includes('OPENAI_API_KEY'), true);
+  assert.equal(TRACKED_SECRET_MARKER_PATTERN.includes('TELEGRAM_ORDER_BOT_TOKEN'), true);
 });
