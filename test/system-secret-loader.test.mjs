@@ -26,6 +26,10 @@ test('SYSTEM launcher removes env-file loading and injects only an allowlisted c
   assert.match(library, /AreAccessRulesProtected/);
   assert.match(library, /S-1-5-18/);
   assert.match(library, /S-1-5-32-544/);
+  assert.match(
+    library,
+    /if \(-not \$Directory\) \{\s*Assert-SystemSecretStoreAcl -Path \(Split-Path -Parent \$Path\)\s*\}/u,
+  );
   assert.match(library, /SYSTEM_SECRET_TELEGRAM_ACTIVATION_NOT_ALLOWED/);
   assert.doesNotMatch(library.match(/SystemSecretChildEnvironmentNames\s*=\s*@\(([\s\S]*?)\n\)/u)?.[1] || '', /NODE_OPTIONS/iu);
   assert.match(provisioning, /Read-Host[^\n]+-AsSecureString/);

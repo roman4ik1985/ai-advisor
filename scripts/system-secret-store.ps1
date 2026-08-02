@@ -351,7 +351,9 @@ function Set-SystemSecretStoreAcl {
   }
   $acl.SetOwner((New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')))
   Set-Acl -LiteralPath $Path -AclObject $acl
-  Assert-SystemSecretStoreAcl -Path (Split-Path -Parent $Path)
+  if (-not $Directory) {
+    Assert-SystemSecretStoreAcl -Path (Split-Path -Parent $Path)
+  }
   Assert-SystemSecretStoreAcl -Path $Path
 }
 
