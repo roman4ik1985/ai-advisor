@@ -104,3 +104,25 @@ test('disabled Telegram is the default loader gate', {
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.equal(result.stdout.trim(), 'SYSTEM_SECRET_TELEGRAM_ACTIVATION_NOT_ALLOWED');
 });
+
+test('release readiness returns only a stable code when the protected bundle is absent', {
+  skip: process.platform !== 'win32',
+}, () => {
+  const libraryPath = fileURLToPath(libraryUrl).replaceAll("'", "''");
+  const missingPath = 'C:\\Windows\\Temp\\ai-advisor-missing-system-secrets.dpapi';
+  const command = [
+    `$ErrorActionPreference = 'Stop'`,
+    `. '${libraryPath}'`,
+    `Test-SystemSecretStoreReleaseReadiness -Path '${missingPath}' | ConvertTo-Json -Compress`,
+  ].join('; ');
+  const result = spawnSync('powershell.exe', [
+    '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+    '-EncodedCommand', Buffer.from(command, 'utf16le').toString('base64'),
+  ], { encoding: 'utf8' });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.deepEqual(JSON.parse(result.stdout.trim()), {
+    Ready: false,
+    Code: 'SYSTEM_SECRET_STORE_NOT_FOUND',
+  });
+});

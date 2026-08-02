@@ -56,6 +56,14 @@ activation remain separate protected operations. The default launcher rejects a
 bundle with `TELEGRAM_ORDER_ENABLED=true`; enabling it requires a separately
 authorized launcher flag as well as the later gates in this runbook.
 
+The source release helper has a separate `SYSTEMSecretLoader` profile containing
+only the two runtime scripts. Its dry-run is metadata-only. Its `-Apply` path
+performs a local, boolean-only DPAPI readiness check and stops with a stable code
+unless the protected bundle exists, its ACL and required runtime values validate,
+and Telegram remains disabled. The bundle is neither provisioned nor decrypted by
+the dry-run; `-Apply`, restart and any secret entry each need their own explicit
+authorization.
+
 Initial provisioning is performed only from an elevated interactive PowerShell
 session. Values are entered through hidden `SecureString` prompts and are never
 accepted as command-line values or an input file. The initial bundle must include

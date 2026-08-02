@@ -337,6 +337,40 @@ function Read-SystemSecretStore {
     -AllowTelegramEnabled:$AllowTelegramEnabled
 }
 
+function Test-SystemSecretStoreReleaseReadiness {
+  [CmdletBinding()]
+  param([string]$Path = (Get-SystemSecretStorePath))
+
+  if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+    return [pscustomobject]@{ Ready = $false; Code = 'SYSTEM_SECRET_STORE_NOT_FOUND' }
+  }
+
+  $values = $null
+  try {
+    try {
+      $values = Read-SystemSecretStore -Path $Path -RequireAdministratorIdentity
+    } catch {
+      $code = [string]$_.Exception.Message
+      if ($code -notmatch '^SYSTEM_SECRET_[A-Z0-9_]+$') {
+        $code = 'SYSTEM_SECRET_STORE_VALIDATION_FAILED'
+      }
+      return [pscustomobject]@{ Ready = $false; Code = $code }
+    }
+
+    if ([string]$values['TELEGRAM_ORDER_ENABLED'] -ne 'false') {
+      return [pscustomobject]@{ Ready = $false; Code = 'SYSTEM_SECRET_TELEGRAM_ENABLED' }
+    }
+    return [pscustomobject]@{ Ready = $true; Code = 'SYSTEM_SECRET_RELEASE_READY' }
+  } finally {
+    if ($values) {
+      foreach ($name in @($values.Keys)) {
+        $values[$name] = $null
+      }
+      $values.Clear()
+    }
+  }
+}
+
 function Write-SystemSecretStore {
   [CmdletBinding()]
   param(

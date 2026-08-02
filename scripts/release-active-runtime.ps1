@@ -1,6 +1,6 @@
 param(
   [string]$ActiveRoot = 'F:\Services\AI Advisor',
-  [ValidateSet('P3P4Runtime')]
+  [ValidateSet('P3P4Runtime', 'SYSTEMSecretLoader')]
   [string]$Profile = 'P3P4Runtime',
   [switch]$Apply,
   [string]$RollbackFrom
@@ -23,6 +23,10 @@ $releaseProfiles = @{
     'request-pipeline.mjs',
     'public\widget.js',
     'knowledge\product-specifications.json'
+  )
+  SYSTEMSecretLoader = @(
+    'scripts\run-api-task.ps1',
+    'scripts\system-secret-store.ps1'
   )
 }
 
@@ -57,7 +61,7 @@ if ($Apply -and $RollbackFrom) {
 if ($RollbackFrom) {
   $manifestPath = Resolve-ContainedPath -Root $backupRoot -Path $RollbackFrom -MustExist
   $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-  if ($manifest.schemaVersion -ne 1 -or $manifest.profile -ne 'P3P4Runtime') {
+  if ($manifest.schemaVersion -ne 1 -or $manifest.profile -notin @('P3P4Runtime', 'SYSTEMSecretLoader')) {
     throw "Unsupported rollback manifest: $manifestPath"
   }
   if ([System.IO.Path]::GetFullPath([string]$manifest.activeRoot).TrimEnd('\') -ne $ActiveRoot) {
@@ -126,6 +130,14 @@ foreach ($item in $releaseItems) {
 if (-not $Apply) {
   [pscustomobject]@{ Mode = 'dry-run'; Profile = $Profile; SourceRoot = $sourceRoot; ActiveRoot = $ActiveRoot; ChangedFiles = $changes.RelativePath; Count = $changes.Count }
   return
+}
+
+if ($Profile -eq 'SYSTEMSecretLoader') {
+  . (Join-Path $sourceRoot 'scripts\system-secret-store.ps1')
+  $releaseReadiness = Test-SystemSecretStoreReleaseReadiness
+  if (-not $releaseReadiness.Ready) {
+    throw "SYSTEM_SECRET_RELEASE_BLOCKED:$($releaseReadiness.Code)"
+  }
 }
 
 $backupDirectory = Join-Path $backupRoot ("{0}-{1}" -f $Profile.ToLowerInvariant(), (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
