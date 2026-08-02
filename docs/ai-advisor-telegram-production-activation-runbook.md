@@ -66,12 +66,16 @@ authorization.
 
 Initial provisioning is performed only from an elevated interactive PowerShell
 session. Values are entered through hidden `SecureString` prompts and are never
-accepted as command-line values or an input file. The initial bundle must include
-`AI_PROVIDER`, `OPENAI_API_KEY` and `TELEGRAM_ORDER_ENABLED`, with the provider set
-to `api` and Telegram set to `false`. Example names-only invocation:
+accepted as command-line values or an input file. To preserve the existing
+production behavior, the initial bundle must include `AI_PROVIDER`, `HOST`,
+`ALLOWED_ORIGINS`, `OPENAI_API_KEY`, `STORE_URL`, `SALESDRIVE_SUBDOMAIN`,
+`SALESDRIVE_API_KEY`, `SALESDRIVE_YML_URL` and `TELEGRAM_ORDER_ENABLED`. The
+provider must be `api`, the host must be loopback, the origins/store URL must stay
+on the approved storefront, the SalesDrive endpoints must stay HTTPS/server-side,
+and Telegram must be `false`. Example names-only invocation:
 
 ```powershell
-.\scripts\set-system-secret-store.ps1 -Initialize -Set AI_PROVIDER,OPENAI_API_KEY,TELEGRAM_ORDER_ENABLED
+.\scripts\set-system-secret-store.ps1 -Initialize -Set AI_PROVIDER,HOST,ALLOWED_ORIGINS,OPENAI_API_KEY,STORE_URL,SALESDRIVE_SUBDOMAIN,SALESDRIVE_API_KEY,SALESDRIVE_YML_URL,TELEGRAM_ORDER_ENABLED
 ```
 
 Additional allowlisted values are added with another names-only invocation. The

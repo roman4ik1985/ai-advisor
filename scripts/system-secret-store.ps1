@@ -32,7 +32,13 @@ $script:SystemSecretAllowedNames = @(
 )
 $script:SystemSecretRequiredNames = @(
   'AI_PROVIDER',
+  'HOST',
+  'ALLOWED_ORIGINS',
   'OPENAI_API_KEY',
+  'STORE_URL',
+  'SALESDRIVE_SUBDOMAIN',
+  'SALESDRIVE_API_KEY',
+  'SALESDRIVE_YML_URL',
   'TELEGRAM_ORDER_ENABLED'
 )
 $script:SystemSecretAllowedSids = @('S-1-5-18', 'S-1-5-32-544')
@@ -117,6 +123,46 @@ function Assert-SystemSecretValues {
   }
   if ([string]$Values['AI_PROVIDER'] -ne 'api') {
     throw 'SYSTEM_SECRET_PROVIDER_MUST_BE_API'
+  }
+  if ([string]$Values['HOST'] -ne '127.0.0.1') {
+    throw 'SYSTEM_SECRET_HOST_MUST_BE_LOOPBACK'
+  }
+
+  $allowedOrigins = @(
+    ([string]$Values['ALLOWED_ORIGINS']).Split(',') |
+      ForEach-Object { $_.Trim().TrimEnd('/') } |
+      Where-Object { $_ } |
+      Sort-Object -Unique
+  )
+  $requiredOrigins = @('https://ledprojector.com.ua', 'https://www.ledprojector.com.ua')
+  if (
+    $allowedOrigins.Count -ne $requiredOrigins.Count -or
+    @($allowedOrigins | Where-Object { $requiredOrigins -notcontains $_ }).Count -gt 0
+  ) {
+    throw 'SYSTEM_SECRET_ALLOWED_ORIGINS_INVALID'
+  }
+
+  try {
+    $storeUrl = [Uri]([string]$Values['STORE_URL'])
+  } catch {
+    throw 'SYSTEM_SECRET_STORE_URL_INVALID'
+  }
+  if ($storeUrl.Scheme -ne 'https' -or $storeUrl.Host -notin @('ledprojector.com.ua', 'www.ledprojector.com.ua')) {
+    throw 'SYSTEM_SECRET_STORE_URL_INVALID'
+  }
+  if ([string]$Values['SALESDRIVE_SUBDOMAIN'] -notmatch '^[a-z0-9][a-z0-9-]{0,62}$') {
+    throw 'SYSTEM_SECRET_SALESDRIVE_SUBDOMAIN_INVALID'
+  }
+  try {
+    $salesdriveYmlUrl = [Uri]([string]$Values['SALESDRIVE_YML_URL'])
+  } catch {
+    throw 'SYSTEM_SECRET_SALESDRIVE_YML_URL_INVALID'
+  }
+  if (
+    $salesdriveYmlUrl.Scheme -ne 'https' -or
+    ($salesdriveYmlUrl.Host -ne 'salesdrive.me' -and -not $salesdriveYmlUrl.Host.EndsWith('.salesdrive.me'))
+  ) {
+    throw 'SYSTEM_SECRET_SALESDRIVE_YML_URL_INVALID'
   }
 
   $telegramEnabled = [string]$Values['TELEGRAM_ORDER_ENABLED']

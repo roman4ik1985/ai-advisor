@@ -58,7 +58,7 @@ test('DPAPI machine payload round-trips without plaintext persistence and reject
   const command = [
     `$ErrorActionPreference = 'Stop'`,
     `. '${libraryPath}'`,
-    `$values = @{ AI_PROVIDER = 'api'; OPENAI_API_KEY = 'fake-openai-secret'; TELEGRAM_ORDER_ENABLED = 'false'; TELEGRAM_ORDER_WEBHOOK_SECRET = 'fake-webhook-secret' }`,
+    `$values = @{ AI_PROVIDER = 'api'; HOST = '127.0.0.1'; ALLOWED_ORIGINS = 'https://ledprojector.com.ua,https://www.ledprojector.com.ua'; OPENAI_API_KEY = 'fake-openai-secret'; STORE_URL = 'https://ledprojector.com.ua'; SALESDRIVE_SUBDOMAIN = 'example-store'; SALESDRIVE_API_KEY = 'fake-salesdrive-secret'; SALESDRIVE_YML_URL = 'https://example-store.salesdrive.me/export/yml'; TELEGRAM_ORDER_ENABLED = 'false'; TELEGRAM_ORDER_WEBHOOK_SECRET = 'fake-webhook-secret' }`,
     `$envelope = Protect-SystemSecretPayload -Values $values -RequireRuntimeValues`,
     `$decoded = Unprotect-SystemSecretPayload -EnvelopeJson $envelope -RequireRuntimeValues`,
     `$injectionCode = $null`,
@@ -93,7 +93,7 @@ test('disabled Telegram is the default loader gate', {
     `$ErrorActionPreference = 'Stop'`,
     `. '${libraryPath}'`,
     `$code = $null`,
-    `try { Protect-SystemSecretPayload -Values @{ AI_PROVIDER = 'api'; OPENAI_API_KEY = 'fake'; TELEGRAM_ORDER_ENABLED = 'true' } -RequireRuntimeValues } catch { $code = $_.Exception.Message }`,
+    `try { Protect-SystemSecretPayload -Values @{ AI_PROVIDER = 'api'; HOST = '127.0.0.1'; ALLOWED_ORIGINS = 'https://ledprojector.com.ua,https://www.ledprojector.com.ua'; OPENAI_API_KEY = 'fake'; STORE_URL = 'https://ledprojector.com.ua'; SALESDRIVE_SUBDOMAIN = 'example-store'; SALESDRIVE_API_KEY = 'fake'; SALESDRIVE_YML_URL = 'https://example-store.salesdrive.me/export/yml'; TELEGRAM_ORDER_ENABLED = 'true' } -RequireRuntimeValues } catch { $code = $_.Exception.Message }`,
     `$code`,
   ].join('; ');
   const result = spawnSync('powershell.exe', [
@@ -103,6 +103,26 @@ test('disabled Telegram is the default loader gate', {
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.equal(result.stdout.trim(), 'SYSTEM_SECRET_TELEGRAM_ACTIVATION_NOT_ALLOWED');
+});
+
+test('production bundle contract rejects missing live integration configuration', {
+  skip: process.platform !== 'win32',
+}, () => {
+  const libraryPath = fileURLToPath(libraryUrl).replaceAll("'", "''");
+  const command = [
+    `$ErrorActionPreference = 'Stop'`,
+    `. '${libraryPath}'`,
+    `$code = $null`,
+    `try { Protect-SystemSecretPayload -Values @{ AI_PROVIDER = 'api'; OPENAI_API_KEY = 'fake'; TELEGRAM_ORDER_ENABLED = 'false' } -RequireRuntimeValues } catch { $code = $_.Exception.Message }`,
+    `$code`,
+  ].join('; ');
+  const result = spawnSync('powershell.exe', [
+    '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+    '-EncodedCommand', Buffer.from(command, 'utf16le').toString('base64'),
+  ], { encoding: 'utf8' });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(result.stdout.trim(), 'SYSTEM_SECRET_REQUIRED_VALUE_MISSING');
 });
 
 test('release readiness returns only a stable code when the protected bundle is absent', {
