@@ -142,7 +142,9 @@ npm run start:api:background
 
 Рабочая копия API размещена в `F:\Services\AI Advisor`; исходная папка `C:\AI Advisor` сохранена как rollback-копия. Логи API находятся в `F:\Services\AI Advisor\logs`.
 
-Перед любым переносом проверяйте release-кандидат: `npm test`, затем `npm run release:active:dry-run`. Только после явного решения о production-release применяйте `pwsh -NoProfile -File scripts\release-active-runtime.ps1 -Apply`, сверяйте hashes в выводе и отдельно перезапускайте API host в согласованное окно. Скрипт не переносит `.env`, логи, архивы или node_modules и не удаляет файлы из active runtime. Если изменились `package.json`/`package-lock.json`, до перезапуска выполните в active runtime `npm ci --omit=dev` и проверьте audit; это отдельный явно подтверждённый release-шаг.
+Перед переносом проверяйте release-кандидат: `npm test`, затем `npm run release:active:dry-run`. Профиль по умолчанию `P3P4Runtime` переносит только девять утверждённых runtime-файлов; `public/widget-config.json` жёстко исключён как runtime-owned конфигурация. Документация, тесты, scripts и package-файлы в этот профиль не входят.
+
+Только после явного решения о production-release применяйте `pwsh -NoProfile -File scripts\release-active-runtime.ps1 -Profile P3P4Runtime -Apply` и отдельно перезапускайте API host в согласованное окно. Перед копированием скрипт создаёт hash-проверенный manifest в `F:\Services\AI Advisor\_release-backups`; точная команда отката возвращается в поле `RollbackCommand`. Откат принимает только manifest внутри этой backup-директории, проверяет active root и hashes, не затрагивает `.env`, логи, архивы или node_modules. Изменения `package.json`/`package-lock.json` требуют отдельного явно подтверждённого dependency-release и `npm ci --omit=dev`.
 
 Для текущего пользователя настроены два recovery-механизма:
 
