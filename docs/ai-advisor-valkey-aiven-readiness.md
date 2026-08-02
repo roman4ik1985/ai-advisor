@@ -26,25 +26,24 @@ outputs.
 - Free managed service creation: PASS — service `ai-advisor-valkey`, Valkey
   9.1, Free-1, one CPU, 1 GB RAM, DigitalOcean Amsterdam; the creation summary
   showed `Free` before submission.
-- Network restriction: INCOMPLETE — the service was created with the free-tier
-  default `0.0.0.0/0` and `::/0`; replace both with the current trusted egress
-  CIDR. The runtime-host IPv4 was independently confirmed twice on 2026-08-02
-  and supplied to the operator as a `/32` without persisting it in project
-  files. Add and smoke that `/32` before removing both open ranges.
-- Live TLS/command/Lua/concurrency/RDB smoke: PASS — the process-scoped
-  credential connected over TLS to Valkey 9.1.x; native SET NX PX/GETDEL, Lua,
-  16-way concurrency and durable outbox deduplication passed. Fixed synthetic
-  keys were deleted and the process variable plus clipboard were cleared.
+- Network restriction: PASS — on 2026-08-02 two independent HTTPS reflectors
+  returned the same current Windows runtime-host IPv4. The live Aiven settings
+  page contained exactly that address as a single `/32`; neither `0.0.0.0/0`
+  nor `::/0` was present. The address was not persisted in project files.
+- Live TLS/command/Lua/concurrency/RDB smoke: PASS — two consecutive
+  secret-safe checks of the final `/32`-only state connected over TLS to Valkey
+  9.1.x; native SET NX PX/GETDEL, Lua, 16-way concurrency and durable outbox
+  deduplication passed. Synthetic keys were deleted and the process-scoped URI
+  plus clipboard were cleared.
 - Managed backup evidence: PASS — the Aiven Backups page was independently
   inspected on 2026-08-02. It showed multiple completed 89-byte backups in
   `do-ams3`, including the latest visible record at 2026-08-01 11:17:47 UTC.
   The small size is consistent with the deleted synthetic acceptance dataset.
 - Current service state: RUNNING — the console showed Valkey 9.1.1 on one node
   after the operator powered the free service back on.
-- Browser continuation: the bundled Browser and Chrome plugins are installed
-  and enabled at the desktop-app version, but this long-lived task did not
-  expose the Browser skill. Restart the desktop app and use `@Browser` in a new
-  Codex task before concluding that browser control is unavailable.
+- Browser continuation: CLOSED — the bundled `@Browser` session exposed the
+  authenticated Aiven console and independently verified the final allowlist,
+  free plan and running service without reading browser storage.
 - Two-node primary/replica failover: NOT STARTED; requires a paid Business plan.
 - Telegram menu-only test-bot: NOT STARTED.
 - `TELEGRAM_ORDER_ENABLED`: remains false.
@@ -105,6 +104,11 @@ Live acceptance executed on 2026-07-31:
 ```json
 {"status":"PASS","mode":"live","provider":"aiven","engine":"valkey","version":"9.1.x","tls":true,"nativeCommands":"PASS","luaAtomicity":"PASS","concurrency":"PASS","outboxDeduplication":"PASS","telegramEnabled":false}
 ```
+
+Final network acceptance repeated twice on 2026-08-02 after the settings page
+showed only the freshly rechecked runtime `/32`. Both executions returned the
+same PASS contract above; open IPv4 and IPv6 ranges were absent before either
+run, so no allowlist mutation was necessary.
 
 ## Zero-paid-plan decision (2026-07-31)
 
