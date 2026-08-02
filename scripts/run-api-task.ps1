@@ -1,12 +1,14 @@
 param(
   [ValidateRange(1, 65535)]
-  [int]$Port = 8788
+  [int]$Port = 8788,
+  [switch]$AllowTelegramEnabled
 )
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $logDirectory = Join-Path $projectRoot 'logs'
 New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
+. (Join-Path $PSScriptRoot 'system-secret-store.ps1')
 
 $nodePath = @(
   (Get-Command node -ErrorAction SilentlyContinue).Source
@@ -20,31 +22,94 @@ if (-not $nodePath) {
 $stdoutPath = Join-Path $logDirectory 'ai-advisor-api.out.log'
 $stderrPath = Join-Path $logDirectory 'ai-advisor-api.err.log'
 $lifecycleLog = Join-Path $logDirectory 'ai-advisor-api-task.log'
-$previousPort = $env:PORT
-$env:PORT = [string]$Port
 
 Add-Content -LiteralPath $lifecycleLog -Encoding utf8 -Value (
   "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') starting API task on port $Port"
 )
 
-Push-Location $projectRoot
+$secretValues = $null
+$process = $null
+$stdoutStream = $null
+$stderrStream = $null
 try {
-  $previousErrorActionPreference = $ErrorActionPreference
-  $ErrorActionPreference = 'Continue'
   try {
-    & $nodePath '--env-file-if-exists=.env' 'server.mjs' '--provider=api' `
-      1>> $stdoutPath 2>> $stderrPath
-    $nodeExitCode = $LASTEXITCODE
-  } finally {
-    $ErrorActionPreference = $previousErrorActionPreference
+    $secretValues = Read-SystemSecretStore `
+      -RequireSystemIdentity `
+      -AllowTelegramEnabled:$AllowTelegramEnabled
+  } catch {
+    Add-Content -LiteralPath $lifecycleLog -Encoding utf8 -Value (
+      "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') SYSTEM_SECRET_LOAD_FAILED"
+    )
+    throw 'SYSTEM_SECRET_LOAD_FAILED'
   }
+
+  $startInfo = New-Object Diagnostics.ProcessStartInfo
+  $startInfo.FileName = $nodePath
+  $startInfo.Arguments = 'server.mjs --provider=api'
+  $startInfo.WorkingDirectory = $projectRoot
+  $startInfo.UseShellExecute = $false
+  $startInfo.CreateNoWindow = $true
+  $startInfo.RedirectStandardOutput = $true
+  $startInfo.RedirectStandardError = $true
+
+  $baseEnvironment = @{}
+  foreach ($name in Get-SystemSecretChildEnvironmentNames) {
+    if ($startInfo.EnvironmentVariables.ContainsKey($name)) {
+      $baseEnvironment[$name] = $startInfo.EnvironmentVariables[$name]
+    }
+  }
+  $startInfo.EnvironmentVariables.Clear()
+  foreach ($name in @($baseEnvironment.Keys)) {
+    $startInfo.EnvironmentVariables[[string]$name] = [string]$baseEnvironment[$name]
+  }
+  foreach ($name in @($secretValues.Keys)) {
+    $startInfo.EnvironmentVariables[[string]$name] = [string]$secretValues[$name]
+  }
+  $startInfo.EnvironmentVariables['PORT'] = [string]$Port
+
+  $process = New-Object Diagnostics.Process
+  $process.StartInfo = $startInfo
+  if (-not $process.Start()) {
+    throw 'SYSTEM_SECRET_NODE_START_FAILED'
+  }
+
+  foreach ($name in @($secretValues.Keys)) {
+    $secretValues[$name] = $null
+    [void]$startInfo.EnvironmentVariables.Remove([string]$name)
+  }
+  $secretValues.Clear()
+
+  $stdoutStream = New-Object IO.FileStream(
+    $stdoutPath,
+    [IO.FileMode]::Append,
+    [IO.FileAccess]::Write,
+    [IO.FileShare]::ReadWrite
+  )
+  $stderrStream = New-Object IO.FileStream(
+    $stderrPath,
+    [IO.FileMode]::Append,
+    [IO.FileAccess]::Write,
+    [IO.FileShare]::ReadWrite
+  )
+  $stdoutCopy = $process.StandardOutput.BaseStream.CopyToAsync($stdoutStream)
+  $stderrCopy = $process.StandardError.BaseStream.CopyToAsync($stderrStream)
+  $process.WaitForExit()
+  try {
+    [Threading.Tasks.Task]::WaitAll(@($stdoutCopy, $stderrCopy))
+  } catch {
+    throw 'SYSTEM_SECRET_LOG_FORWARDING_FAILED'
+  }
+  $nodeExitCode = $process.ExitCode
 } finally {
-  Pop-Location
-  if ($null -eq $previousPort) {
-    Remove-Item Env:PORT -ErrorAction SilentlyContinue
-  } else {
-    $env:PORT = $previousPort
+  if ($secretValues) {
+    foreach ($name in @($secretValues.Keys)) {
+      $secretValues[$name] = $null
+    }
+    $secretValues.Clear()
   }
+  if ($stdoutStream) { $stdoutStream.Dispose() }
+  if ($stderrStream) { $stderrStream.Dispose() }
+  if ($process) { $process.Dispose() }
 }
 
 Add-Content -LiteralPath $lifecycleLog -Encoding utf8 -Value (

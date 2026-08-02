@@ -28,11 +28,16 @@ order access are prohibited.
 
 ## Hard blockers before activation
 
-1. **Protected secret loader is not implemented.** The SYSTEM API task currently
-   starts Node with `--env-file-if-exists=.env` and otherwise inherits only its
-   own process environment. Do not put production Telegram, Valkey or SalesDrive
-   credentials in a repository file, command line, task XML, browser code,
-   logs, chat messages or user/machine plaintext environment variables.
+1. **Protected secret loader is implemented in source but is not provisioned or
+   released.** The approved launcher reads a DPAPI LocalMachine bundle from
+   `%ProgramData%\AI Advisor\secrets\system-secrets.dpapi`, requires an
+   inheritance-disabled ACL limited to `SYSTEM` and local Administrators, and
+   injects allowlisted values only into the Node child environment. The bundle
+   must be provisioned interactively from an elevated console and the source
+   must pass the release gates before replacing the active runtime. Do not put
+   production Telegram, Valkey or SalesDrive credentials in a repository file,
+   command line, task XML, browser code, logs, chat messages or user/machine
+   plaintext environment variables.
 2. **SalesDrive production access is not accepted for this contour.** Enabling
    the runtime constructs the order client immediately and fails startup when
    SalesDrive is not configured. Any real or synthetic order acceptance needs
@@ -44,11 +49,27 @@ order access are prohibited.
 4. **Production activation is not authorized.** The final false-to-true feature
    flag transition is a distinct operation with its own rollback window.
 
-The recommended future secret-loader design is a separately reviewed Windows
-launcher that reads an ACL-restricted, DPAPI-protected machine bundle as SYSTEM,
-decrypts values only into the Node child process environment, never prints
-them and zeroes temporary memory where practical. Implementing or provisioning
-that bundle is outside this runbook and requires explicit approval.
+The source implementation is `scripts/system-secret-store.ps1`, the hidden-input
+operator helper is `scripts/set-system-secret-store.ps1`, and
+`scripts/run-api-task.ps1` is the SYSTEM-only launcher. Provisioning, release and
+activation remain separate protected operations. The default launcher rejects a
+bundle with `TELEGRAM_ORDER_ENABLED=true`; enabling it requires a separately
+authorized launcher flag as well as the later gates in this runbook.
+
+Initial provisioning is performed only from an elevated interactive PowerShell
+session. Values are entered through hidden `SecureString` prompts and are never
+accepted as command-line values or an input file. The initial bundle must include
+`AI_PROVIDER`, `OPENAI_API_KEY` and `TELEGRAM_ORDER_ENABLED`, with the provider set
+to `api` and Telegram set to `false`. Example names-only invocation:
+
+```powershell
+.\scripts\set-system-secret-store.ps1 -Initialize -Set AI_PROVIDER,OPENAI_API_KEY,TELEGRAM_ORDER_ENABLED
+```
+
+Additional allowlisted values are added with another names-only invocation. The
+helper returns only a stable status, store path, value count and Telegram boolean;
+it never returns values. Do not use `-AllowTelegramEnabled` unless the distinct
+production activation authorization has been granted.
 
 ## Required server-side values
 
@@ -158,7 +179,8 @@ unexpected Telegram behavior, duplicate delivery growth or any secret exposure:
 
 ## Go/no-go decision
 
-Current decision: **NO-GO**. The isolated transport evidence is sufficient, but
-the protected SYSTEM secret loader and separately authorized SalesDrive
-acceptance do not yet exist. Production remains disabled until those two gates,
-webhook registration and the final activation command are independently closed.
+Current decision: **NO-GO**. The isolated transport evidence and protected loader
+source are sufficient for their respective code gates, but the loader is not yet
+provisioned or released and separately authorized SalesDrive acceptance does not
+exist. Production remains disabled until those gates, webhook registration and
+the final activation command are independently closed.
