@@ -62,13 +62,19 @@ Values are never sent to the browser or added to normal logs.
 
 ## Remaining live prerequisites
 
-1. Configure production-only Telegram credentials and webhook secret through
-   an explicitly authorized server-side secret path.
-2. Configure an approved manager chat.
-3. Run any separately authorized SalesDrive acceptance without customer/order
+1. Implement and accept the protected SYSTEM-process secret loader described in
+   the production activation runbook; plaintext `.env`, task arguments and
+   persistent plaintext environment variables are not approved.
+2. Configure production-only Telegram credentials and webhook secret through
+   that explicitly authorized server-side secret path.
+3. Configure an approved manager chat.
+4. Run any separately authorized SalesDrive acceptance without customer/order
    payload disclosure; this was outside the isolated transport run.
-4. Enable only after the remaining production configuration and acceptance
-   gates pass.
+5. Enable and register the webhook only after the remaining production
+   configuration and acceptance gates pass.
+
+Canonical production sequence and rollback:
+[docs/ai-advisor-telegram-production-activation-runbook.md](./ai-advisor-telegram-production-activation-runbook.md).
 
 ## Isolated test-bot acceptance
 
