@@ -28,15 +28,23 @@ outputs.
   showed `Free` before submission.
 - Network restriction: INCOMPLETE — the service was created with the free-tier
   default `0.0.0.0/0` and `::/0`; replace both with the current trusted egress
-  CIDR. The live smoke subsequently connected from the current egress, but the
-  final allowlist contents still require an independent UI check.
+  CIDR. The runtime-host IPv4 was independently confirmed twice on 2026-08-02
+  and supplied to the operator as a `/32` without persisting it in project
+  files. Add and smoke that `/32` before removing both open ranges.
 - Live TLS/command/Lua/concurrency/RDB smoke: PASS — the process-scoped
   credential connected over TLS to Valkey 9.1.x; native SET NX PX/GETDEL, Lua,
   16-way concurrency and durable outbox deduplication passed. Fixed synthetic
   keys were deleted and the process variable plus clipboard were cleared.
-- Managed backup evidence: PENDING — the initial backup started during service
-  creation, but the completed backup record was not independently read because
-  browser control became unavailable.
+- Managed backup evidence: PASS — the Aiven Backups page was independently
+  inspected on 2026-08-02. It showed multiple completed 89-byte backups in
+  `do-ams3`, including the latest visible record at 2026-08-01 11:17:47 UTC.
+  The small size is consistent with the deleted synthetic acceptance dataset.
+- Current service state: RUNNING — the console showed Valkey 9.1.1 on one node
+  after the operator powered the free service back on.
+- Browser continuation: the bundled Browser and Chrome plugins are installed
+  and enabled at the desktop-app version, but this long-lived task did not
+  expose the Browser skill. Restart the desktop app and use `@Browser` in a new
+  Codex task before concluding that browser control is unavailable.
 - Two-node primary/replica failover: NOT STARTED; requires a paid Business plan.
 - Telegram menu-only test-bot: NOT STARTED.
 - `TELEGRAM_ORDER_ENABLED`: remains false.
@@ -89,8 +97,8 @@ Telegram or SalesDrive request and removes its fixed test keys before exit.
    and run `npm run valkey:aiven:smoke`.
 4. Clear the variable from the process and verify that the fixed synthetic
    keys were removed.
-5. Verify the initial backup in Aiven before marking the free datastore
-   acceptance complete.
+5. Verify the latest managed backup remains visible. This evidence passed on
+   2026-08-02; repeat only if service state or persistence settings change.
 
 Live acceptance executed on 2026-07-31:
 
