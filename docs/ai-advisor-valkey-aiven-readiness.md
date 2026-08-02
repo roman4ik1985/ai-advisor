@@ -45,7 +45,8 @@ outputs.
   authenticated Aiven console and independently verified the final allowlist,
   free plan and running service without reading browser storage.
 - Two-node primary/replica failover: NOT STARTED; requires a paid Business plan.
-- Telegram menu-only test-bot: NOT STARTED.
+- Telegram menu-only test-bot harness: IMPLEMENTED; live run pending
+  process-scoped test-bot token, test chat ID and Aiven URI.
 - `TELEGRAM_ORDER_ENABLED`: remains false.
 - Active runtime, `.env`, Telegram credentials/webhook values, SalesDrive
   payloads and customer/order data: untouched.

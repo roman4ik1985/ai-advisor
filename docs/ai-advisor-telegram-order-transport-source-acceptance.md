@@ -61,6 +61,22 @@ Values are never sent to the browser or added to normal logs.
    SalesDrive acceptance.
 5. Enable only after the preceding configuration and acceptance gates pass.
 
+## Isolated test-bot acceptance
+
+Run `npm run telegram:test-bot:preflight` first. The preflight reports only
+missing or invalid variable names and never prints values. Live acceptance
+requires process-scoped `VALKEY_AIVEN_TEST_URL` (`rediss://` only),
+`TELEGRAM_TEST_BOT_TOKEN`, and `TELEGRAM_TEST_CHAT_ID`, then runs with
+`npm run telegram:test-bot:smoke`.
+
+The smoke refuses to run when `TELEGRAM_ORDER_ENABLED=true`. It uses a unique
+`aiadvisor:accept:telegram:*` Valkey namespace, checks signed/unauthorized and
+duplicate webhook handling, distributed rate limiting, durable outbox delivery,
+and sends one fixed six-button menu message to the designated test chat. The
+order adapter is a deny-by-construction stub: no SalesDrive request or
+customer/order payload is possible. All known acceptance keys are deleted and
+verified absent before exit; credentials, URI and chat ID are never emitted.
+
 Provisioning acceptance:
 [docs/ai-advisor-telegram-order-provisioning-source-acceptance.md](./ai-advisor-telegram-order-provisioning-source-acceptance.md).
 C30/action acceptance:

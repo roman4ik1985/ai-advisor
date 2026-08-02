@@ -257,6 +257,8 @@ SHUTDOWN_TIMEOUT_MS=30000
 
 Для live-данных backend читает только server-side переменные: `SALESDRIVE_YML_URL`, `SALESDRIVE_SUBDOMAIN` и `SALESDRIVE_API_KEY`. Полный YML URL (включая `publicKey`) и API key являются секретами: не добавляйте их в Git, HTML, `widget.js`, логи или сообщения чата. При отсутствии настроек resolver закрывается безопасно: цена/наличие не подтверждаются, а пользователь получает manager fallback. Код персонального статуса заказа загружен в active runtime, но выключен и требует `TELEGRAM_ORDER_BOT_USERNAME`, bot/webhook secrets, Redis URL, manager chat ID и test-bot/config acceptance перед активацией.
 
+Изолированный Telegram transport + Valkey preflight запускается через `npm run telegram:test-bot:preflight`; live smoke — через `npm run telegram:test-bot:smoke` только с процесс-scoped `VALKEY_AIVEN_TEST_URL`, `TELEGRAM_TEST_BOT_TOKEN` и `TELEGRAM_TEST_CHAT_ID`. Smoke требует TLS, отказывается работать при production `TELEGRAM_ORDER_ENABLED=true`, не использует SalesDrive/AI/customer-order payloads, отправляет одно фиксированное menu-only сообщение и удаляет свой уникальный Valkey namespace.
+
 ## База знаний консультанта
 
 Редактируйте `knowledge/store-faq.json`. Каждая запись содержит заголовок, ключевые слова, проверенный текст, URL источника и дату проверки. Перед ответом сервер выбирает до четырёх релевантных записей и передаёт их модели вместе с текущей страницей и результатами поиска по каталогу.
