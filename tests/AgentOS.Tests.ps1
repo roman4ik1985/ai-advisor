@@ -23,6 +23,35 @@ Describe "Agent OS v0.4 public API" {
     }
 }
 
+Describe "Verification command timeout" {
+    InModuleScope AgentOS {
+        It "keeps verification bounded while allowing the full project suite" {
+            $moduleRoot = Split-Path (Get-Module AgentOS).Path -Parent
+            $executionSource = Get-Content `
+                -LiteralPath (Join-Path $moduleRoot "Private\Execution.ps1") `
+                -Raw
+            $executionSource | Should -Match '\[int\]\$TimeoutMilliseconds = 120000'
+
+            $outputDirectory = Join-Path $TestDrive "timeout-evidence"
+            $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+            $result = Invoke-AgentOsLoggedCommand `
+                -RepositoryRoot $TestDrive `
+                -Name "timeout" `
+                -CommandText "Start-Sleep -Seconds 10" `
+                -OutputDirectory $outputDirectory `
+                -TaskId "timeout-test" `
+                -TimeoutMilliseconds 1000
+            $stopwatch.Stop()
+
+            $result.Status | Should -Be "FAILED"
+            $result.ExitCode | Should -Be -1
+            $stopwatch.Elapsed.TotalSeconds | Should -BeLessThan 8
+            (Get-Content -LiteralPath $result.LogPath -Raw) |
+                Should -Match ([regex]::Escape("[TIMEOUT: process exceeded 1s]"))
+        }
+    }
+}
+
 Describe "Baseline-aware scope classification" -Tag 'legacy-scope' {
     InModuleScope AgentOS {
         BeforeEach {

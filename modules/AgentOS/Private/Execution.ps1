@@ -5,7 +5,9 @@
         [Parameter(Mandatory)][string]$Name,
         [Parameter(Mandatory)][string]$CommandText,
         [Parameter(Mandatory)][string]$OutputDirectory,
-        [Parameter(Mandatory)][string]$TaskId
+        [Parameter(Mandatory)][string]$TaskId,
+        [ValidateRange(1000, 600000)]
+        [int]$TimeoutMilliseconds = 120000
     )
 
     New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
@@ -26,11 +28,12 @@
         $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
         $stderrTask = $proc.StandardError.ReadToEndAsync()
 
-        if (-not $proc.WaitForExit(30000)) {
+        if (-not $proc.WaitForExit($TimeoutMilliseconds)) {
             $proc.Kill()
             $proc.WaitForExit()
             $stdout = $stdoutTask.Result
-            $stderr = $stderrTask.Result + "`n[TIMEOUT: process exceeded 30s]"
+            $timeoutSeconds = [Math]::Round($TimeoutMilliseconds / 1000, 3)
+            $stderr = $stderrTask.Result + "`n[TIMEOUT: process exceeded ${timeoutSeconds}s]"
             $exitCode = -1
         } else {
             $stdout = $stdoutTask.Result

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "release": "agent-os-v1.0.0",
-  "generated_at": "2026-07-29T00:57:30.2375468+03:00",
+  "generated_at": "2026-08-02T11:12:08.5835093+03:00",
   "algorithm": "SHA256",
   "content_normalization": "UTF-8 LF",
   "files": [
@@ -42,8 +42,8 @@
     },
     {
       "path": "modules/AgentOS/Private/Execution.ps1",
-      "size": 1964,
-      "sha256": "698b331ca093de9275c86082f398f83d985a5128be775e018f7fa89e622b06ac"
+      "size": 2152,
+      "sha256": "c5af344f7789ad27087f21d1f9568034be543e7f6b65ff81c3552c47e9615661"
     },
     {
       "path": "modules/AgentOS/Private/Fingerprint.ps1",
