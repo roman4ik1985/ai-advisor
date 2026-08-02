@@ -1,7 +1,7 @@
 # Telegram order transport source acceptance
 
-Date: 2026-07-29
-Status: source and runtime code synchronized; feature disabled, configuration and live activation pending
+Date: 2026-08-02
+Status: isolated live transport acceptance passed; production feature remains disabled
 
 ## Implemented
 
@@ -51,15 +51,24 @@ Values are never sent to the browser or added to normal logs.
   health HTTP 200 and local/public order-link HTTP 404.
 - No Redis connection, Telegram request, SalesDrive order request, `.env` read,
   customer/order payload, active runtime or remote change was performed.
+- Isolated live acceptance: PASS on 2026-08-02. The process-scoped test harness
+  connected to the restricted Aiven Valkey service over TLS, sent one fixed
+  six-button menu to an operator-started private test-bot chat, and passed
+  signed/unauthorized webhook handling, duplicate protection, distributed rate
+  limiting, durable outbox delivery and verified Redis cleanup.
+- The live run made zero SalesDrive requests, performed no free-text order
+  lookup and used no AI. `TELEGRAM_ORDER_ENABLED` remained false; the URI,
+  token and chat ID were neither printed nor persisted.
 
 ## Remaining live prerequisites
 
-1. Provision an approved Redis namespace and credentials.
-2. Create/configure the Telegram bot username, webhook secret and bot token.
-3. Configure an approved manager chat.
-4. Run concurrency/failover, Telegram test-bot and authorized synthetic
-   SalesDrive acceptance.
-5. Enable only after the preceding configuration and acceptance gates pass.
+1. Configure production-only Telegram credentials and webhook secret through
+   an explicitly authorized server-side secret path.
+2. Configure an approved manager chat.
+3. Run any separately authorized SalesDrive acceptance without customer/order
+   payload disclosure; this was outside the isolated transport run.
+4. Enable only after the remaining production configuration and acceptance
+   gates pass.
 
 ## Isolated test-bot acceptance
 
@@ -76,6 +85,12 @@ and sends one fixed six-button menu message to the designated test chat. The
 order adapter is a deny-by-construction stub: no SalesDrive request or
 customer/order payload is possible. All known acceptance keys are deleted and
 verified absent before exit; credentials, URI and chat ID are never emitted.
+
+Live result on 2026-08-02:
+
+```json
+{"status":"PASS","mode":"live-isolated","tlsValkey":"PASS","telegramMenuTransport":"PASS","signedWebhook":"PASS","unauthorizedWebhook":"PASS","duplicateProtection":"PASS","distributedRateLimit":"PASS","outboxDelivery":"PASS","redisCleanup":"PASS","salesdriveRequests":0,"productionEnabled":false,"freeTextOrderLookup":false,"aiUsed":false,"secretValuesPrinted":false}
+```
 
 Provisioning acceptance:
 [docs/ai-advisor-telegram-order-provisioning-source-acceptance.md](./ai-advisor-telegram-order-provisioning-source-acceptance.md).
