@@ -47,7 +47,7 @@ function Get-Hash([string]$text) {
   finally { $sha.Dispose() }
 }
 
-$files = Get-ChildItem -LiteralPath $p.Raw -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^codex-(logs|traces|metrics)\.jsonl(\.\d+)?$' } | Sort-Object FullName
+$files = Get-ChildItem -LiteralPath $p.Raw -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^codex-(logs|traces|metrics)(?:-[^.]+)?\.jsonl(?:\.\d+)?$' } | Sort-Object FullName
 $existing = @{}
 if (-not $Rebuild -and (Test-Path $p.Normalized)) {
   foreach($line in Get-Content -LiteralPath $p.Normalized) { if($line.Trim()){ try { $r=$line|ConvertFrom-Json; $existing[$r.event_fingerprint]=$true } catch {} } }
@@ -55,12 +55,15 @@ if (-not $Rebuild -and (Test-Path $p.Normalized)) {
 $records = [Collections.Generic.List[object]]::new()
 $errors = [Collections.Generic.List[object]]::new()
 foreach($file in $files) {
+  $signal = if ($file.Name -match '^codex-(logs|traces|metrics)') { $Matches[1] } else { throw "Unexpected telemetry filename: $($file.Name)" }
   $lineNo = 0
   foreach($line in Get-Content -LiteralPath $file.FullName) {
     $lineNo++; if(-not $line.Trim()){continue}
     try {
       $json = $line | ConvertFrom-Json -Depth 100
-      $fingerprint = Get-Hash "$($file.Name)|$line"
+      # Rotation renames a file after records have already been normalized. The
+      # signal plus payload is stable across that rename, unlike the filename.
+      $fingerprint = Get-Hash "$signal|$line"
       if($existing.ContainsKey($fingerprint)){continue}
       $input = Find-FirstValue $json @('input_tokens','inputTokens','gen_ai.usage.input_tokens')
       $cached = Find-FirstValue $json @('cached_input_tokens','cachedInputTokens','gen_ai.usage.cached_tokens')

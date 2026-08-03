@@ -17,6 +17,7 @@ function Get-TelemetryPaths {
     Normalized = Join-Path $telemetryRoot 'normalized\model-budget-events.jsonl'
     State = Join-Path $telemetryRoot 'state\aggregator-state.json'
     CollectorLog = Join-Path $telemetryRoot 'collector\collector.log'
+    CollectorErrorLog = Join-Path $telemetryRoot 'collector\collector-error.log'
     PidFile = Join-Path $telemetryRoot 'collector\collector.pid'
     BudgetLog = Join-Path $ProjectRoot 'logs\MODEL_BUDGET_LOG.md'
     CodexConfig = Join-Path $HOME '.codex\config.toml'
@@ -48,6 +49,11 @@ function Get-CollectorProcess {
   $process = Get-Process -Id ([int]$pidValue) -ErrorAction SilentlyContinue
   if (-not $process) { return $null }
   if ($process.ProcessName -notlike 'otelcol*') { return $null }
+  try {
+    $expectedPath = (Get-Item -LiteralPath $Paths.CollectorExe -ErrorAction Stop).FullName
+    $actualPath = $process.Path
+    if (-not $actualPath -or -not [string]::Equals($actualPath, $expectedPath, [StringComparison]::OrdinalIgnoreCase)) { return $null }
+  } catch { return $null }
   return $process
 }
 

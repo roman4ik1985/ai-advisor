@@ -70,6 +70,7 @@ Missing token fields remain null/unavailable; they are not converted to zero. `s
 - No external exporter is configured.
 - `logs/` is already ignored by repository `.gitignore`.
 - Raw telemetry may still contain tool-result data emitted by Codex. Treat raw files as sensitive and retain them only for the configured rotation period.
+- Collector stdout and stderr are written separately under `logs\telemetry\collector`; inspect both after a startup failure.
 - Normalization does not copy prompt bodies or arbitrary tool-result bodies into Markdown.
 - Never use real secrets in acceptance tests; use synthetic markers.
 

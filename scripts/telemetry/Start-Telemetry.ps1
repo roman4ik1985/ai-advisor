@@ -12,12 +12,12 @@ $listener = Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 4318 -State 
 if ($listener) { throw "Port 127.0.0.1:4318 is already in use by PID $($listener.OwningProcess)" }
 & $p.CollectorExe validate --config $p.Config
 if ($LASTEXITCODE -ne 0) { throw 'Collector configuration validation failed.' }
-$process = Start-Process -FilePath $p.CollectorExe -ArgumentList @('--config', $p.Config) -RedirectStandardOutput $p.CollectorLog -RedirectStandardError $p.CollectorLog -PassThru -WindowStyle Hidden
+$process = Start-Process -FilePath $p.CollectorExe -ArgumentList @('--config', $p.Config) -RedirectStandardOutput $p.CollectorLog -RedirectStandardError $p.CollectorErrorLog -PassThru -WindowStyle Hidden
 Set-Content -LiteralPath $p.PidFile -Value $process.Id -Encoding ascii
 $deadline = (Get-Date).AddSeconds(15)
 do {
   Start-Sleep -Milliseconds 500
-  if ($process.HasExited) { throw "Collector exited during startup. Inspect $($p.CollectorLog)" }
+  if ($process.HasExited) { throw "Collector exited during startup. Inspect $($p.CollectorLog) and $($p.CollectorErrorLog)" }
   $ready = Test-NetConnection -ComputerName 127.0.0.1 -Port 4318 -InformationLevel Quiet -WarningAction SilentlyContinue
 } until ($ready -or (Get-Date) -ge $deadline)
 if (-not $ready) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue; throw 'Collector did not open 127.0.0.1:4318.' }

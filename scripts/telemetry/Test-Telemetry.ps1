@@ -21,6 +21,12 @@ Add-Result 'DEV-004' 'Three signal pipelines' (($cfg -match '(?m)^\s{4}logs:') -
 $codex=if(Test-Path $p.CodexConfig){Get-Content $p.CodexConfig -Raw}else{''}
 Add-Result 'DEV-005' 'Prompt logging disabled' ($codex -match '(?m)^log_user_prompt\s*=\s*false\s*$') 'false' 'redacted configuration scan'
 Add-Result 'DEV-006' 'Local exporters configured' (($codex -match '127\.0\.0\.1:4318/v1/logs') -and ($codex -match '127\.0\.0\.1:4318/v1/traces') -and ($codex -match '127\.0\.0\.1:4318/v1/metrics')) 'all local endpoints' 'redacted configuration scan'
+$common = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'Telemetry.Common.psm1') -Raw
+$normalizer = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'Update-ModelBudgetLog.ps1') -Raw
+$starter = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'Start-Telemetry.ps1') -Raw
+Add-Result 'DEV-007' 'Collector PID is bound to the installed executable' ($common -match 'process\.Path' -and $common -match 'Paths\.CollectorExe') 'PID process path matches installed collector' 'source scan'
+Add-Result 'DEV-008' 'Rotated telemetry files are included without filename-based deduplication' ($normalizer -match 'rotation renames a file' -and $normalizer -match 'Get-Hash \"\$signal\|\$line\"') 'rotated files and stable record fingerprint' 'source scan'
+Add-Result 'DEV-009' 'Collector stdout and stderr use separate files' ($starter -match 'RedirectStandardOutput \$p\.CollectorLog' -and $starter -match 'RedirectStandardError \$p\.CollectorErrorLog') 'separate output and error paths' 'source scan'
 $stamp=Get-Date -Format 'yyyyMMdd-HHmmss'
 $jsonPath=Join-Path $OutputDirectory "developer-self-check-$stamp.json"
 $mdPath=Join-Path $OutputDirectory "developer-self-check-$stamp.md"
