@@ -20,13 +20,13 @@
 
 ### Key Files
 - `C:\AI Advisor\AGENTS.md`
-- `C:\AI Advisor\PROJECT_LOG.md`
+- `C:\AI Advisor\wiki\log.md`
 - `C:\AI Advisor\README.md`
 - 
 
 ### Savepoint Notes
 - Перед новым slice проверить `git status --short`, если git доступен
-- Перед branch switch или archive оставить savepoint в `PROJECT_LOG.md`
+- Перед branch switch или archive оставить savepoint в `wiki/log.md`
 - Если scope смешался, сначала изолировать contour
 ```
 
@@ -35,4 +35,4 @@
 - Done: <already proven>
 - Constraints: <what not to reopen or mix>
 - Next step: <single narrow step>
-- Key files: `C:\AI Advisor\AGENTS.md`, `C:\AI Advisor\PROJECT_LOG.md`, ...
+- Key files: `C:\AI Advisor\AGENTS.md`, `C:\AI Advisor\wiki\log.md`, ...

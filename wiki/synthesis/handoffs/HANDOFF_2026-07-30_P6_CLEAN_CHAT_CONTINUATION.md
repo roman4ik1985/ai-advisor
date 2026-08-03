@@ -33,12 +33,12 @@ Keep the accepted AI Advisor production baseline stable and continue only with a
 ## Key files
 
 - `C:\AI Advisor\AGENTS.md`
-- `C:\AI Advisor\PROJECT_LOG.md`
+- `C:\AI Advisor\wiki\log.md`
 - `C:\AI Advisor\README.md`
-- `C:\AI Advisor\TECHNICAL_SPECIFICATION.md`
+- `C:\AI Advisor\wiki\synthesis\specifications\TECHNICAL_SPECIFICATION.md`
 - `C:\AI Advisor\docs\ai-advisor-p6-production-monitoring.md`
 - `C:\AI Advisor\docs\ai-advisor-telegram-order-transport-source-acceptance.md`
-- `C:\AI Advisor\HANDOFF_2026-07-29_SALESDRIVE_LIVE_FINAL.md`
+- `C:\AI Advisor\wiki\synthesis\handoffs\HANDOFF_2026-07-29_SALESDRIVE_LIVE_FINAL.md`
 
 ## Savepoint notes
 

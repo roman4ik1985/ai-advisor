@@ -46,11 +46,6 @@ function Test-PathWithinRoot([string]$Path, [string]$Root) {
   $fullPath.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)
 }
 
-function Add-ProjectLog([string]$LogPath, [string]$Summary) {
-  $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
-  Add-Content -LiteralPath $LogPath -Encoding utf8 -Value "- [$timestamp] implementation - scripts\\backup-project.ps1, _backups, Google Drive - $Summary"
-}
-
 $sevenZip = 'C:\Program Files\7-Zip\7z.exe'
 if (-not (Test-Path -LiteralPath $sevenZip)) { throw "7-Zip not found: $sevenZip" }
 if (-not (Test-Path -LiteralPath $ProjectRoot)) { throw "Project root not found: $ProjectRoot" }
@@ -65,7 +60,9 @@ if (-not (Test-Path -LiteralPath $DriveDirectory)) { New-Item -ItemType Director
 $backupDirectory = Join-Path $ProjectRoot '_backups'
 New-Item -ItemType Directory -Path $backupDirectory -Force | Out-Null
 $keyPath = Join-Path $ProjectRoot '.backup-key.dpapi'
-$projectLog = Join-Path $ProjectRoot 'PROJECT_LOG.md'
+$projectLog = Join-Path $ProjectRoot 'wiki\log.md'
+$logHelper = Join-Path $PSScriptRoot 'append-wiki-log.ps1'
+if (-not (Test-Path -LiteralPath $logHelper)) { throw "Canonical log helper not found: $logHelper" }
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss-fff'
 $ArchiveName = "$ProjectName-$timestamp.7z"
 $archivePath = Join-Path $backupDirectory $ArchiveName
@@ -91,7 +88,7 @@ try {
   $removed += @(Get-ChildItem -LiteralPath $DriveDirectory -File -Filter "$ProjectName-*.7z" | Where-Object LastWriteTime -lt $cutoff)
   foreach ($item in $removed) { Remove-Item -LiteralPath $item.FullName -Force }
 
-  Add-ProjectLog $projectLog "Created encrypted archive $ArchiveName; 7-Zip integrity and Google Drive copy SHA-256 passed; retention $RetentionDays days, removed $($removed.Count) expired archive(s)."
+  & $logHelper -Type implementation -Files 'scripts\backup-project.ps1, _backups, Google Drive' -Summary "Created encrypted archive $ArchiveName; 7-Zip integrity and Google Drive copy SHA-256 passed; retention $RetentionDays days, removed $($removed.Count) expired archive(s)." -LogPath $projectLog | Out-Host
   [pscustomobject]@{ ProjectName = $ProjectName; ArchiveName = $ArchiveName; Archive = $archivePath; DriveCopy = $drivePath; Sha256 = $localHash; RetentionDays = $RetentionDays; Removed = $removed.Count }
 } finally {
   $password = $null

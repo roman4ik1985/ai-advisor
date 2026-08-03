@@ -34,7 +34,7 @@ Continue from the completed isolated Telegram test-bot acceptance toward a produ
 - `C:\AI Advisor\scripts\validate-telegram-test-bot.mjs`
 - `C:\AI Advisor\scripts\release-active-runtime.ps1`
 - `C:\AI Advisor\AGENTS.md`
-- `C:\AI Advisor\PROJECT_LOG.md`
+- `C:\AI Advisor\wiki\log.md`
 
 ## Savepoint Notes
 

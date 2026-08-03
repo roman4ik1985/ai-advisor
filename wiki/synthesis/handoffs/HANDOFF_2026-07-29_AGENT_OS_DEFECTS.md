@@ -50,7 +50,7 @@ six stated test-expectation gaps.
 ### Key Files
 
 - `C:\AI Advisor\AGENTS.md`
-- `C:\AI Advisor\PROJECT_LOG.md`
+- `C:\AI Advisor\wiki\log.md`
 - `C:\AI Advisor\docs\agent-os-1.0-test-plan.md`
 - `C:\AI Advisor\docs\agent-os-test-results.md`
 - `C:\AI Advisor\modules\AgentOS\Private\Manifest.ps1`

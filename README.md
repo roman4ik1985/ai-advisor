@@ -1,8 +1,10 @@
 # LedProjector AI Assistant
 
-Полное техническое задание: [TECHNICAL_SPECIFICATION.md](./TECHNICAL_SPECIFICATION.md).
+Общая база проектных знаний: [wiki/index.md](./wiki/index.md).
 
-Комплексный аудит архитектуры, безопасности, API, доступности и производительности: [AUDIT_REPORT_2026-07-20.md](./AUDIT_REPORT_2026-07-20.md).
+Полное техническое задание: [TECHNICAL_SPECIFICATION.md](./wiki/synthesis/specifications/TECHNICAL_SPECIFICATION.md).
+
+Комплексный аудит архитектуры, безопасности, API, доступности и производительности: [AUDIT_REPORT_2026-07-20.md](./wiki/synthesis/audits/AUDIT_REPORT_2026-07-20.md).
 
 ## Канонический baseline
 
@@ -17,7 +19,7 @@
 
 Последняя runtime acceptance на этой точке зафиксировала source/runtime diff 0 и локальный/публичный `/health` HTTP 200. Перед любой новой runtime-операцией health и diff проверяются заново; этот README не утверждает их текущий live-статус.
 
-Канонический forward roadmap C00–C54 и deferred-зоны находятся в разделе 18 [TECHNICAL_SPECIFICATION.md](./TECHNICAL_SPECIFICATION.md#18-forward-roadmap). Персональный статус заказа не активирован: C20–C30, transport, provisioning, manager/notification sinks и durable outbox синхронизированы в active-runtime, но feature flag остаётся false. До config/test-bot acceptance запрещены anonymous lookup и реальные order API/customer-data операции.
+Канонический forward roadmap C00–C54 и deferred-зоны находятся в разделе 18 [TECHNICAL_SPECIFICATION.md](./wiki/synthesis/specifications/TECHNICAL_SPECIFICATION.md#18-forward-roadmap). Персональный статус заказа не активирован: C20–C30, transport, provisioning, manager/notification sinks и durable outbox синхронизированы в active-runtime, но feature flag остаётся false. До config/test-bot acceptance запрещены anonymous lookup и реальные order API/customer-data операции.
 
 P3 C30–C33 завершён в source. `npm run knowledge:coverage` строит read-only
 coverage/gap отчёт; `npm run learning:review` ведёт явные `DEFER` / `DISMISS` /

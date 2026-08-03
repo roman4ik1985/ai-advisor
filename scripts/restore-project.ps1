@@ -19,11 +19,6 @@ function Get-ArchivePassword([string]$KeyPath) {
   finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
 }
 
-function Add-ProjectLog([string]$LogPath, [string]$Summary) {
-  $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
-  Add-Content -LiteralPath $LogPath -Encoding utf8 -Value "- [$timestamp] implementation - scripts\\restore-project.ps1, Google Drive, restored project - $Summary"
-}
-
 function Get-NormalizedFullPath([string]$Path) {
   $fullPath = [System.IO.Path]::GetFullPath($Path)
   $rootPath = [System.IO.Path]::GetPathRoot($fullPath)
@@ -54,9 +49,11 @@ function Assert-ArchiveName([string]$Name, [string]$ExpectedProjectName) {
 
 $sevenZip = 'C:\Program Files\7-Zip\7z.exe'
 $keyPath = Join-Path $ProjectRoot '.backup-key.dpapi'
-$projectLog = Join-Path $ProjectRoot 'PROJECT_LOG.md'
+$projectLog = Join-Path $ProjectRoot 'wiki\log.md'
+$logHelper = Join-Path $PSScriptRoot 'append-wiki-log.ps1'
 if (-not (Test-Path -LiteralPath $sevenZip)) { throw "7-Zip not found: $sevenZip" }
 if (-not (Test-Path -LiteralPath $keyPath)) { throw 'The local DPAPI backup key is missing.' }
+if (-not (Test-Path -LiteralPath $logHelper)) { throw "Canonical log helper not found: $logHelper" }
 Assert-ArchiveName -Name $ArchiveName -ExpectedProjectName $ProjectName
 foreach ($protectedRoot in @($ProjectRoot, 'F:\Services\AI Advisor')) {
   if (Test-PathWithinRoot -Path $TargetDirectory -Root $protectedRoot) {
@@ -85,11 +82,11 @@ try {
   if ($present.Count -gt 0) { throw "Excluded local-only paths were included: $($present -join ', ')" }
 
   $hash = (Get-FileHash -LiteralPath $driveArchive -Algorithm SHA256).Hash
-  Add-ProjectLog $projectLog "Restored $ArchiveName into $TargetDirectory; archive SHA-256 $hash; required files verified and local-only paths excluded."
+  & $logHelper -Type implementation -Files 'scripts\restore-project.ps1, Google Drive, restored project' -Summary "Restored $ArchiveName into $TargetDirectory; archive SHA-256 $hash; required files verified and local-only paths excluded." -LogPath $projectLog | Out-Host
   [pscustomobject]@{ ProjectName = $ProjectName; ArchiveName = $ArchiveName; Archive = $ArchiveName; TargetDirectory = $TargetDirectory; Sha256 = $hash; RequiredFiles = $required.Count; ExcludedPaths = $forbidden.Count; Result = 'passed' }
 } catch {
   if (Test-Path -LiteralPath $TargetDirectory) {
-    Add-ProjectLog $projectLog "Restore of $ArchiveName to $TargetDirectory failed: $($_.Exception.Message). Partial target was intentionally retained for inspection."
+    & $logHelper -Type implementation -Files 'scripts\restore-project.ps1, Google Drive, restored project' -Summary "Restore of $ArchiveName to $TargetDirectory failed: $($_.Exception.Message). Partial target was intentionally retained for inspection." -LogPath $projectLog | Out-Host
   }
   throw
 } finally {

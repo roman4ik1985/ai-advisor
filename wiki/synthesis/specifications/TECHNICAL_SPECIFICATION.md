@@ -15,7 +15,7 @@
 
 ### Изменения версии 1.1
 
-Версия подготовлена после архитектурного, security, API, accessibility и performance-аудита текущего прототипа. Добавлены требования к разделению доверенных инструкций и недоверенных данных, ограничению параллельных AI-запросов, production rate limit, единому формату ошибок, фокус-менеджменту, контрасту и измеримым performance-бюджетам. Подробные результаты: [AUDIT_REPORT_2026-07-20.md](./AUDIT_REPORT_2026-07-20.md).
+Версия подготовлена после архитектурного, security, API, accessibility и performance-аудита текущего прототипа. Добавлены требования к разделению доверенных инструкций и недоверенных данных, ограничению параллельных AI-запросов, production rate limit, единому формату ошибок, фокус-менеджменту, контрасту и измеримым performance-бюджетам. Подробные результаты: [AUDIT_REPORT_2026-07-20.md](../audits/AUDIT_REPORT_2026-07-20.md).
 
 ### Изменения версии 1.2
 
@@ -671,7 +671,7 @@ Roadmap выполняется отдельными Agent OS задачами и
 
 ### P1. Product-aware MVP без персональных данных
 
-Source package C10–C15 выполнен 29.07.2026 и принят 96/96 автоматическими тестами, fake-DOM contracts и локальными desktop/mobile/reduced-motion browser checks. Active runtime и реальный OpenCart не изменялись; их приёмка остаётся отдельным release/staging gate. Подробности: [docs/ai-advisor-product-aware-mvp.md](./docs/ai-advisor-product-aware-mvp.md).
+Source package C10–C15 выполнен 29.07.2026 и принят 96/96 автоматическими тестами, fake-DOM contracts и локальными desktop/mobile/reduced-motion browser checks. Active runtime и реальный OpenCart не изменялись; их приёмка остаётся отдельным release/staging gate. Подробности: [docs/ai-advisor-product-aware-mvp.md](../../../docs/ai-advisor-product-aware-mvp.md).
 
 | ID | Контур | Зависимость | Результат | Статус |
 |---|---|---|---|---|
@@ -741,11 +741,11 @@ credentials, test-bot/Redis/SalesDrive acceptance и live activation остаю�
 Disabled source-to-runtime release синхронизировал C10–C30 с active runtime:
 diff 0, local/public health HTTP 200, а order-link локально и публично отвечает
 404 при `TELEGRAM_ORDER_ENABLED=false`.
-Полный контракт: [docs/ai-advisor-order-ownership-contract.md](./docs/ai-advisor-order-ownership-contract.md).
-Source acceptance: [docs/ai-advisor-order-status-source-acceptance.md](./docs/ai-advisor-order-status-source-acceptance.md).
-[C26–C29 acceptance](./docs/ai-advisor-telegram-order-webhook-source-acceptance.md).
-[Transport source acceptance](./docs/ai-advisor-telegram-order-transport-source-acceptance.md).
-[Provisioning source acceptance](./docs/ai-advisor-telegram-order-provisioning-source-acceptance.md).
+Полный контракт: [docs/ai-advisor-order-ownership-contract.md](../../../docs/ai-advisor-order-ownership-contract.md).
+Source acceptance: [docs/ai-advisor-order-status-source-acceptance.md](../../../docs/ai-advisor-order-status-source-acceptance.md).
+[C26–C29 acceptance](../../../docs/ai-advisor-telegram-order-webhook-source-acceptance.md).
+[Transport source acceptance](../../../docs/ai-advisor-telegram-order-transport-source-acceptance.md).
+[Provisioning source acceptance](../../../docs/ai-advisor-telegram-order-provisioning-source-acceptance.md).
 
 ### P3. Manager and knowledge operations
 
@@ -757,7 +757,7 @@ Source acceptance: [docs/ai-advisor-order-status-source-acceptance.md](./docs/ai
 | C33 | Product specification ingestion | Source PASS: 10 provenance-backed public product records; commercial facts rejected, live SalesDrive precedence preserved |
 
 P3 acceptance:
-[docs/ai-advisor-p3-operations-acceptance.md](./docs/ai-advisor-p3-operations-acceptance.md).
+[docs/ai-advisor-p3-operations-acceptance.md](../../../docs/ai-advisor-p3-operations-acceptance.md).
 
 ### P4. Operations, privacy and quality
 
@@ -783,9 +783,9 @@ P3 acceptance:
 OpenCart/cPanel, Tunnel, active runtime, secrets и remote изменяются только по отдельной явной команде.
 
 Подробная P5 evidence:
-[staging acceptance](./docs/ai-advisor-p5-staging-acceptance.md),
-[regression report](./docs/ai-advisor-p5-regression-report.md) и
-[rollout/rollback runbook](./docs/ai-advisor-p5-rollout-runbook.md).
+[staging acceptance](../../../docs/ai-advisor-p5-staging-acceptance.md),
+[regression report](../../../docs/ai-advisor-p5-regression-report.md) и
+[rollout/rollback runbook](../../../docs/ai-advisor-p5-rollout-runbook.md).
 
 ### P6. Production monitoring hardening
 
@@ -800,7 +800,7 @@ OpenCart/cPanel, Tunnel, active runtime, secrets и remote изменяются 
 P6 реализован как read-only monitor с фиксированным production host и
 allow-listed routes. Он не читает заказы/клиентов, не меняет OpenCart,
 Lightning, runtime, `.env` или секреты. Evidence:
-[docs/ai-advisor-p6-production-monitoring.md](./docs/ai-advisor-p6-production-monitoring.md).
+[docs/ai-advisor-p6-production-monitoring.md](../../../docs/ai-advisor-p6-production-monitoring.md).
 
 ### P7. Deferred beyond current scope
 

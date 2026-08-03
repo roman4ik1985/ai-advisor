@@ -34,9 +34,9 @@
 ### Key Files
 
 - `C:\AI Advisor\AGENTS.md`
-- `C:\AI Advisor\PROJECT_LOG.md`
+- `C:\AI Advisor\wiki\log.md`
 - `C:\AI Advisor\README.md`
-- `C:\AI Advisor\HANDOFF_2026-07-23.md`
+- `C:\AI Advisor\wiki\synthesis\handoffs\HANDOFF_2026-07-23.md`
 - `C:\AI Advisor\scripts\monitor-local-host.ps1`
 - `C:\AI Advisor\scripts\rotate-runtime-logs.ps1`
 - `C:\AI Advisor\test\http-backpressure.test.mjs`

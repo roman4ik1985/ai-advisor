@@ -65,17 +65,17 @@ only then remove both open-to-all CIDRs.
 6. After the first smoke passes, remove `0.0.0.0/0` and `::/0`, save, visually
    verify the final allowlist contains only the trusted `/32`, and rerun the
    smoke. Clear the process variable and clipboard afterward.
-7. Update the readiness doc and `PROJECT_LOG.md`, complete the Agent OS task and
+7. Update the readiness doc and `wiki/log.md`, complete the Agent OS task and
    commit only the narrow documentation/result scope. Do not push unless asked.
 
 ## Key Files
 
 - `C:\AI Advisor\AGENTS.md`
-- `C:\AI Advisor\PROJECT_LOG.md`
+- `C:\AI Advisor\wiki\log.md`
 - `C:\AI Advisor\docs\ai-advisor-valkey-aiven-readiness.md`
 - `C:\AI Advisor\scripts\validate-aiven-valkey-readiness.mjs`
 - `C:\AI Advisor\infra\aiven\README.md`
-- `C:\AI Advisor\HANDOFF_2026-08-02_AIVEN_BROWSER_CONTINUATION.md`
+- `C:\AI Advisor\wiki\synthesis\handoffs\HANDOFF_2026-08-02_AIVEN_BROWSER_CONTINUATION.md`
 
 ## Savepoint Notes
 

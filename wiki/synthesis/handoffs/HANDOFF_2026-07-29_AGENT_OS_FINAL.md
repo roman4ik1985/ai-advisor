@@ -29,9 +29,9 @@ No required Agent OS implementation remains. Start a new task only for a newly r
 ## Key files
 
 - `C:\AI Advisor\AGENTS.md`
-- `C:\AI Advisor\PROJECT_LOG.md`
+- `C:\AI Advisor\wiki\log.md`
 - `C:\AI Advisor\docs\agent-os-test-results.md`
-- `C:\AI Advisor\HANDOFF_2026-07-29_AGENT_OS_ACCEPTANCE.md`
+- `C:\AI Advisor\wiki\synthesis\handoffs\HANDOFF_2026-07-29_AGENT_OS_ACCEPTANCE.md`
 - `C:\AI Advisor\modules\AgentOS\`
 - `C:\AI Advisor\tests\agent-os\T01-T11.Tests.ps1`
 

@@ -70,9 +70,9 @@ Continue `AI Advisor` from the completed production-ready direct SalesDrive live
 ## Key files
 
 - `C:\AI Advisor\AGENTS.md`
-- `C:\AI Advisor\PROJECT_LOG.md`
+- `C:\AI Advisor\wiki\log.md`
 - `C:\AI Advisor\README.md`
-- `C:\AI Advisor\TECHNICAL_SPECIFICATION.md`
+- `C:\AI Advisor\wiki\synthesis\specifications\TECHNICAL_SPECIFICATION.md`
 - `C:\AI Advisor\docs\ai-advisor-direct-salesdrive-live-acceptance.md`
 - `C:\AI Advisor\docs\ai-advisor-salesdrive-readonly-audit.md`
 - `C:\AI Advisor\intent-router.mjs`
