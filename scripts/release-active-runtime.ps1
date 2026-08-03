@@ -1,6 +1,6 @@
 param(
   [string]$ActiveRoot = 'F:\Services\AI Advisor',
-  [ValidateSet('P3P4Runtime', 'SYSTEMSecretLoader')]
+  [ValidateSet('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime')]
   [string]$Profile = 'P3P4Runtime',
   [switch]$Apply,
   [string]$RollbackFrom
@@ -27,6 +27,25 @@ $releaseProfiles = @{
   SYSTEMSecretLoader = @(
     'scripts\run-api-task.ps1',
     'scripts\system-secret-store.ps1'
+  )
+  TelegramCustomerRuntime = @(
+    'server.mjs',
+    'telegram-order-runtime.mjs',
+    'telegram-order-redis-client.mjs',
+    'telegram-order-redis-store.mjs',
+    'telegram-order-redis-rate-limit.mjs',
+    'telegram-order-sender.mjs',
+    'telegram-order-outbox.mjs',
+    'telegram-order-action-sink.mjs',
+    'telegram-order-webhook.mjs',
+    'telegram-order-menu.mjs',
+    'telegram-order-binding.mjs',
+    'telegram-order-provisioning.mjs',
+    'salesdrive-order-provisioning.mjs',
+    'telegram-owned-order-service.mjs',
+    'salesdrive-order-client.mjs',
+    'order-ownership-contract.mjs',
+    'order-dto.mjs'
   )
 }
 
@@ -61,7 +80,7 @@ if ($Apply -and $RollbackFrom) {
 if ($RollbackFrom) {
   $manifestPath = Resolve-ContainedPath -Root $backupRoot -Path $RollbackFrom -MustExist
   $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-  if ($manifest.schemaVersion -ne 1 -or $manifest.profile -notin @('P3P4Runtime', 'SYSTEMSecretLoader')) {
+  if ($manifest.schemaVersion -ne 1 -or $manifest.profile -notin @('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime')) {
     throw "Unsupported rollback manifest: $manifestPath"
   }
   if ([System.IO.Path]::GetFullPath([string]$manifest.activeRoot).TrimEnd('\') -ne $ActiveRoot) {

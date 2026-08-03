@@ -46,11 +46,7 @@ export async function createTelegramOrderRuntime({
     orderService,
   });
   const sender = createSender({ botToken: config.telegramOrderBotToken });
-  const actionSink = createActionSink({
-    sender,
-    stateStore,
-    managerChatId: config.telegramOrderManagerChatId,
-  });
+  const actionSink = createActionSink({ sender, stateStore });
   const dispatch = async (action) => {
     if (action.type === 'SEND_MESSAGE' || action.type === 'ANSWER_CALLBACK') {
       return sender.dispatch(action);
@@ -115,7 +111,6 @@ function requireConfig(config) {
     TELEGRAM_ORDER_REDIS_URL: config.telegramOrderRedisUrl,
     TELEGRAM_ORDER_WEBHOOK_SECRET: config.telegramOrderWebhookSecret,
     TELEGRAM_ORDER_BOT_TOKEN: config.telegramOrderBotToken,
-    TELEGRAM_ORDER_MANAGER_CHAT_ID: config.telegramOrderManagerChatId,
   })) {
     if (!String(value ?? '').trim()) throw new Error(`${key}_REQUIRED`);
   }

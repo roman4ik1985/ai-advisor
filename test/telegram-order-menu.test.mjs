@@ -37,8 +37,8 @@ const order = {
   },
 };
 
-test('C24 exposes exactly six fixed callback buttons', () => {
-  assert.equal(TELEGRAM_ORDER_MENU.length, 6);
+test('customer self-service exposes exactly five fixed callback buttons', () => {
+  assert.equal(TELEGRAM_ORDER_MENU.length, 5);
   assert.deepEqual(
     TELEGRAM_ORDER_MENU.map((item) => item.text),
     [
@@ -47,10 +47,9 @@ test('C24 exposes exactly six fixed callback buttons', () => {
       '💳 Перевірити оплату',
       '📍 Дані доставки',
       '🔔 Налаштувати сповіщення',
-      '👨‍💼 Покликати менеджера',
     ],
   );
-  assert.equal(new Set(TELEGRAM_ORDER_MENU.map((item) => item.callbackData)).size, 6);
+  assert.equal(new Set(TELEGRAM_ORDER_MENU.map((item) => item.callbackData)).size, 5);
 });
 
 test('each approved callback maps directly to one deterministic operation', () => {
@@ -82,10 +81,8 @@ test('RU and UK templates are deterministic for status, payment, and delivery', 
   assert.match(renderTelegramOrderResponse({ operation: 'DELIVERY_DETAILS', order, locale: 'ru' }).text, /Отделение: №151/);
 });
 
-test('manager and notification buttons return fixed responses without order reads', () => {
-  const manager = renderTelegramOrderResponse({ operation: 'REQUEST_MANAGER', locale: 'uk' });
+test('notification button returns a fixed private response without order reads', () => {
   const notifications = renderTelegramOrderResponse({ operation: 'NOTIFICATION_SETTINGS', locale: 'ru' });
-  assert.equal(manager.code, 'MANAGER_REQUEST_ACCEPTED');
   assert.equal(notifications.code, 'NOTIFICATION_SETTINGS');
 });
 

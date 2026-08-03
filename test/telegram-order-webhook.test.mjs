@@ -176,7 +176,7 @@ test('start and own request_contact establish a private phone-free binding', asy
     update: messageUpdate(3, { text: 'Де замовлення?' }),
   });
   assert.equal(menu.code, 'MENU_ONLY');
-  assert.equal(menu.actions[0].replyMarkup.inlineKeyboard.length, 6);
+  assert.equal(menu.actions[0].replyMarkup.inlineKeyboard.length, 5);
   assert.equal(fx.calls.list, 0);
   assert.equal(fx.calls.get, 0);
 });
@@ -210,19 +210,14 @@ test('list, opaque selection, and status form a deterministic ownership-gated pa
   assert.equal(fx.calls.get, 1);
 });
 
-test('manager callback does not read orders and distributed rate denial blocks callbacks', async () => {
+test('retired manager callback falls back to the menu and distributed rate denial blocks callbacks', async () => {
   const fx = fixture();
   await link(fx);
   const manager = await fx.webhook.handle({
     secretHeader: SECRET,
     update: callbackUpdate(3, 'order:manager'),
   });
-  assert.equal(manager.code, 'MANAGER_ACTION_REQUIRED');
-  assert.deepEqual(manager.actions, [{
-    type: 'REQUEST_MANAGER',
-    telegramUserId: '100200300',
-    customerRef: 'salesdrive:counterparty:56',
-  }]);
+  assert.equal(manager.code, 'MENU_ONLY');
   assert.equal(fx.calls.get, 0);
 
   const limited = fixture();

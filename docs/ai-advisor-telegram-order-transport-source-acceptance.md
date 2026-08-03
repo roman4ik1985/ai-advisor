@@ -1,7 +1,7 @@
 # Telegram order transport source acceptance
 
-Date: 2026-08-02
-Status: isolated live transport acceptance passed; production feature remains disabled
+Date: 2026-08-03
+Status: historical isolated transport acceptance passed; the current five-button customer source remains disabled and needs its own canary acceptance
 
 ## Implemented
 
@@ -18,8 +18,8 @@ Status: isolated live transport acceptance passed; production feature remains di
 - `telegram-order-runtime.mjs` assembles Redis state, distributed limiting,
   owned-order service, webhook, sender, C30 action sink and durable outbox.
   Resulting actions are persisted before the webhook update is acknowledged.
-- `telegram-order-action-sink.mjs` implements bounded manager handoff and
-  verified-binding notification settings without order-history disclosure.
+- `telegram-order-action-sink.mjs` implements verified-binding private
+  notification settings without manager routing or order-history disclosure.
 - `telegram-order-outbox.mjs` provides Redis enqueue deduplication, visibility
   retry and a bounded dead-letter path with honest at-least-once semantics.
 - `server.mjs` contains the fixed
@@ -35,7 +35,6 @@ Status: isolated live transport acceptance passed; production feature remains di
 - `TELEGRAM_ORDER_WEBHOOK_SECRET`
 - `TELEGRAM_ORDER_BOT_TOKEN`
 - `TELEGRAM_ORDER_REDIS_URL`
-- `TELEGRAM_ORDER_MANAGER_CHAT_ID`
 - `TELEGRAM_ORDER_RATE_LIMIT_PER_MINUTE` — bounded to 1–60.
 
 Missing required configuration stops startup only when the contour is enabled.
@@ -51,7 +50,7 @@ Values are never sent to the browser or added to normal logs.
   health HTTP 200 and local/public order-link HTTP 404.
 - No Redis connection, Telegram request, SalesDrive order request, `.env` read,
   customer/order payload, active runtime or remote change was performed.
-- Isolated live acceptance: PASS on 2026-08-02. The process-scoped test harness
+- Historical isolated live acceptance: PASS on 2026-08-02. The process-scoped test harness
   connected to the restricted Aiven Valkey service over TLS, sent one fixed
   six-button menu to an operator-started private test-bot chat, and passed
   signed/unauthorized webhook handling, duplicate protection, distributed rate
@@ -59,6 +58,9 @@ Values are never sent to the browser or added to normal logs.
 - The live run made zero SalesDrive requests, performed no free-text order
   lookup and used no AI. `TELEGRAM_ORDER_ENABLED` remained false; the URI,
   token and chat ID were neither printed nor persisted.
+- The current source intentionally retires the manager button and exposes a
+  five-button customer menu. It has no live acceptance yet; activation still
+  requires a separately authorized isolated canary for that exact source.
 
 ## Remaining live prerequisites
 
@@ -67,10 +69,9 @@ Values are never sent to the browser or added to normal logs.
    persistent plaintext environment variables are not approved.
 2. Configure production-only Telegram credentials and webhook secret through
    that explicitly authorized server-side secret path.
-3. Configure an approved manager chat.
-4. Run any separately authorized SalesDrive acceptance without customer/order
+3. Run any separately authorized SalesDrive acceptance without customer/order
    payload disclosure; this was outside the isolated transport run.
-5. Enable and register the webhook only after the remaining production
+4. Enable and register the webhook only after the remaining production
    configuration and acceptance gates pass.
 
 Canonical production sequence and rollback:
@@ -87,10 +88,12 @@ requires process-scoped `VALKEY_AIVEN_TEST_URL` (`rediss://` only),
 The smoke refuses to run when `TELEGRAM_ORDER_ENABLED=true`. It uses a unique
 `aiadvisor:accept:telegram:*` Valkey namespace, checks signed/unauthorized and
 duplicate webhook handling, distributed rate limiting, durable outbox delivery,
-and sends one fixed six-button menu message to the designated test chat. The
-order adapter is a deny-by-construction stub: no SalesDrive request or
-customer/order payload is possible. All known acceptance keys are deleted and
-verified absent before exit; credentials, URI and chat ID are never emitted.
+On the 2026-08-02 historical run it sent the then-current six-button menu.
+The current source sends the five-button customer menu and must pass the same
+isolated acceptance again before any activation decision. The order adapter is
+a deny-by-construction stub: no SalesDrive request or customer/order payload
+is possible. All known acceptance keys are deleted and verified absent before
+exit; credentials, URI and chat ID are never emitted.
 
 Live result on 2026-08-02:
 

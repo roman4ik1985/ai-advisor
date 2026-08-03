@@ -87,7 +87,7 @@ test('isolated acceptance uses Valkey, signed webhook, outbox and Telegram witho
   assert.equal(calls.connected, 1);
   assert.equal(calls.closed, 1);
   assert.equal(calls.sent.length, 1);
-  assert.equal(calls.sent[0].replyMarkup.inlineKeyboard.length, 6);
+  assert.equal(calls.sent[0].replyMarkup.inlineKeyboard.length, 5);
   assert.equal(calls.deleted, 6);
   assert.equal(JSON.stringify(result).includes('secret'), true);
   assert.equal(JSON.stringify(result).includes(environment.TELEGRAM_TEST_BOT_TOKEN), false);

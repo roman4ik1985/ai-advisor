@@ -22,7 +22,9 @@ order access are prohibited.
   the open IPv4 and IPv6 ranges are absent.
 - Isolated live acceptance passed TLS Valkey, signed and unauthorized webhook
   handling, update deduplication, distributed rate limiting, durable outbox
-  delivery, fixed six-button Telegram delivery and Redis cleanup.
+  delivery, fixed Telegram menu delivery and Redis cleanup. The historical
+  test menu had six buttons; the current five-button customer source requires
+  its own isolated acceptance before any activation decision.
 - The isolated run made zero SalesDrive requests, performed no free-text lookup
   and used no AI.
 
@@ -91,7 +93,6 @@ Check presence and format only; never emit values:
 - `TELEGRAM_ORDER_BOT_TOKEN`
 - `TELEGRAM_ORDER_WEBHOOK_SECRET`
 - `TELEGRAM_ORDER_REDIS_URL` using TLS (`rediss://`)
-- `TELEGRAM_ORDER_MANAGER_CHAT_ID`
 - `TELEGRAM_ORDER_RATE_LIMIT_PER_MINUTE` in the supported 1–60 range
 - existing server-side SalesDrive configuration required by the exact-ID
   ownership client and provisioning resolver
@@ -114,8 +115,8 @@ All gates must pass in one bounded change window:
 5. Run separately authorized SalesDrive acceptance using only an explicitly
    owned test order. Evidence must contain counts/status codes, never customer,
    order, phone, address, token or upstream payload values.
-6. Verify the production bot has been started by the approved private manager
-   chat and can perform a harmless outbound transport check.
+6. Verify the production bot has been started by an approved private canary
+   customer chat and can perform a harmless outbound transport check.
 7. Capture a hash-verified runtime rollback and verify that restoring the
    disabled configuration requires no DNS, Tunnel, cPanel or OpenCart change.
 

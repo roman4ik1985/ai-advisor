@@ -12,8 +12,8 @@ test('outbox and action sinks are allow-listed, Redis-backed, and AI-free', asyn
   assert.match(outbox, /HINCRBY/u);
   assert.match(outbox, /ZREM/u);
   assert.match(runtime, /telegram-update:/u);
-  assert.match(sink, /REQUEST_MANAGER/u);
   assert.match(sink, /OPEN_NOTIFICATION_SETTINGS/u);
+  assert.doesNotMatch(sink, /REQUEST_MANAGER|managerChatId/u);
   assert.doesNotMatch(`${outbox}\n${sink}`, /OPENAI_API_KEY|askViaApi|fetch\s*\(/u);
   assert.doesNotMatch(sink, /phone|address|email|conversation|history/iu);
 });

@@ -127,11 +127,6 @@ export function createTelegramOrderWebhook({
     const route = routeTelegramOrderMenuUpdate({ update, binding });
     if (route.operation === 'SHOW_MENU') return menuMessage(userId, 'MENU_ONLY');
     if (route.operation === 'LIST_ORDERS') return listOrders(userId, binding);
-    if (route.operation === 'REQUEST_MANAGER') {
-      return result(200, 'MANAGER_ACTION_REQUIRED', [
-        internalAction('REQUEST_MANAGER', userId, binding.customerRef),
-      ]);
-    }
     if (route.operation === 'NOTIFICATION_SETTINGS') {
       return result(200, 'NOTIFICATION_SETTINGS_ACTION_REQUIRED', [
         internalAction('OPEN_NOTIFICATION_SETTINGS', userId, binding.customerRef),

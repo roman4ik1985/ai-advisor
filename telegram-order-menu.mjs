@@ -6,7 +6,6 @@ export const TELEGRAM_ORDER_MENU = Object.freeze([
   Object.freeze({ text: '💳 Перевірити оплату', callbackData: `${CALLBACK_PREFIX}payment`, operation: 'PAYMENT_STATUS' }),
   Object.freeze({ text: '📍 Дані доставки', callbackData: `${CALLBACK_PREFIX}delivery`, operation: 'DELIVERY_DETAILS' }),
   Object.freeze({ text: '🔔 Налаштувати сповіщення', callbackData: `${CALLBACK_PREFIX}notifications`, operation: 'NOTIFICATION_SETTINGS' }),
-  Object.freeze({ text: '👨‍💼 Покликати менеджера', callbackData: `${CALLBACK_PREFIX}manager`, operation: 'REQUEST_MANAGER' }),
 ]);
 
 const OPERATIONS = new Map(TELEGRAM_ORDER_MENU.map((item) => [item.callbackData, item.operation]));
@@ -89,12 +88,6 @@ export function renderTelegramOrderResponse({ operation, order, orders = [], loc
     return {
       code: 'NOTIFICATION_SETTINGS',
       text: uk ? 'Оберіть події для сповіщень у меню налаштувань.' : 'Выберите события для уведомлений в меню настроек.',
-    };
-  }
-  if (operation === 'REQUEST_MANAGER') {
-    return {
-      code: 'MANAGER_REQUEST_ACCEPTED',
-      text: uk ? 'Запит менеджеру передано.' : 'Запрос менеджеру передан.',
     };
   }
   if (operation === 'SHOW_MENU') {

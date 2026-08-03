@@ -7,7 +7,6 @@ const config = {
   telegramOrderRedisUrl: 'redis://127.0.0.1:6379',
   telegramOrderWebhookSecret: 'synthetic_webhook_secret_123',
   telegramOrderBotToken: '123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghi',
-  telegramOrderManagerChatId: '900800700',
   telegramOrderRateLimit: 10,
 };
 
@@ -45,7 +44,7 @@ test('runtime connects injected adapters and unauthorized webhook causes no Tele
   assert.equal(closed, true);
 });
 
-test('enabled runtime rejects missing server-side configuration before connecting', async () => {
+test('enabled runtime rejects missing Telegram configuration before connecting without requiring manager routing', async () => {
   await assert.rejects(
     createTelegramOrderRuntime({
       config: { ...config, telegramOrderBotToken: '' },
