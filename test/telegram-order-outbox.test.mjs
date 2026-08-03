@@ -71,5 +71,9 @@ test('outbox rejects unknown actions and fails closed when Redis is unavailable'
     deliveryId: 'telegram-update:3:0:DELETE_MESSAGE',
     action: { type: 'DELETE_MESSAGE', chatId: '100200300' },
   }), false);
+  assert.equal(await outbox.enqueue({
+    deliveryId: 'telegram-update:3:1:REQUEST_MANAGER',
+    action: { type: 'REQUEST_MANAGER', telegramUserId: '100200300', customerRef: 'customer:1' },
+  }), false);
   assert.deepEqual(await outbox.drainOne(), { status: 'UNAVAILABLE' });
 });

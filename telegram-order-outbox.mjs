@@ -194,7 +194,7 @@ function normalizeAction(action) {
     const callbackQueryId = boundedText(action.callbackQueryId, 128);
     return callbackQueryId ? Object.freeze({ type: 'ANSWER_CALLBACK', callbackQueryId }) : null;
   }
-  if (action.type === 'REQUEST_MANAGER' || action.type === 'OPEN_NOTIFICATION_SETTINGS') {
+  if (action.type === 'OPEN_NOTIFICATION_SETTINGS') {
     const telegramUserId = telegramId(action.telegramUserId);
     const customerRef = customerReference(action.customerRef);
     return telegramUserId && customerRef
