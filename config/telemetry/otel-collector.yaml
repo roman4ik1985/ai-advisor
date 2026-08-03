@@ -1,0 +1,60 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 127.0.0.1:4318
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+
+exporters:
+  file/logs:
+    path: C:/AI Advisor/logs/telemetry/raw/codex-logs.jsonl
+    rotation:
+      max_megabytes: 25
+      max_days: 14
+      max_backups: 10
+    format: json
+  file/traces:
+    path: C:/AI Advisor/logs/telemetry/raw/codex-traces.jsonl
+    rotation:
+      max_megabytes: 25
+      max_days: 14
+      max_backups: 10
+    format: json
+  file/metrics:
+    path: C:/AI Advisor/logs/telemetry/raw/codex-metrics.jsonl
+    rotation:
+      max_megabytes: 25
+      max_days: 14
+      max_backups: 10
+    format: json
+
+extensions:
+  health_check:
+    endpoint: 127.0.0.1:13133
+
+service:
+  extensions: [health_check]
+  telemetry:
+    logs:
+      level: info
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [file/logs]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [file/traces]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [file/metrics]
