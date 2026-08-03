@@ -1,4 +1,8 @@
 .env
+.backup-key.dpapi
+.backup-smoke/
+_backups/
+*.bak
 node_modules/
 *.log
 .tmp/
