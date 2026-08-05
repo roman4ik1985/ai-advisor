@@ -186,3 +186,24 @@ deployment, explicit enablement, synthetic smoke, then pilot start.
 Rollback is `AI_ADVISOR_ANALYTICS_ENABLED=false` followed by the runtime's
 normal controlled restart. It must stop new analytics without rolling back chat,
 product navigation, or order-status functionality.
+
+## Staging runtime bootstrap
+
+The staging API must use a separate runtime root, Windows task names, port, and
+DPAPI-protected secret store. The task tools now support this without changing
+the production defaults:
+
+```powershell
+# Run only from the isolated staging runtime root, in an elevated PowerShell.
+$secretStore = 'C:\ProgramData\AI Advisor Staging\secrets\system-secrets.dpapi'
+.\scripts\set-system-secret-store.ps1 -Initialize -Path $secretStore -Set AI_PROVIDER,HOST,ALLOWED_ORIGINS,OPENAI_API_KEY,STORE_URL,SALESDRIVE_SUBDOMAIN,SALESDRIVE_API_KEY,SALESDRIVE_YML_URL,TELEGRAM_ORDER_ENABLED,AI_ADVISOR_ANALYTICS_ENABLED,AI_ADVISOR_ANALYTICS_PROVIDER,AI_ADVISOR_ANALYTICS_ENVIRONMENT,POSTHOG_PROJECT_TOKEN,POSTHOG_API_HOST,AI_ADVISOR_ANALYTICS_PILOT_START,AI_ADVISOR_ANALYTICS_PILOT_END,AI_ADVISOR_ANALYTICS_SCHEMA_VERSION,AI_ADVISOR_WIDGET_VERSION
+.\scripts\install-local-host-tasks.ps1 -Port 18788 -InstanceName 'AI Advisor Staging' -SecretStorePath $secretStore
+```
+
+Enter values only in the protected prompts. Keep `TELEGRAM_ORDER_ENABLED=false`.
+Use the normal safe storefront origins (`https://ledprojector.com.ua` and
+`https://www.ledprojector.com.ua`) because the existing `/dev/` storefront has
+the same browser origin. Leave `AI_ADVISOR_ANALYTICS_ENABLED=false` until the
+PostHog settings, token, exact 30-day window, and external privacy smoke all
+pass. The Cloudflare public hostname must route only to
+`http://localhost:18788` after the staging task reports healthy.

@@ -37,6 +37,27 @@ test('SYSTEM launcher removes env-file loading and injects only an allowlisted c
   assert.doesNotMatch(provisioning, /SetEnvironmentVariable|\.env/iu);
 });
 
+test('PostHog pilot values and staging task isolation are explicitly supported', async () => {
+  const [library, provisioning, launcher, installer] = await Promise.all([
+    readFile(libraryUrl, 'utf8'),
+    readFile(provisioningUrl, 'utf8'),
+    readFile(launcherUrl, 'utf8'),
+    readFile(new URL('../scripts/install-local-host-tasks.ps1', import.meta.url), 'utf8'),
+  ]);
+  for (const name of [
+    'AI_ADVISOR_ANALYTICS_ENABLED', 'AI_ADVISOR_ANALYTICS_PROVIDER',
+    'AI_ADVISOR_ANALYTICS_ENVIRONMENT', 'POSTHOG_PROJECT_TOKEN',
+    'POSTHOG_API_HOST', 'AI_ADVISOR_ANALYTICS_PILOT_START',
+    'AI_ADVISOR_ANALYTICS_PILOT_END', 'AI_ADVISOR_ANALYTICS_SCHEMA_VERSION',
+    'AI_ADVISOR_WIDGET_VERSION',
+  ]) assert.match(library, new RegExp(`'${name}'`));
+  assert.doesNotMatch(library, /POSTHOG_PERSONAL_API_KEY/);
+  assert.match(launcher, /\[string\]\$SecretStorePath/);
+  assert.match(installer, /\[string\]\$InstanceName = 'AI Advisor'/);
+  assert.match(installer, /-SecretStorePath/);
+  assert.match(provisioning, /\[string\]\$Path/);
+});
+
 test('SYSTEM launcher fails closed under an ordinary user without reading the store', {
   skip: process.platform !== 'win32',
 }, () => {

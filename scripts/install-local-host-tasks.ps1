@@ -1,12 +1,15 @@
 param(
   [ValidateRange(1, 65535)]
-  [int]$Port = 8788
+  [int]$Port = 8788,
+  [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}$')]
+  [string]$InstanceName = 'AI Advisor',
+  [string]$SecretStorePath
 )
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$apiTaskName = 'AI Advisor API Host'
-$monitorTaskName = 'AI Advisor Health Monitor'
+$apiTaskName = "$InstanceName API Host"
+$monitorTaskName = "$InstanceName Health Monitor"
 $powershellPath = 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
 $logDirectory = Join-Path $projectRoot 'logs'
 $installLog = Join-Path $logDirectory 'install-local-host-tasks.log'
@@ -42,9 +45,13 @@ $systemPrincipal = New-ScheduledTaskPrincipal `
   -LogonType ServiceAccount `
   -RunLevel Highest
 
+$apiTaskArguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\run-api-task.ps1`" -Port $Port"
+if (-not [string]::IsNullOrWhiteSpace($SecretStorePath)) {
+  $apiTaskArguments += " -SecretStorePath `"$([IO.Path]::GetFullPath($SecretStorePath))`""
+}
 $apiAction = New-ScheduledTaskAction `
   -Execute $powershellPath `
-  -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\run-api-task.ps1`" -Port $Port" `
+  -Argument $apiTaskArguments `
   -WorkingDirectory $projectRoot
 $apiTrigger = New-ScheduledTaskTrigger -AtStartup
 $apiSettings = New-ScheduledTaskSettingsSet `
@@ -96,6 +103,7 @@ Add-Content -LiteralPath $installLog -Encoding utf8 -Value (
 [pscustomobject]@{
   ApiTask = $apiTaskName
   MonitorTask = $monitorTaskName
+  SecretStorePath = $SecretStorePath
   RunAs = 'SYSTEM'
   BackupDirectory = $backupDirectory
 }

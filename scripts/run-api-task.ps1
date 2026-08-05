@@ -1,7 +1,8 @@
 param(
   [ValidateRange(1, 65535)]
   [int]$Port = 8788,
-  [switch]$AllowTelegramEnabled
+  [switch]$AllowTelegramEnabled,
+  [string]$SecretStorePath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -33,9 +34,16 @@ $stdoutStream = $null
 $stderrStream = $null
 try {
   try {
-    $secretValues = Read-SystemSecretStore `
-      -RequireSystemIdentity `
-      -AllowTelegramEnabled:$AllowTelegramEnabled
+    if ([string]::IsNullOrWhiteSpace($SecretStorePath)) {
+      $secretValues = Read-SystemSecretStore `
+        -RequireSystemIdentity `
+        -AllowTelegramEnabled:$AllowTelegramEnabled
+    } else {
+      $secretValues = Read-SystemSecretStore `
+        -Path $SecretStorePath `
+        -RequireSystemIdentity `
+        -AllowTelegramEnabled:$AllowTelegramEnabled
+    }
   } catch {
     Add-Content -LiteralPath $lifecycleLog -Encoding utf8 -Value (
       "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') SYSTEM_SECRET_LOAD_FAILED"

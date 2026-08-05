@@ -3,6 +3,7 @@ param(
   [Parameter(Mandatory)]
   [ValidateNotNullOrEmpty()]
   [string[]]$Set,
+  [string]$Path,
   [switch]$Initialize,
   [switch]$AllowTelegramEnabled
 )
@@ -16,7 +17,11 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
   throw 'SYSTEM_SECRET_PROVISIONING_REQUIRES_ADMINISTRATOR'
 }
 
-$storePath = Get-SystemSecretStorePath
+$storePath = if ([string]::IsNullOrWhiteSpace($Path)) {
+  Get-SystemSecretStorePath
+} else {
+  [IO.Path]::GetFullPath($Path)
+}
 $exists = Test-Path -LiteralPath $storePath
 if ($Initialize -and $exists) {
   throw 'SYSTEM_SECRET_STORE_ALREADY_EXISTS'
