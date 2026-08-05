@@ -30,7 +30,7 @@ Describe "Verification command timeout" {
             $executionSource = Get-Content `
                 -LiteralPath (Join-Path $moduleRoot "Private\Execution.ps1") `
                 -Raw
-            $executionSource | Should -Match '\[int\]\$TimeoutMilliseconds = 120000'
+            $executionSource | Should -Match '\[int\]\$TimeoutMilliseconds = 180000'
 
             $outputDirectory = Join-Path $TestDrive "timeout-evidence"
             $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()

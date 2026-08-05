@@ -9,6 +9,9 @@ void (async () => {
     '.product-list',
   ].join(',');
   const CONTROL_SELECTORS = 'button,input,select,textarea,[role="button"],.btn,.button,[onclick]';
+  const ANALYTICS_ENVIRONMENTS = new Set(['production', 'staging']);
+  const ANALYTICS_SCHEMA_PATTERN = /^[A-Za-z0-9._-]{1,32}$/u;
+  const ANALYTICS_VERSION_PATTERN = /^[A-Za-z0-9._-]{1,64}$/u;
 
   function safeStoreUrl(value) {
     try {
@@ -173,6 +176,252 @@ void (async () => {
     return 'error';
   }
 
+  function createAnalyticsUuid(cryptoObject = window.crypto) {
+    try {
+      if (typeof cryptoObject?.randomUUID === 'function') return cryptoObject.randomUUID();
+      if (typeof cryptoObject?.getRandomValues !== 'function') return '';
+      const bytes = cryptoObject.getRandomValues(new Uint8Array(16));
+      bytes[6] = (bytes[6] & 0x0f) | 0x40;
+      bytes[8] = (bytes[8] & 0x3f) | 0x80;
+      const hex = [...bytes].map((value) => value.toString(16).padStart(2, '0'));
+      return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex.slice(6, 8).join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10).join('')}`;
+    } catch {
+      return '';
+    }
+  }
+
+  function classifyPageType(locationLike = window.location) {
+    try {
+      const url = new URL(String(locationLike?.href || ''), 'https://ledprojector.com.ua/');
+      const path = url.pathname.toLowerCase();
+      const route = String(url.searchParams.get('route') || '').toLowerCase();
+      if (path === '/' && !route) return 'home';
+      if (path.includes('checkout') || route.includes('checkout/checkout') || route.includes('checkout/simplecheckout')) return 'checkout';
+      if (path.includes('cart') || route.includes('checkout/cart')) return 'cart';
+      if (path.includes('search') || route.includes('product/search')) return 'search';
+      if (path.includes('product') || route.includes('product/product')) return 'product';
+      if (path.includes('category') || route.includes('product/category')) return 'category';
+      return 'other';
+    } catch {
+      return 'other';
+    }
+  }
+
+  function questionLengthBucket(value) {
+    const length = typeof value === 'number'
+      ? Math.max(0, Math.round(value))
+      : String(value || '').length;
+    if (length <= 40) return '1_40';
+    if (length <= 120) return '41_120';
+    if (length <= 300) return '121_300';
+    return '301_plus';
+  }
+
+  function countBucket(value) {
+    const count = Math.max(0, Number.parseInt(value, 10) || 0);
+    return count >= 3 ? '3_plus' : String(count);
+  }
+
+  function analyticsFailure(error) {
+    if (error?.name === 'AbortError') {
+      return { error_type: 'timeout', error_stage: 'request', retryable: true };
+    }
+    if (error?.uiCode === 'RATE_LIMITED') {
+      return { error_type: 'rate_limited', error_stage: 'request', retryable: true };
+    }
+    if (error?.uiCode === 'INVALID_RESPONSE') {
+      return { error_type: 'invalid_response', error_stage: 'finalization', retryable: true };
+    }
+    if (error?.uiCode === 'REQUEST_FAILED') {
+      return { error_type: 'validation', error_stage: 'request', retryable: false };
+    }
+    if (error?.uiCode === 'UNAVAILABLE') {
+      return { error_type: 'upstream', error_stage: 'request', retryable: true };
+    }
+    if (error instanceof TypeError) {
+      return { error_type: 'network', error_stage: 'request', retryable: true };
+    }
+    return { error_type: 'unknown', error_stage: 'unknown', retryable: false };
+  }
+
+  function createWidgetAnalyticsAdapter({
+    configUrl,
+    eventUrl,
+    locale,
+    pageType,
+    trafficType,
+    fetchImpl = window.fetch?.bind(window),
+    now = () => Date.now(),
+    uuid = () => createAnalyticsUuid(),
+  }) {
+    const analyticsSessionId = uuid();
+    const terminalInteractions = new Set();
+    const queue = [];
+    let ready = false;
+    let enabled = false;
+    let baseProperties = null;
+    let firstOpen = true;
+    let widgetShown = false;
+
+    const initialized = initialize();
+
+    async function initialize() {
+      if (!analyticsSessionId || typeof fetchImpl !== 'function') {
+        ready = true;
+        return;
+      }
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 1500);
+      try {
+        const response = await fetchImpl(configUrl, { cache: 'no-store', signal: controller.signal });
+        const config = response.ok ? await response.json() : null;
+        if (
+          config?.enabled === true
+          && ANALYTICS_ENVIRONMENTS.has(config.environment)
+          && ANALYTICS_SCHEMA_PATTERN.test(String(config.schemaVersion || ''))
+          && ANALYTICS_VERSION_PATTERN.test(String(config.widgetVersion || ''))
+        ) {
+          enabled = true;
+          baseProperties = Object.freeze({
+            schema_version: String(config.schemaVersion),
+            environment: config.environment,
+            widget_version: String(config.widgetVersion),
+            locale,
+            page_type: pageType,
+            traffic_type: trafficType,
+          });
+        }
+      } catch {
+        enabled = false;
+      } finally {
+        clearTimeout(timer);
+        ready = true;
+        if (enabled) {
+          for (const item of queue.splice(0)) send(item.event, item.properties);
+        } else {
+          queue.length = 0;
+        }
+      }
+    }
+
+    function capture(event, properties = {}) {
+      const item = { event, properties: { ...properties } };
+      if (!ready) {
+        if (queue.length < 24) queue.push(item);
+        return false;
+      }
+      if (!enabled) return false;
+      send(item.event, item.properties);
+      return true;
+    }
+
+    function send(event, properties) {
+      const body = JSON.stringify({
+        event,
+        analyticsSessionId,
+        properties: { ...baseProperties, ...properties },
+      });
+      void fetchImpl(eventUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        keepalive: true,
+      }).catch(() => {});
+    }
+
+    function createInteraction({ questionLength, hasProductContext, wasRetried = false }) {
+      const interactionId = uuid();
+      if (!interactionId) return null;
+      return Object.freeze({
+        interactionId,
+        startedAt: now(),
+        questionLength,
+        hasProductContext: Boolean(hasProductContext),
+        wasRetried: Boolean(wasRetried),
+      });
+    }
+
+    function responseTime(attempt) {
+      return Math.max(0, Math.min(180_000, Math.round(now() - attempt.startedAt)));
+    }
+
+    return Object.freeze({
+      initialized,
+      createInteraction,
+      trackWidgetShown(renderLocation = 'storefront_overlay') {
+        if (widgetShown) return false;
+        widgetShown = true;
+        return capture('widget_shown', { render_location: renderLocation });
+      },
+      trackWidgetOpened(openSource = 'launcher') {
+        const isFirstOpen = firstOpen;
+        firstOpen = false;
+        return capture('widget_opened', {
+          open_source: openSource,
+          is_first_open_in_session: isFirstOpen,
+        });
+      },
+      trackQuestionSubmitted(attempt) {
+        if (!attempt) return false;
+        return capture('question_submitted', {
+          interaction_id: attempt.interactionId,
+          question_length_bucket: questionLengthBucket(attempt.questionLength),
+          input_mode: 'text',
+          has_product_context: attempt.hasProductContext,
+        });
+      },
+      trackAnswerCompleted(attempt, recommendationCount) {
+        if (!attempt || terminalInteractions.has(attempt.interactionId)) return false;
+        terminalInteractions.add(attempt.interactionId);
+        return capture('answer_completed', {
+          interaction_id: attempt.interactionId,
+          response_time_ms: responseTime(attempt),
+          delivery_mode: 'full',
+          was_retried: attempt.wasRetried,
+          recommendation_count_bucket: countBucket(recommendationCount),
+        });
+      },
+      trackAnswerFailed(attempt, failure) {
+        if (!attempt || terminalInteractions.has(attempt.interactionId)) return false;
+        terminalInteractions.add(attempt.interactionId);
+        return capture('answer_failed', {
+          interaction_id: attempt.interactionId,
+          response_time_ms: responseTime(attempt),
+          error_type: failure.error_type,
+          error_stage: failure.error_stage,
+          retryable: failure.retryable,
+          was_retried: attempt.wasRetried,
+          timeout_threshold_ms: 55_000,
+        });
+      },
+      trackProductOpened(attempt, product, position, openTarget) {
+        const productId = String(product?.id || product?.sku || '').trim();
+        if (!attempt || !/^[A-Za-z0-9:_./-]{1,120}$/u.test(productId)) return false;
+        return capture('product_opened', {
+          interaction_id: attempt.interactionId,
+          product_id: productId,
+          recommendation_position_bucket: position >= 3 ? '3_plus' : String(position),
+          open_target: openTarget,
+        });
+      },
+      trackOrderHandoffStarted(attempt, handoffType, productCount) {
+        if (!attempt) return false;
+        return capture('order_handoff_started', {
+          interaction_id: attempt.interactionId,
+          handoff_type: handoffType,
+          product_count_bucket: countBucket(productCount),
+        });
+      },
+      trackAnswerFeedbackSubmitted(attempt, helpful) {
+        if (!attempt || typeof helpful !== 'boolean') return false;
+        return capture('answer_feedback_submitted', {
+          interaction_id: attempt.interactionId,
+          helpful,
+        });
+      },
+    });
+  }
+
   async function readWidgetVisibility(configUrl) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 1500);
@@ -194,7 +443,10 @@ void (async () => {
   if (window.__ledProjectorAgentTestOnly) {
     window.__ledProjectorAgentTestHooks = Object.freeze({
       canonicalStoreUrl,
+      classifyPageType,
       chooseGuidePosition,
+      createAnalyticsUuid,
+      createWidgetAnalyticsAdapter,
       errorKind,
       matchProductCandidate,
       normalizeProduct,
@@ -213,12 +465,21 @@ void (async () => {
   const widgetConfigEndpoint = new URL('/widget-config.json', new URL(endpoint, location.href).origin).toString();
   if (!await readWidgetVisibility(widgetConfigEndpoint)) return;
   const orderLinkEndpoint = new URL('/api/telegram/order-link', new URL(endpoint, location.href).origin).toString();
+  const analyticsConfigEndpoint = new URL('/api/analytics/config', new URL(endpoint, location.href).origin).toString();
+  const analyticsEventEndpoint = new URL('/api/analytics/event', new URL(endpoint, location.href).origin).toString();
   const productAnalyticsEnabled = script?.dataset.productAnalytics === 'true';
   const productAnalyticsEndpoint = new URL('/api/analytics/product', new URL(endpoint, location.href).origin).toString();
   const mascotUrl = script?.dataset.mascot || 'https://ai.ledprojector.com.ua/assets/mascot.png';
   const productTarget = script?.dataset.productTarget === '_blank' ? '_blank' : '_self';
   const panelId = 'lp-agent-panel';
   const language = document.documentElement.lang?.toLowerCase().startsWith('ru') ? 'ru' : 'uk';
+  const analytics = createWidgetAnalyticsAdapter({
+    configUrl: analyticsConfigEndpoint,
+    eventUrl: analyticsEventEndpoint,
+    locale: language,
+    pageType: classifyPageType(),
+    trafficType: script?.dataset.analyticsTraffic === 'synthetic' ? 'synthetic' : 'real',
+  });
   const copy = language === 'ru' ? {
     title: 'Помощник LedProjector',
     status: 'Подберу проектор под ваши задачи',
@@ -317,11 +578,26 @@ void (async () => {
   let guidedTarget = null;
   let guidedTargetTabindex = null;
   let lastFocusedElement = null;
+  const markShown = () => {
+    const style = typeof window.getComputedStyle === 'function' ? window.getComputedStyle(root) : null;
+    if (
+      root.isConnected
+      && !openButton.disabled
+      && style?.display !== 'none'
+      && style?.visibility !== 'hidden'
+      && style?.opacity !== '0'
+    ) analytics.trackWidgetShown();
+  };
+  if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(markShown);
+  else setTimeout(markShown, 0);
 
   addMessage('assistant', copy.greeting);
   addSuggestions();
 
-  openButton.addEventListener('click', () => setOpen(root.dataset.open !== 'true'));
+  openButton.addEventListener('click', (event) => setOpen(
+    root.dataset.open !== 'true',
+    { openSource: event.detail === 0 ? 'keyboard' : 'launcher' },
+  ));
   root.querySelector('[data-action="close"]').addEventListener('click', () => setOpen(false));
   root.querySelector('.lp-agent-composer').addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -341,6 +617,7 @@ void (async () => {
   }, { passive: true });
 
   function setOpen(open, options = {}) {
+    const wasOpen = root.dataset.open === 'true';
     if (open) {
       lastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       resetGuide();
@@ -350,24 +627,32 @@ void (async () => {
     panel.setAttribute('aria-modal', 'false');
     if (open) {
       input.focus();
+      if (!wasOpen) analytics.trackWidgetOpened(options.openSource || 'launcher');
     } else if (options.restoreFocus !== false) {
       restoreFocus();
     }
   }
 
-  async function requestAnswer(text) {
+  async function requestAnswer(text, { wasRetried = false } = {}) {
     if (busy) return;
     setBusy(true);
     const pending = addMessage('assistant', copy.thinking, { status: true });
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 55_000);
+    const attempt = analytics.createInteraction({
+      questionLength: text.length,
+      hasProductContext: classifyPageType() === 'product',
+      wasRetried,
+    });
     try {
-      const response = await fetch(endpoint, {
+      const request = fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: conversation.slice(-8), page: collectPageContext() }),
         signal: controller.signal,
       });
+      analytics.trackQuestionSubmitted(attempt);
+      const response = await request;
       let payload;
       try {
         payload = await response.json();
@@ -381,11 +666,13 @@ void (async () => {
       pending.textContent = payload.answer.trim();
       pending.dataset.state = 'answer';
       conversation.push({ role: 'assistant', content: payload.answer.trim() });
-      addProductCards(payload.catalog, pending);
+      const recommendationCount = addProductCards(payload.catalog, pending, attempt);
+      analytics.trackAnswerCompleted(attempt, recommendationCount);
     } catch (error) {
       const kind = errorKind(error);
       pending.textContent = copy[kind];
       pending.dataset.state = 'error';
+      analytics.trackAnswerFailed(attempt, analyticsFailure(error));
       addRetry(text, pending);
     } finally {
       clearTimeout(timeout);
@@ -416,14 +703,14 @@ void (async () => {
     button.textContent = copy.retry;
     button.addEventListener('click', async () => {
       button.remove();
-      await requestAnswer(text);
+      await requestAnswer(text, { wasRetried: true });
     }, { once: true });
     afterElement.after(button);
   }
 
-  function addProductCards(rawCatalog, afterElement) {
+  function addProductCards(rawCatalog, afterElement, attempt) {
     const products = selectProducts(rawCatalog);
-    if (products.length === 0) return;
+    if (products.length === 0) return 0;
 
     const section = document.createElement('section');
     section.className = 'lp-agent-products';
@@ -435,7 +722,8 @@ void (async () => {
     list.className = 'lp-agent-product-list';
     list.setAttribute('role', 'list');
 
-    for (const product of products) {
+    for (const [index, product] of products.entries()) {
+      const position = index + 1;
       const card = document.createElement('article');
       card.className = 'lp-agent-product-card';
       card.setAttribute('role', 'listitem');
@@ -460,7 +748,10 @@ void (async () => {
       titleLink.target = productTarget;
       if (productTarget === '_blank') titleLink.rel = 'noopener noreferrer';
       titleLink.textContent = product.name;
-      titleLink.addEventListener('click', () => trackProductEvent('PRODUCT_CARD_OPENED', product));
+      titleLink.addEventListener('click', () => {
+        analytics.trackProductOpened(attempt, product, position, productTarget === '_blank' ? 'new_tab' : 'same_tab');
+        trackProductEvent('PRODUCT_CARD_OPENED', product);
+      });
       title.append(titleLink);
       body.append(title);
 
@@ -487,10 +778,12 @@ void (async () => {
       action.addEventListener('click', (event) => {
         const target = findProductTarget(product);
         if (!target) {
+          analytics.trackProductOpened(attempt, product, position, productTarget === '_blank' ? 'new_tab' : 'same_tab');
           trackProductEvent('PRODUCT_CARD_OPENED', product);
           return;
         }
         event.preventDefault();
+        analytics.trackProductOpened(attempt, product, position, 'in_page');
         trackProductEvent('PRODUCT_GUIDE_USED', product);
         showProduct(target);
       });
@@ -502,6 +795,7 @@ void (async () => {
 
     section.append(heading, list);
     afterElement.after(section);
+    return products.length;
   }
 
   function trackProductEvent(eventType, product) {

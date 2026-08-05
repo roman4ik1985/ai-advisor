@@ -221,6 +221,44 @@ npm run start:api:background
 
 В `widget.js` сохранён абсолютный fallback на `https://ai.ledprojector.com.ua/api/chat`: оптимизатор Lightning может объединять внешний скрипт и удалять его атрибут `data-endpoint`. Production footer использует `widget.js?v=20260801visibility`; при следующем изменении виджета версию нужно обновить в source и compiled CyberStore footer, затем очистить asset- и page-cache Lightning.
 
+### Приватный 30-дневный PostHog pilot
+
+Source-контур пилота выключен по умолчанию. Браузер не загружает PostHog SDK и
+не получает project token: специализированный widget-adapter отправляет только
+строго типизированный envelope на `/api/analytics/event`, а backend повторно
+проверяет allowlist и использует `posthog-node` 5.48.0. Старый C40 JSONL-контур
+остаётся отдельным и не должен включаться одновременно с пилотом.
+
+Для активации требуются:
+
+```dotenv
+AI_ADVISOR_ANALYTICS_ENABLED=true
+AI_ADVISOR_ANALYTICS_PROVIDER=posthog
+AI_ADVISOR_ANALYTICS_ENVIRONMENT=staging
+POSTHOG_PROJECT_TOKEN=phc_project_token
+POSTHOG_API_HOST=https://eu.i.posthog.com
+AI_ADVISOR_ANALYTICS_PILOT_START=YYYY-MM-DD
+AI_ADVISOR_ANALYTICS_PILOT_END=YYYY-MM-DD
+AI_ADVISOR_ANALYTICS_SCHEMA_VERSION=1
+AI_ADVISOR_WIDGET_VERSION=0.1.0
+```
+
+`PILOT_START` включителен, `PILOT_END` исключителен; разница обязана составлять
+ровно 30 UTC-дней. Сервер проверяет окно на каждом событии, поэтому долгоживущий
+процесс автоматически переходит в no-op на границе `PILOT_END`. CI, test,
+development, неизвестный host, personal API key, неправильные даты и неполная
+конфигурация всегда no-op.
+
+В PostHog требуется отдельный проект с отключёнными IP capture, person profiles,
+autocapture, pageview/pageleave, replay, heatmaps, surveys, exceptions,
+rage/dead clicks, attribution и referrer. `identify()`/`alias()` запрещены.
+Production activation блокируется до решения по consent, точных дат/региона,
+независимого privacy/Network/Live Events smoke и валидного pre-PII purchase
+handoff. Полный [developer handoff](./docs/ai-advisor-posthog-pilot-developer-handoff.md),
+[dashboard](./docs/ai-advisor-posthog-pilot-dashboard.md) и
+[smoke checklists](./docs/ai-advisor-posthog-pilot-smoke-checklists.md) являются
+source-артефактами, а не production acceptance.
+
 ### Защита API от перегрузки
 
 Локальные production-параметры:

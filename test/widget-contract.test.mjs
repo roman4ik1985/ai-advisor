@@ -21,7 +21,7 @@ test('widget keeps an absolute production endpoint when optimizers strip data-en
 test('widget renders catalog through DOM APIs and keeps product navigation user initiated', async () => {
   const source = await readFile(new URL('../public/widget.js', import.meta.url), 'utf8');
 
-  assert.match(source, /function addProductCards\(rawCatalog, afterElement\)/);
+  assert.match(source, /function addProductCards\(rawCatalog, afterElement, attempt\)/);
   assert.match(source, /document\.createElement\('article'\)/);
   assert.match(source, /titleLink\.textContent = product\.name/);
   assert.match(source, /if \(selected\.length === 3\) break/);

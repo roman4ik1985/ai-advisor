@@ -769,6 +769,13 @@ P3 acceptance:
 | C43 | Security maintenance | Source PASS: zero audit vulnerabilities/secret markers, required headers present, 30-day cadence |
 | C44 | Cost/quality benchmark | Source PASS: deterministic RU/UK corpus 12/12, model-call budget 12 total / 1.0 average |
 | C45 | Performance and Web Vitals | Asset budget PASS (JS 30,567 / 120,000 bytes; CSS 9,098 / 50,000 bytes); LCP/CLS/INP `STAGING_REQUIRED` |
+| C46 | Private PostHog pilot | Source package: отдельный server-proxied adapter, восемь allow-listed schemas, no PII/text/URL/order payloads, dynamic 30-day UTC gate и kill switch; independent test/staging/production pending |
+
+C46 не заменяет локальный C40 JSONL-контракт и не активирует внешнюю аналитику.
+PostHog project/token/region, consent-решение, точные даты, валидный pre-PII
+purchase handoff, independent privacy/Network/Live Events checks и deployment
+остаются отдельными gates. Источник:
+[developer handoff](../../../docs/ai-advisor-posthog-pilot-developer-handoff.md).
 
 ### P5. Staging and controlled rollout
 

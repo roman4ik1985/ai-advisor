@@ -8,6 +8,9 @@
 - [[synthesis/audits/AUDIT_REPORT_2026-07-20|Архитектурный и security-аудит]]
 - [[synthesis/runbooks/OPENCART_STAGING_EMBED|OpenCart staging embed]]
 - [[synthesis/handoffs/HANDOFF_TEMPLATE|Шаблон handoff]]
+- [PostHog pilot developer handoff](../docs/ai-advisor-posthog-pilot-developer-handoff.md)
+- [PostHog pilot dashboard](../docs/ai-advisor-posthog-pilot-dashboard.md)
+- [PostHog pilot smoke checklists](../docs/ai-advisor-posthog-pilot-smoke-checklists.md)
 - [[log|Журнал операций]]
 
 ## Разделы

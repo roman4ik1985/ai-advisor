@@ -7,7 +7,7 @@
         [Parameter(Mandatory)][string]$OutputDirectory,
         [Parameter(Mandatory)][string]$TaskId,
         [ValidateRange(1000, 600000)]
-        [int]$TimeoutMilliseconds = 120000
+        [int]$TimeoutMilliseconds = 180000
     )
 
     New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
