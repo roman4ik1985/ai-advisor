@@ -1,6 +1,6 @@
 param(
   [string]$ActiveRoot = 'F:\Services\AI Advisor',
-  [ValidateSet('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime')]
+  [ValidateSet('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime', 'KnowledgeRuntime')]
   [string]$Profile = 'P3P4Runtime',
   [switch]$Apply,
   [string]$RollbackFrom
@@ -47,6 +47,9 @@ $releaseProfiles = @{
     'order-ownership-contract.mjs',
     'order-dto.mjs'
   )
+  KnowledgeRuntime = @(
+    'knowledge\store-faq.json'
+  )
 }
 
 function Resolve-ContainedPath {
@@ -80,7 +83,7 @@ if ($Apply -and $RollbackFrom) {
 if ($RollbackFrom) {
   $manifestPath = Resolve-ContainedPath -Root $backupRoot -Path $RollbackFrom -MustExist
   $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-  if ($manifest.schemaVersion -ne 1 -or $manifest.profile -notin @('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime')) {
+  if ($manifest.schemaVersion -ne 1 -or $manifest.profile -notin @('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime', 'KnowledgeRuntime')) {
     throw "Unsupported rollback manifest: $manifestPath"
   }
   if ([System.IO.Path]::GetFullPath([string]$manifest.activeRoot).TrimEnd('\') -ne $ActiveRoot) {
