@@ -100,6 +100,7 @@ test('multi-operator runtime release contains the complete safe server and widge
     'src/operator-registry.mjs',
     'src/prompt.mjs',
     'src/learning-log.mjs',
+    'analytics-pilot.mjs',
     'public/widget.js',
     'public/widget.css',
   ]);

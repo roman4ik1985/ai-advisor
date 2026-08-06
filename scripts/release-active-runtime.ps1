@@ -69,6 +69,7 @@ $releaseProfiles = @{
     'src\operator-registry.mjs',
     'src\prompt.mjs',
     'src\learning-log.mjs',
+    'analytics-pilot.mjs',
     'public\widget.js',
     'public\widget.css'
   )
