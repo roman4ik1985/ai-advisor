@@ -150,6 +150,8 @@ test('knowledge search returns the relevant official policy', async () => {
 test('knowledge search prioritizes bilingual intent phrases over generic card text', async () => {
   const cases = [
     ['наложенный платеж', 'payment-methods'],
+    ['Какие способы оплаты доступны?', 'payment-methods'],
+    ['Які способи доставки доступні?', 'delivery-ukraine'],
     ['как вернуть товар', 'returns-exchange'],
     ['какой экран выбрать', 'screen-selection'],
     ['проектор для презентаций в офисе', 'office-projectors'],
