@@ -28,7 +28,7 @@
 
 function ConvertFrom-AgentOsGitStatus {
     [CmdletBinding()]
-    param([Parameter(Mandatory)][string[]]$Lines)
+    param([Parameter(Mandatory)][AllowEmptyCollection()][string[]]$Lines)
 
     foreach ($line in $Lines) {
         if ([string]::IsNullOrWhiteSpace($line) -or $line.Length -lt 4) {
