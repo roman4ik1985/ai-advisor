@@ -1,7 +1,7 @@
 import { buildFreshnessEvidence, buildRouteDecision, getRoutePolicy, routeInstruction } from './intent-router.mjs';
 import { resolveLiveEvidence } from './live-resolvers.mjs';
 import { buildProductRecommendation } from './product-recommender.mjs';
-import { renderDeterministicLiveAnswer } from './live-response-renderer.mjs';
+import { renderDeterministicKnowledgeAnswer, renderDeterministicLiveAnswer } from './live-response-renderer.mjs';
 import { validateAssistantAnswer } from './response-validator.mjs';
 
 export async function executeRequestPipeline({
@@ -67,7 +67,12 @@ export async function executeRequestPipeline({
     };
   }
 
-  const deterministicLiveAnswer = renderDeterministicLiveAnswer({
+  const deterministicKnowledgeAnswer = renderDeterministicKnowledgeAnswer({
+    question,
+    route,
+    knowledge,
+  });
+  const deterministicLiveAnswer = deterministicKnowledgeAnswer || renderDeterministicLiveAnswer({
     question,
     route,
     catalog: live.catalog,
@@ -83,8 +88,10 @@ export async function executeRequestPipeline({
     : live.catalog;
   const deterministicAnswer = deterministicLiveAnswer
     || (hasDeterministicProductAnswer ? recommendation.answer : null);
-  const deterministicReason = deterministicLiveAnswer
-    ? 'DETERMINISTIC_LIVE_FACT'
+  const deterministicReason = deterministicKnowledgeAnswer
+    ? 'DETERMINISTIC_KNOWLEDGE_POLICY'
+    : deterministicLiveAnswer
+      ? 'DETERMINISTIC_LIVE_FACT'
     : hasDeterministicProductAnswer ? `DETERMINISTIC_PRODUCT_${recommendation.status}` : null;
   const effectiveFreshness = hasDeterministicProductAnswer && recommendation.status === 'READY'
     ? withSelectedCatalogPriceEvidence(freshness, publicCatalog)

@@ -209,8 +209,7 @@ test('never renders stale price, inventory, delivery or payment evidence', () =>
   }), null);
 });
 
-test('pipeline answers payment methods from reviewed knowledge without SalesDrive', async () => {
-  let supportCalls = 0;
+test('pipeline answers payment methods deterministically from reviewed knowledge without SalesDrive or model', async () => {
   const base = {
     messages: [{ role: 'user', content: 'Какие способы оплаты доступны?' }],
     queryCatalog: async () => { throw new Error('catalog not expected'); },
@@ -226,7 +225,7 @@ test('pipeline answers payment methods from reviewed knowledge without SalesDriv
       assert.equal(knowledge[0]?.id, 'payment-methods');
       return 'knowledge prompt';
     },
-    askSupport: async () => { supportCalls += 1; return 'Доступна оплата карткою та LiqPay.'; },
+    askSupport: async () => { throw new Error('model not expected'); },
     askVerifier: async () => { throw new Error('verifier not expected'); },
     now: () => new Date('2026-07-29T00:01:00Z'),
   };
@@ -234,12 +233,13 @@ test('pipeline answers payment methods from reviewed knowledge without SalesDriv
     ...base,
     question: 'Какие способы оплаты доступны?',
   });
-  assert.equal(supportCalls, 1);
+  assert.equal(result.answer, 'Доступна оплата карткою та LiqPay.');
   assert.match(result.answer, /оплата карткою та LiqPay/u);
   assert.equal(result.route.intent, 'store_faq');
   assert.equal(result.freshness.live.payment.status, 'NOT_REQUIRED');
   assert.deepEqual(result.catalog, []);
   assert.equal(result.catalogDiagnostics.code, 'SKIPPED_BY_ROUTE');
+  assert.deepEqual(result.verification, { status: 'SKIPPED', reason: 'DETERMINISTIC_KNOWLEDGE_POLICY' });
 });
 
 test('pipeline returns confirmed inventory without calling the model', async () => {

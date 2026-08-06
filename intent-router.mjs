@@ -71,7 +71,7 @@ export function buildRouteDecision({ question = '', messages = [] } = {}) {
   if (needsDelivery && !methodInformationOnly) requiredResolvers.add('delivery');
   if (needsPayment && !methodInformationOnly) requiredResolvers.add('payment');
 
-  return {
+  const decision = {
     route,
     intent,
     riskLevel: route === 'ESCALATE' ? 'high' : route === 'COMPLEX' || intent === 'live_fact' ? 'medium' : 'low',
@@ -79,6 +79,8 @@ export function buildRouteDecision({ question = '', messages = [] } = {}) {
     requiredResolvers: [...requiredResolvers],
     requiresVerification: route === 'COMPLEX',
   };
+  Object.defineProperty(decision, 'methodInformationOnly', { value: methodInformationOnly });
+  return decision;
 }
 
 export function buildFreshnessEvidence({ intent, catalogDiagnostics, knowledge = [], liveEvidence = {}, now = () => new Date() } = {}) {

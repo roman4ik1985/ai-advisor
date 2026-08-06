@@ -54,8 +54,10 @@ $releaseProfiles = @{
     'salesdrive-api.mjs',
     'src\learning-log.mjs'
   )
-  PolicyKnowledgeRuntime = @(
-    'intent-router.mjs'
+    PolicyKnowledgeRuntime = @(
+        'intent-router.mjs',
+        'request-pipeline.mjs',
+        'live-response-renderer.mjs'
   )
 }
 

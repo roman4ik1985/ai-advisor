@@ -69,13 +69,13 @@ test('SalesDrive runtime release contains only safe diagnostics and learning cla
   assert.match(script, /manifest\.profile -notin @\([^)]*'SalesDriveRuntime'/);
 });
 
-test('policy knowledge runtime release contains only intent routing', async () => {
+test('policy knowledge runtime release contains only knowledge-policy routing and rendering', async () => {
   const script = await readFile(scriptUrl, 'utf8');
   const profileMatch = script.match(/PolicyKnowledgeRuntime\s*=\s*@\(([\s\S]*?)\n\s*\)/);
   assert.ok(profileMatch, 'PolicyKnowledgeRuntime profile must exist');
 
   const paths = [...profileMatch[1].matchAll(/'([^']+)'/g)].map((match) => match[1].replaceAll('\\', '/'));
-  assert.deepEqual(paths, ['intent-router.mjs']);
+  assert.deepEqual(paths, ['intent-router.mjs', 'request-pipeline.mjs', 'live-response-renderer.mjs']);
   assert.match(script, /manifest\.profile -notin @\([^)]*'PolicyKnowledgeRuntime'/);
 });
 

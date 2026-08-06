@@ -41,6 +41,21 @@ export function renderDeterministicLiveAnswer({
   return null;
 }
 
+export function renderDeterministicKnowledgeAnswer({ question = '', route = {}, knowledge = [] } = {}) {
+  if (!route?.methodInformationOnly) return null;
+
+  const requestedIds = new Set();
+  const text = String(question || '').toLowerCase();
+  if (/(?:оплат|платеж|платіж)/u.test(text)) requestedIds.add('payment-methods');
+  if (/(?:достав|відправ|самовив|самовывоз)/u.test(text)) requestedIds.add('delivery-ukraine');
+
+  const answers = (Array.isArray(knowledge) ? knowledge : [])
+    .filter((entry) => requestedIds.has(String(entry?.id || '')))
+    .map((entry) => String(entry?.text || '').replace(/\s+/gu, ' ').trim())
+    .filter(Boolean);
+  return answers.length > 0 ? answers.join(' ') : null;
+}
+
 function isFreshAvailable(evidence, capability) {
   const available = evidence?.status === 'AVAILABLE' && evidence?.freshness === 'FRESH';
   return available && (!capability || Array.isArray(evidence?.capabilities) && evidence.capabilities.includes(capability));
