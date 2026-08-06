@@ -61,6 +61,7 @@ $releaseProfiles = @{
   )
   ApiProviderRuntime = @(
     'server.mjs',
+    'analytics-pilot.mjs',
     'src\providers\api-provider.mjs'
   )
 }

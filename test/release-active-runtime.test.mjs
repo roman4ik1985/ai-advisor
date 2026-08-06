@@ -85,7 +85,7 @@ test('API provider runtime release contains only the server and API provider', a
   assert.ok(profileMatch, 'ApiProviderRuntime profile must exist');
 
   const paths = [...profileMatch[1].matchAll(/'([^']+)'/g)].map((match) => match[1].replaceAll('\\', '/'));
-  assert.deepEqual(paths, ['server.mjs', 'src/providers/api-provider.mjs']);
+  assert.deepEqual(paths, ['server.mjs', 'analytics-pilot.mjs', 'src/providers/api-provider.mjs']);
   assert.match(script, /manifest\.profile -notin @\([^)]*'ApiProviderRuntime'/);
 });
 
