@@ -6,6 +6,7 @@ import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readConfig } from './src/config.mjs';
 import { buildAssistantInput, buildAssistantPrompt, sanitizeMessages, trustedInstructions } from './src/prompt.mjs';
+import { getPublicOperatorCatalog, resolveOperator } from './src/operator-registry.mjs';
 import { searchKnowledge } from './src/knowledge.mjs';
 import { appendLearningRecord } from './src/learning-log.mjs';
 import { askViaCli } from './src/providers/cli-provider.mjs';
@@ -229,6 +230,7 @@ const server = createServer(async (request, response) => {
 
     try {
       const body = await readJsonBody(request);
+      const operator = resolveOperator(body.operatorId);
       const messages = sanitizeMessages(body.messages);
       const latestQuestion = [...messages].reverse().find((item) => item.role === 'user')?.content || '';
       if (!latestQuestion) {
@@ -258,9 +260,9 @@ const server = createServer(async (request, response) => {
             : () => salesdriveApi.listPaymentMethods(),
           productSpecificationEvidence,
           queryKnowledge: () => searchKnowledge({ messages, page: body.page }),
-          buildPrompt: buildAssistantPrompt,
-          askSupport: (input) => askAssistant({ ...input, safetyIdentifier }),
-          askVerifier: (evidence) => verifyAnswer(evidence, safetyIdentifier),
+          buildPrompt: (input) => buildAssistantPrompt({ ...input, operatorId: operator.id }),
+          askSupport: (input) => askAssistant({ ...input, operatorId: operator.id, safetyIdentifier }),
+          askVerifier: (evidence) => verifyAnswer(evidence, safetyIdentifier, operator.id),
         });
         console.info(`[route:${requestId}] route=${pipeline.route.route} intent=${pipeline.route.intent} risk=${pipeline.route.riskLevel} resolvers=${pipeline.route.requiredResolvers.join('|') || 'NONE'}`);
         console.info(`[validation:${requestId}] action=${pipeline.validation.action} accepted=${pipeline.validation.accepted} reasons=${pipeline.validation.reasons.join(',') || 'NONE'} verification=${pipeline.verification.status}`);
@@ -279,6 +281,7 @@ const server = createServer(async (request, response) => {
             knowledge: result.knowledge,
             catalogDiagnostics: result.catalogDiagnostics,
             provider: config.provider,
+            operatorId: operator.id,
           });
         } catch (error) {
           console.warn(`[learning:${requestId}] ${error.message}`);
@@ -319,6 +322,11 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === 'GET') {
+    if (requestUrl.pathname === '/api/operators') {
+      response.setHeader('Access-Control-Allow-Origin', '*');
+      response.setHeader('Cache-Control', 'no-store');
+      return json(response, 200, getPublicOperatorCatalog());
+    }
     if (requestUrl.pathname === '/widget-config.json') {
       response.setHeader('Access-Control-Allow-Origin', '*');
     }
@@ -440,11 +448,11 @@ function sendError(response, status, error, code, requestId, retryAfterSeconds) 
   return json(response, status, { error, code, requestId });
 }
 
-async function askAssistant({ prompt, messages, page, catalog, knowledge, safetyIdentifier }) {
+async function askAssistant({ prompt, messages, page, catalog, knowledge, operatorId, safetyIdentifier }) {
   if (config.provider === 'cli') return askViaCli(prompt, config);
   if (config.provider === 'api') {
     return askViaApi({
-      instructions: trustedInstructions(),
+      instructions: trustedInstructions(operatorId),
       input: buildAssistantInput({ messages, page, catalog, knowledge }),
     }, config, safetyIdentifier);
   }
@@ -452,11 +460,11 @@ async function askAssistant({ prompt, messages, page, catalog, knowledge, safety
   return testAnswer || askViaTest(config);
 }
 
-async function verifyAnswer(evidence, safetyIdentifier) {
+async function verifyAnswer(evidence, safetyIdentifier, operatorId) {
   if (config.provider === 'test') return { approved: true };
 
   const instructions = [
-    trustedInstructions(),
+    trustedInstructions(operatorId),
     'You are the independent verification agent. Check whether the draft is supported by the supplied evidence and avoids unsupported commercial promises.',
     'Return exactly ALLOW when the draft is safe. Return ESCALATE when any material claim is unsupported, ambiguous, or risky.',
   ].join('\n');

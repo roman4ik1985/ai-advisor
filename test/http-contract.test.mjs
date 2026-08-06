@@ -60,6 +60,63 @@ test('HTTP errors use the standard contract and 429 includes Retry-After', async
   assert.match(limited.headers.get('retry-after') || '', /^\d+$/);
 });
 
+test('operator catalog and chat selection extend the API without breaking the default client', async (context) => {
+  const port = await getAvailablePort();
+  const child = spawn(process.execPath, ['server.mjs', '--provider=test'], {
+    cwd: new URL('..', import.meta.url),
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      PORT: String(port),
+      HOST: '127.0.0.1',
+      AI_TEST_PROVIDER_RESPONSE: 'Безопасный тестовый ответ.',
+    },
+    stdio: ['ignore', 'ignore', 'pipe'],
+    windowsHide: true,
+  });
+  let stderr = '';
+  child.stderr.setEncoding('utf8');
+  child.stderr.on('data', (chunk) => { stderr += chunk; });
+  context.after(() => {
+    if (child.exitCode === null) child.kill();
+  });
+  await waitUntilReady(port, child, () => stderr);
+
+  const catalogResponse = await fetch(`http://127.0.0.1:${port}/api/operators`);
+  assert.equal(catalogResponse.status, 200);
+  assert.equal(catalogResponse.headers.get('access-control-allow-origin'), '*');
+  assert.match(catalogResponse.headers.get('cache-control') || '', /no-store/u);
+  const catalog = await catalogResponse.json();
+  assert.equal(catalog.defaultOperatorId, 'lumi');
+  assert.deepEqual(catalog.operators.map((operator) => operator.id), ['lumi', 'spectrum']);
+
+  const selectedResponse = await fetch(`http://127.0.0.1:${port}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      operatorId: 'spectrum',
+      messages: [{ role: 'user', content: 'Помоги сравнить модели' }],
+      page: {},
+    }),
+  });
+  assert.equal(selectedResponse.status, 200);
+  const selected = await selectedResponse.json();
+  assert.equal(typeof selected.answer, 'string');
+  assert.ok(selected.answer.length > 0);
+  assert.deepEqual(Object.keys(selected).sort(), ['answer', 'catalog', 'catalogDiagnostics', 'knowledge', 'provider']);
+
+  const legacyResponse = await fetch(`http://127.0.0.1:${port}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages: [{ role: 'user', content: 'Помоги выбрать проектор' }], page: {} }),
+  });
+  assert.equal(legacyResponse.status, 200);
+  const legacy = await legacyResponse.json();
+  assert.equal(typeof legacy.answer, 'string');
+  assert.ok(legacy.answer.length > 0);
+  assert.deepEqual(Object.keys(legacy).sort(), ['answer', 'catalog', 'catalogDiagnostics', 'knowledge', 'provider']);
+});
+
 async function assertErrorResponse(response, expectedStatus, expectedCode) {
   assert.equal(response.status, expectedStatus);
   const payload = await response.json();

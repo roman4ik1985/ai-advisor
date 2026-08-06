@@ -52,6 +52,8 @@
 .lp-agent-order-link:focus-visible,
 .lp-agent-order-input:focus-visible,
 .lp-agent-suggestion:focus-visible,
+.lp-agent-operator-trigger:focus-visible,
+.lp-agent-operator-option:focus-visible,
 .lp-agent-input:focus-visible {
   outline: 3px solid var(--lp-agent-cyan);
   outline-offset: 3px;
@@ -120,6 +122,69 @@
 .lp-agent-header-copy { flex: 1; min-width: 0; }
 .lp-agent-title { margin: 0; font: 700 16px/1.2 Rubik, system-ui, sans-serif; }
 .lp-agent-status { margin: 3px 0 0; color: #fff; font-size: 12px; }
+
+.lp-agent-operator-control { position: relative; margin-top: 5px; }
+.lp-agent-operator-trigger {
+  min-height: 32px;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 9px 4px 5px;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 999px;
+  color: #fff;
+  background: rgb(15 23 42 / 18%);
+  font: 700 13px/1.2 inherit;
+  cursor: pointer;
+}
+.lp-agent-operator-avatar {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #1e3a8a;
+  background: #fff;
+  font: 800 10px/1 inherit;
+}
+.lp-agent-operator-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-agent-operator-menu {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% + 7px);
+  left: 0;
+  width: min(300px, calc(100vw - 92px));
+  padding: 7px;
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 16px 35px rgb(15 23 42 / 25%);
+}
+.lp-agent-operator-menu[hidden] { display: none; }
+.lp-agent-operator-option {
+  width: 100%;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 9px;
+  padding: 8px;
+  border: 0;
+  border-radius: 11px;
+  color: var(--lp-agent-ink);
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+.lp-agent-operator-option:hover,
+.lp-agent-operator-option[aria-selected="true"] { background: #eff6ff; }
+.lp-agent-operator-option[aria-selected="true"] { box-shadow: inset 3px 0 var(--lp-agent-blue); }
+.lp-agent-operator-option strong,
+.lp-agent-operator-option small { display: block; }
+.lp-agent-operator-option strong { font-size: 13px; }
+.lp-agent-operator-option small { margin-top: 2px; color: var(--lp-agent-muted); font-size: 11px; line-height: 1.3; }
 
 .lp-agent-icon-button {
   width: 44px;
@@ -346,6 +411,7 @@
   .lp-agent-root[data-guiding="true"] { right: 12px; bottom: 12px; left: auto; top: auto; }
   .lp-agent-panel { position: fixed; inset: 10px 10px calc(112px + env(safe-area-inset-bottom)) 10px; width: auto; height: auto; }
   .lp-agent-bubble { right: 70px; }
+  .lp-agent-operator-menu { position: fixed; top: auto; right: 18px; bottom: calc(112px + env(safe-area-inset-bottom)); left: 18px; width: auto; }
 }
 
 /* Leave clear space for LedProjector’s persistent call button on desktop. */

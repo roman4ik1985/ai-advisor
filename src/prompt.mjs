@@ -1,3 +1,5 @@
+import { buildOperatorInstructions, resolveOperator } from './operator-registry.mjs';
+
 const MAX_HISTORY = 8;
 
 export function sanitizeMessages(messages) {
@@ -12,11 +14,11 @@ export function sanitizeMessages(messages) {
     .filter((item) => item.content);
 }
 
-export function buildAssistantPrompt({ messages, page, catalog, knowledge }) {
+export function buildAssistantPrompt({ messages, page, catalog, knowledge, operatorId }) {
   const safeMessages = sanitizeMessages(messages);
   const context = buildContext({ safeMessages, page, catalog, knowledge });
 
-  return [trustedInstructions(), 'UNTRUSTED_CONTEXT_START', context, 'UNTRUSTED_CONTEXT_END', '', 'Return only the visitor-facing answer as plain text.'].join('\n');
+  return [trustedInstructions(operatorId), 'UNTRUSTED_CONTEXT_START', context, 'UNTRUSTED_CONTEXT_END', '', 'Return only the visitor-facing answer as plain text.'].join('\n');
 }
 
 export function buildAssistantInput({ messages, page, catalog, knowledge }) {
@@ -29,9 +31,11 @@ export function buildAssistantInput({ messages, page, catalog, knowledge }) {
   };
 }
 
-export function trustedInstructions() {
+export function trustedInstructions(operatorId) {
+  const operator = resolveOperator(operatorId);
   return [
     'You are the LedProjector online-store consultant.',
+    ...buildOperatorInstructions(operator.id),
     'Help visitors choose projectors and accessories, understand specifications, delivery and payment.',
     'Answer in the language of the latest user message; default to Ukrainian.',
     'Be friendly, direct and concise. Ask at most one focused clarifying question when required.',

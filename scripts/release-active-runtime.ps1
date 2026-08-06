@@ -1,6 +1,6 @@
 param(
   [string]$ActiveRoot = 'F:\Services\AI Advisor',
-  [ValidateSet('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime', 'KnowledgeRuntime', 'SalesDriveRuntime', 'PolicyKnowledgeRuntime', 'ApiProviderRuntime')]
+  [ValidateSet('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime', 'KnowledgeRuntime', 'SalesDriveRuntime', 'PolicyKnowledgeRuntime', 'ApiProviderRuntime', 'MultiOperatorRuntime')]
   [string]$Profile = 'P3P4Runtime',
   [switch]$Apply,
   [string]$RollbackFrom
@@ -64,6 +64,14 @@ $releaseProfiles = @{
     'analytics-pilot.mjs',
     'src\providers\api-provider.mjs'
   )
+  MultiOperatorRuntime = @(
+    'server.mjs',
+    'src\operator-registry.mjs',
+    'src\prompt.mjs',
+    'src\learning-log.mjs',
+    'public\widget.js',
+    'public\widget.css'
+  )
 }
 
 function Resolve-ContainedPath {
@@ -97,7 +105,7 @@ if ($Apply -and $RollbackFrom) {
 if ($RollbackFrom) {
   $manifestPath = Resolve-ContainedPath -Root $backupRoot -Path $RollbackFrom -MustExist
   $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-  if ($manifest.schemaVersion -ne 1 -or $manifest.profile -notin @('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime', 'KnowledgeRuntime', 'SalesDriveRuntime', 'PolicyKnowledgeRuntime', 'ApiProviderRuntime')) {
+  if ($manifest.schemaVersion -ne 1 -or $manifest.profile -notin @('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime', 'KnowledgeRuntime', 'SalesDriveRuntime', 'PolicyKnowledgeRuntime', 'ApiProviderRuntime', 'MultiOperatorRuntime')) {
     throw "Unsupported rollback manifest: $manifestPath"
   }
   if ([System.IO.Path]::GetFullPath([string]$manifest.activeRoot).TrimEnd('\') -ne $ActiveRoot) {

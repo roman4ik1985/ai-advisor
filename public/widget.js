@@ -440,6 +440,79 @@ void (async () => {
     }
   }
 
+  async function readOperatorCatalog(configUrl, language) {
+    const fallback = fallbackOperatorCatalog(language);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
+    try {
+      const response = await fetch(configUrl, {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) return fallback;
+      return normalizeOperatorCatalog(await response.json(), language) || fallback;
+    } catch {
+      return fallback;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  function normalizeOperatorCatalog(value, language) {
+    if (!value || !Array.isArray(value.operators)) return null;
+    const operators = value.operators
+      .filter((operator) => /^[a-z0-9][a-z0-9_-]{0,39}$/u.test(String(operator?.id || '')))
+      .map((operator) => {
+        const localized = operator.copy?.[language] || operator.copy?.uk || operator.copy?.ru;
+        if (!localized || !operator.displayName) return null;
+        return {
+          id: String(operator.id),
+          displayName: String(operator.displayName).trim().slice(0, 40),
+          accentColor: /^#[0-9a-f]{6}$/iu.test(String(operator.accentColor || '')) ? operator.accentColor : '#2563eb',
+          description: String(localized.description || '').trim().slice(0, 120),
+          greeting: String(localized.greeting || '').trim().slice(0, 300),
+          suggestions: Array.isArray(localized.suggestions)
+            ? localized.suggestions.map((item) => String(item || '').trim().slice(0, 80)).filter(Boolean).slice(0, 4)
+            : [],
+        };
+      })
+      .filter(Boolean);
+    if (operators.length === 0) return null;
+    const requestedDefault = String(value.defaultOperatorId || '');
+    const defaultOperatorId = operators.some((operator) => operator.id === requestedDefault)
+      ? requestedDefault
+      : operators[0].id;
+    return { defaultOperatorId, operators };
+  }
+
+  function fallbackOperatorCatalog(language) {
+    const ru = language === 'ru';
+    return {
+      defaultOperatorId: 'lumi',
+      operators: [{
+        id: 'lumi',
+        displayName: 'Люми',
+        accentColor: '#2563eb',
+        description: ru ? 'Поможет подобрать проектор под вашу задачу' : 'Допоможе підібрати проєктор під вашу задачу',
+        greeting: ru
+          ? 'Здравствуйте! Расскажите, где и как планируете использовать проектор — помогу сузить выбор.'
+          : 'Вітаю! Розкажіть, де і як плануєте використовувати проєктор — допоможу звузити вибір.',
+        suggestions: ru
+          ? ['Подберите проектор', 'Сравнить модели', 'Доставка и оплата']
+          : ['Підібрати проєктор', 'Порівняти моделі', 'Доставка й оплата'],
+      }],
+    };
+  }
+
+  function nextOperatorOptionIndex(currentIndex, length, key) {
+    if (!Number.isInteger(length) || length <= 0) return -1;
+    if (key === 'Home') return 0;
+    if (key === 'End') return length - 1;
+    if (key === 'ArrowDown') return currentIndex < 0 ? 0 : (currentIndex + 1) % length;
+    if (key === 'ArrowUp') return currentIndex < 0 ? length - 1 : (currentIndex - 1 + length) % length;
+    return -1;
+  }
+
   if (window.__ledProjectorAgentTestOnly) {
     window.__ledProjectorAgentTestHooks = Object.freeze({
       canonicalStoreUrl,
@@ -450,7 +523,10 @@ void (async () => {
       errorKind,
       matchProductCandidate,
       normalizeProduct,
+      normalizeOperatorCatalog,
       normalizeText,
+      nextOperatorOptionIndex,
+      readOperatorCatalog,
       readWidgetVisibility,
       selectProducts,
     });
@@ -464,6 +540,13 @@ void (async () => {
   const endpoint = script?.dataset.endpoint || 'https://ai.ledprojector.com.ua/api/chat';
   const widgetConfigEndpoint = new URL('/widget-config.json', new URL(endpoint, location.href).origin).toString();
   if (!await readWidgetVisibility(widgetConfigEndpoint)) return;
+  const language = document.documentElement.lang?.toLowerCase().startsWith('ru') ? 'ru' : 'uk';
+  const operatorCatalogEndpoint = new URL('/api/operators', new URL(endpoint, location.href).origin).toString();
+  const operatorCatalog = await readOperatorCatalog(operatorCatalogEndpoint, language);
+  const storedOperatorId = readStoredOperatorId();
+  let activeOperator = operatorCatalog.operators.find((operator) => operator.id === storedOperatorId)
+    || operatorCatalog.operators.find((operator) => operator.id === operatorCatalog.defaultOperatorId)
+    || operatorCatalog.operators[0];
   const orderLinkEndpoint = new URL('/api/telegram/order-link', new URL(endpoint, location.href).origin).toString();
   const analyticsConfigEndpoint = new URL('/api/analytics/config', new URL(endpoint, location.href).origin).toString();
   const analyticsEventEndpoint = new URL('/api/analytics/event', new URL(endpoint, location.href).origin).toString();
@@ -472,7 +555,6 @@ void (async () => {
   const mascotUrl = script?.dataset.mascot || 'https://ai.ledprojector.com.ua/assets/mascot.png';
   const productTarget = script?.dataset.productTarget === '_blank' ? '_blank' : '_self';
   const panelId = 'lp-agent-panel';
-  const language = document.documentElement.lang?.toLowerCase().startsWith('ru') ? 'ru' : 'uk';
   const analytics = createWidgetAnalyticsAdapter({
     configUrl: analyticsConfigEndpoint,
     eventUrl: analyticsEventEndpoint,
@@ -506,6 +588,8 @@ void (async () => {
     timeout: 'Ответ занимает слишком долго. Попробуйте ещё раз.',
     rateLimit: 'Слишком много запросов. Подождите немного и попробуйте снова.',
     unavailable: 'Консультант временно недоступен. Попробуйте ещё раз позже.',
+    chooseOperator: 'Выбрать AI-оператора',
+    operators: 'AI-операторы',
   } : {
     title: 'Помічник LedProjector',
     status: 'Підберу проєктор під ваші задачі',
@@ -532,18 +616,32 @@ void (async () => {
     timeout: 'Відповідь надходить надто довго. Спробуйте ще раз.',
     rateLimit: 'Забагато запитів. Зачекайте трохи й спробуйте знову.',
     unavailable: 'Консультант тимчасово недоступний. Спробуйте пізніше.',
+    chooseOperator: 'Обрати AI-оператора',
+    operators: 'AI-оператори',
   };
 
   const root = document.createElement('aside');
   root.className = 'lp-agent-root';
   root.dataset.open = 'false';
+  root.style.setProperty('--lp-agent-blue', activeOperator.accentColor);
   root.setAttribute('aria-label', copy.title);
   root.innerHTML = `
     <div class="lp-agent-bubble" aria-hidden="true">${escapeHtml(copy.bubble)}</div>
     <section class="lp-agent-panel" id="${panelId}" role="dialog" aria-modal="false" aria-labelledby="lp-agent-title">
       <header class="lp-agent-header">
         <img class="lp-agent-header-mark" src="${escapeAttribute(mascotUrl)}" alt="" />
-        <div class="lp-agent-header-copy"><h2 class="lp-agent-title" id="lp-agent-title">${escapeHtml(copy.title)}</h2><p class="lp-agent-status">${escapeHtml(copy.status)}</p></div>
+        <div class="lp-agent-header-copy">
+          <h2 class="lp-agent-title" id="lp-agent-title">${escapeHtml(copy.title)}</h2>
+          <div class="lp-agent-operator-control">
+            <button class="lp-agent-operator-trigger" type="button" data-action="operators" aria-haspopup="listbox" aria-controls="lp-agent-operator-menu" aria-expanded="false" aria-label="${escapeAttribute(copy.chooseOperator)}">
+              <span class="lp-agent-operator-avatar" aria-hidden="true"></span>
+              <span class="lp-agent-operator-name"></span>
+              <span aria-hidden="true">▾</span>
+            </button>
+            <div class="lp-agent-operator-menu" id="lp-agent-operator-menu" role="listbox" aria-label="${escapeAttribute(copy.operators)}" hidden></div>
+          </div>
+          <p class="lp-agent-status"></p>
+        </div>
         <button class="lp-agent-icon-button" type="button" data-action="close" aria-label="${escapeAttribute(copy.close)}">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
@@ -564,13 +662,13 @@ void (async () => {
 
   document.body.append(root);
   const panel = root.querySelector('.lp-agent-panel');
-  const messagesElement = root.querySelector('.lp-agent-messages');
+  let messagesElement = root.querySelector('.lp-agent-messages');
   const input = root.querySelector('.lp-agent-input');
   const sendButton = root.querySelector('.lp-agent-send');
   const openButton = root.querySelector('[data-action="open"]');
   const guideStatus = root.querySelector('.lp-agent-guide-status');
-  const conversation = [];
-  const suggestionButtons = [];
+  const sessions = new Map();
+  let conversation = [];
   let busy = false;
   let guideTimer;
   let guideStartTimer;
@@ -591,14 +689,32 @@ void (async () => {
   if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(markShown);
   else setTimeout(markShown, 0);
 
-  addMessage('assistant', copy.greeting);
-  addSuggestions();
+  const operatorTrigger = root.querySelector('.lp-agent-operator-trigger');
+  const operatorMenu = root.querySelector('.lp-agent-operator-menu');
+  const operatorName = root.querySelector('.lp-agent-operator-name');
+  const operatorAvatar = root.querySelector('.lp-agent-operator-avatar');
+  const operatorStatus = root.querySelector('.lp-agent-status');
+  sessions.set(activeOperator.id, { conversation, messagesElement, initialized: false });
+  renderOperatorMenu();
+  activateOperator(activeOperator.id, { focus: false });
 
   openButton.addEventListener('click', (event) => setOpen(
     root.dataset.open !== 'true',
     { openSource: event.detail === 0 ? 'keyboard' : 'launcher' },
   ));
   root.querySelector('[data-action="close"]').addEventListener('click', () => setOpen(false));
+  operatorTrigger.addEventListener('click', () => setOperatorMenuOpen(operatorMenu.hidden));
+  operatorMenu.addEventListener('click', (event) => {
+    const option = event.target.closest('[data-operator-id]');
+    if (option) activateOperator(option.dataset.operatorId);
+  });
+  operatorMenu.addEventListener('keydown', (event) => {
+    const options = [...operatorMenu.querySelectorAll('[data-operator-id]')];
+    const nextIndex = nextOperatorOptionIndex(options.indexOf(document.activeElement), options.length, event.key);
+    if (nextIndex < 0) return;
+    event.preventDefault();
+    options[nextIndex].focus();
+  });
   root.querySelector('.lp-agent-composer').addEventListener('submit', async (event) => {
     event.preventDefault();
     const text = input.value.trim();
@@ -609,7 +725,17 @@ void (async () => {
     await requestAnswer(text);
   });
   document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !operatorMenu.hidden) {
+      setOperatorMenuOpen(false);
+      operatorTrigger.focus();
+      return;
+    }
     if (event.key === 'Escape' && root.dataset.open === 'true') setOpen(false);
+  });
+  document.addEventListener('click', (event) => {
+    if (!operatorMenu.hidden && !root.querySelector('.lp-agent-operator-control').contains(event.target)) {
+      setOperatorMenuOpen(false);
+    }
   });
   window.addEventListener('resize', resetGuide, { passive: true });
   window.addEventListener('scroll', () => {
@@ -648,7 +774,7 @@ void (async () => {
       const request = fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: conversation.slice(-8), page: collectPageContext() }),
+        body: JSON.stringify({ operatorId: activeOperator.id, messages: conversation.slice(-8), page: collectPageContext() }),
         signal: controller.signal,
       });
       analytics.trackQuestionSubmitted(attempt);
@@ -925,7 +1051,7 @@ void (async () => {
   function setBusy(nextBusy) {
     busy = nextBusy;
     sendButton.disabled = nextBusy;
-    for (const button of suggestionButtons) button.disabled = nextBusy;
+    for (const button of messagesElement.querySelectorAll('.lp-agent-suggestion')) button.disabled = nextBusy;
     panel.setAttribute('aria-busy', String(nextBusy));
     messagesElement.setAttribute('aria-busy', String(nextBusy));
   }
@@ -938,10 +1064,10 @@ void (async () => {
     openButton.focus();
   }
 
-  function addSuggestions() {
+  function addSuggestions(suggestions = activeOperator.suggestions) {
     const group = document.createElement('div');
     group.className = 'lp-agent-suggestions';
-    for (const suggestion of copy.suggestions) {
+    for (const suggestion of suggestions) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'lp-agent-suggestion';
@@ -952,7 +1078,6 @@ void (async () => {
         conversation.push({ role: 'user', content: suggestion });
         await requestAnswer(suggestion);
       });
-      suggestionButtons.push(button);
       group.append(button);
     }
     const orderButton = document.createElement('button');
@@ -962,9 +1087,87 @@ void (async () => {
     orderButton.addEventListener('click', () => {
       if (!busy) addOrderLinkForm();
     });
-    suggestionButtons.push(orderButton);
     group.append(orderButton);
     messagesElement.append(group);
+  }
+
+  function activateOperator(operatorId, { focus = true } = {}) {
+    if (busy) return;
+    const nextOperator = operatorCatalog.operators.find((operator) => operator.id === operatorId);
+    if (!nextOperator) return;
+    let session = sessions.get(nextOperator.id);
+    if (!session) {
+      const nextMessages = document.createElement('div');
+      nextMessages.className = 'lp-agent-messages';
+      nextMessages.setAttribute('aria-live', 'polite');
+      nextMessages.setAttribute('aria-busy', 'false');
+      session = { conversation: [], messagesElement: nextMessages, initialized: false };
+      sessions.set(nextOperator.id, session);
+    }
+    if (messagesElement !== session.messagesElement) messagesElement.replaceWith(session.messagesElement);
+    activeOperator = nextOperator;
+    messagesElement = session.messagesElement;
+    conversation = session.conversation;
+    root.style.setProperty('--lp-agent-blue', activeOperator.accentColor);
+    operatorName.textContent = activeOperator.displayName;
+    operatorAvatar.textContent = operatorInitials(activeOperator.displayName);
+    operatorStatus.textContent = activeOperator.description;
+    root.setAttribute('aria-label', `${copy.title}: ${activeOperator.displayName}`);
+    for (const option of operatorMenu.querySelectorAll('[data-operator-id]')) {
+      const selected = option.dataset.operatorId === activeOperator.id;
+      option.setAttribute('aria-selected', String(selected));
+      option.tabIndex = selected ? 0 : -1;
+    }
+    saveStoredOperatorId(activeOperator.id);
+    setOperatorMenuOpen(false);
+    if (!session.initialized) {
+      session.initialized = true;
+      addMessage('assistant', activeOperator.greeting);
+      addSuggestions(activeOperator.suggestions);
+    }
+    if (focus) input.focus();
+  }
+
+  function renderOperatorMenu() {
+    for (const operator of operatorCatalog.operators) {
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.className = 'lp-agent-operator-option';
+      option.dataset.operatorId = operator.id;
+      option.setAttribute('role', 'option');
+      option.setAttribute('aria-selected', 'false');
+      option.tabIndex = -1;
+      option.innerHTML = `<span class="lp-agent-operator-avatar" aria-hidden="true">${escapeHtml(operatorInitials(operator.displayName))}</span><span><strong></strong><small></small></span>`;
+      option.querySelector('strong').textContent = operator.displayName;
+      option.querySelector('small').textContent = operator.description;
+      operatorMenu.append(option);
+    }
+  }
+
+  function setOperatorMenuOpen(open) {
+    operatorMenu.hidden = !open;
+    operatorTrigger.setAttribute('aria-expanded', String(open));
+    if (open) operatorMenu.querySelector('[aria-selected="true"]')?.focus();
+  }
+
+  function operatorInitials(displayName) {
+    return String(displayName || '').trim().slice(0, 2).toUpperCase();
+  }
+
+  function readStoredOperatorId() {
+    try {
+      return localStorage.getItem('lp-agent-operator-id') || '';
+    } catch {
+      return '';
+    }
+  }
+
+  function saveStoredOperatorId(operatorId) {
+    try {
+      localStorage.setItem('lp-agent-operator-id', operatorId);
+    } catch {
+      // Storage may be unavailable in privacy mode; the in-memory selection still works.
+    }
   }
 
   function addOrderLinkForm() {

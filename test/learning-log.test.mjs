@@ -13,6 +13,7 @@ test('learning records redact personal data and queue uncovered questions for re
   const record = await appendLearningRecord(logPath, {
     requestId: 'request-1',
     provider: 'test',
+    operatorId: 'spectrum',
     messages: [
       { role: 'assistant', content: 'Earlier reply that must not be saved.' },
       { role: 'user', content: 'Напишите на client@example.com или +38 (067) 123-45-67' },
@@ -30,6 +31,7 @@ test('learning records redact personal data and queue uncovered questions for re
   assert.doesNotMatch(record.question, /Earlier reply/);
   const saved = await readFile(logPath, 'utf8');
   assert.equal(JSON.parse(saved).requestId, 'request-1');
+  assert.equal(JSON.parse(saved).operatorId, 'spectrum');
 });
 
 test('learning records do not queue covered answers without a follow-up signal', () => {

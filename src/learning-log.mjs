@@ -12,7 +12,7 @@ export async function appendLearningRecord(logPath, input, { now = () => new Dat
   return record;
 }
 
-export function buildLearningRecord({ requestId, messages, answer, knowledge, catalogDiagnostics, provider }, { now = () => new Date() } = {}) {
+export function buildLearningRecord({ requestId, messages, answer, knowledge, catalogDiagnostics, provider, operatorId }, { now = () => new Date() } = {}) {
   const question = redactText(latestUserMessage(messages));
   const safeAnswer = redactText(answer);
   const knowledgeIds = Array.isArray(knowledge)
@@ -26,6 +26,7 @@ export function buildLearningRecord({ requestId, messages, answer, knowledge, ca
     timestamp: now().toISOString(),
     requestId: String(requestId || '').slice(0, 80),
     provider: String(provider || '').slice(0, 24),
+    operatorId: String(operatorId || 'lumi').slice(0, 40),
     question,
     answer: safeAnswer,
     knowledgeIds,

@@ -115,6 +115,14 @@ Focused provisioning/widget проходит 19/19, полный source suite �
 
 CLI-режим всегда слушает только `127.0.0.1` и не предназначен для публичного доступа.
 
+## AI-операторы
+
+В проекте действует единый server-side реестр AI-операторов. `Люми` остаётся оператором по умолчанию и помогает с подбором, а `Спектр` специализируется на техническом сравнении и объяснении характеристик. Виджет получает только безопасную публичную проекцию через `GET /api/operators`; внутренние инструкции и правила evidence не публикуются.
+
+Выбор выполняется в шапке виджета и сохраняется локально в браузере. У каждого оператора отдельная история текущей вкладки, поэтому контекст персон не смешивается. `POST /api/chat` принимает опциональный `operatorId`; старый клиент без этого поля продолжает работать через `lumi`. Неизвестный идентификатор безопасно заменяется оператором по умолчанию и никогда не используется как prompt.
+
+Telegram order-flow остаётся menu-only и AI-free: выбор оператора не меняет проверку владельца, статусы заказа или фиксированные Telegram-ответы. Общая персональная настройка между web и будущими AI-каналами возможна только после отдельного контракта идентификации пользователя.
+
 ## Быстрый запуск через CLI
 
 Требования: Node.js 20+, установленный Codex CLI и успешный `codex login status`.
@@ -146,6 +154,8 @@ npm run start:api:background
 Рабочая копия API размещена в `F:\Services\AI Advisor`; исходная папка `C:\AI Advisor` сохранена как rollback-копия. Логи API находятся в `F:\Services\AI Advisor\logs`.
 
 Перед переносом проверяйте release-кандидат: `npm test`, затем `npm run release:active:dry-run`. Профиль по умолчанию `P3P4Runtime` переносит только девять утверждённых runtime-файлов; `public/widget-config.json` жёстко исключён как runtime-owned конфигурация. Документация, тесты, scripts и package-файлы в этот профиль не входят.
+
+Multi-operator package проверяется отдельным dry-run: `pwsh -NoProfile -File scripts\release-active-runtime.ps1 -Profile MultiOperatorRuntime`. Профиль включает только backend registry/prompt/logging closure и два ассета виджета; `public/widget-config.json`, environment и secrets не входят. `-Apply`, restart и production smoke требуют отдельного разрешения.
 
 Только после явного решения о production-release применяйте `pwsh -NoProfile -File scripts\release-active-runtime.ps1 -Profile P3P4Runtime -Apply` и отдельно перезапускайте API host в согласованное окно. Перед копированием скрипт создаёт hash-проверенный manifest в `F:\Services\AI Advisor\_release-backups`; точная команда отката возвращается в поле `RollbackCommand`. Откат принимает только manifest внутри этой backup-директории, проверяет active root и hashes, не затрагивает `.env`, логи, архивы или node_modules. Изменения `package.json`/`package-lock.json` требуют отдельного явно подтверждённого dependency-release и `npm ci --omit=dev`.
 

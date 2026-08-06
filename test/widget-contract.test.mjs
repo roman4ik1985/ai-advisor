@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import vm from 'node:vm';
 
 test('widget keeps an absolute production endpoint when optimizers strip data-endpoint', async () => {
   const source = await readFile(new URL('../public/widget.js', import.meta.url), 'utf8');
@@ -56,4 +57,37 @@ test('widget offers a dedicated Telegram order verification flow outside AI chat
   assert.match(source, /Статус замовлення/u);
   assert.match(source, /safeTelegramLink/u);
   assert.doesNotMatch(source, /conversation\.push\(\{ role: 'user', content: orderReference/u);
+});
+
+test('widget exposes an accessible operator selector with isolated conversations', async () => {
+  const [source, css] = await Promise.all([
+    readFile(new URL('../public/widget.js', import.meta.url), 'utf8'),
+    readFile(new URL('../public/widget.css', import.meta.url), 'utf8'),
+  ]);
+
+  assert.match(source, /operatorCatalogEndpoint = new URL\('\/api\/operators'/u);
+  assert.match(source, /aria-haspopup="listbox"/u);
+  assert.match(source, /aria-controls="lp-agent-operator-menu"/u);
+  assert.match(source, /role="listbox"/u);
+  assert.match(source, /role', 'option'/u);
+  assert.match(source, /const sessions = new Map\(\)/u);
+  assert.match(source, /body: JSON\.stringify\(\{ operatorId: activeOperator\.id/u);
+  assert.match(source, /localStorage\.setItem\('lp-agent-operator-id'/u);
+  assert.match(css, /\.lp-agent-operator-trigger:focus-visible/u);
+  assert.match(css, /\.lp-agent-operator-menu\[hidden\]/u);
+  assert.match(css, /@media \(max-width: 560px\)[\s\S]*\.lp-agent-operator-menu/u);
+});
+
+test('operator selector implements wrapping arrow, Home, and End navigation', async () => {
+  const source = await readFile(new URL('../public/widget.js', import.meta.url), 'utf8');
+  const window = { __ledProjectorAgentTestOnly: true };
+  vm.runInNewContext(source, { window, URL }, { filename: 'public/widget.js' });
+  const { nextOperatorOptionIndex } = window.__ledProjectorAgentTestHooks;
+
+  assert.equal(nextOperatorOptionIndex(0, 2, 'ArrowDown'), 1);
+  assert.equal(nextOperatorOptionIndex(1, 2, 'ArrowDown'), 0);
+  assert.equal(nextOperatorOptionIndex(0, 2, 'ArrowUp'), 1);
+  assert.equal(nextOperatorOptionIndex(1, 2, 'Home'), 0);
+  assert.equal(nextOperatorOptionIndex(0, 2, 'End'), 1);
+  assert.equal(nextOperatorOptionIndex(0, 2, 'Enter'), -1);
 });
