@@ -56,6 +56,9 @@ test('PostHog pilot values and staging task isolation are explicitly supported',
   assert.match(installer, /\[string\]\$InstanceName = 'AI Advisor'/);
   assert.match(installer, /-SecretStorePath/);
   assert.match(provisioning, /\[string\]\$Path/);
+  assert.match(library, /\$backupPath = "\$Path\.\$PID\.bak"/);
+  assert.match(library, /\[IO\.File\]::Replace\(\$temporaryPath, \$Path, \$backupPath\)/);
+  assert.match(library, /Test-Path -LiteralPath \$backupPath[\s\S]*?Remove-Item -LiteralPath \$backupPath -Force/);
 });
 
 test('SYSTEM launcher fails closed under an ordinary user without reading the store', {

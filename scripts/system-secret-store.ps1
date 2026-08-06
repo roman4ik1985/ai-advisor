@@ -452,11 +452,14 @@ function Write-SystemSecretStore {
     -RequireRuntimeValues `
     -AllowTelegramEnabled:$AllowTelegramEnabled
   $temporaryPath = "$Path.$PID.new"
+  $backupPath = "$Path.$PID.bak"
   try {
     [IO.File]::WriteAllText($temporaryPath, $envelopeJson, (New-Object Text.UTF8Encoding($false)))
     Set-SystemSecretStoreAcl -Path $temporaryPath
     if (Test-Path -LiteralPath $Path) {
-      [IO.File]::Replace($temporaryPath, $Path, $null)
+      # PowerShell binds a null backup path as an empty string, which File.Replace rejects.
+      # Keep the predecessor only long enough for the atomic replacement to finish.
+      [IO.File]::Replace($temporaryPath, $Path, $backupPath)
     } else {
       [IO.File]::Move($temporaryPath, $Path)
     }
@@ -464,6 +467,9 @@ function Write-SystemSecretStore {
   } finally {
     if (Test-Path -LiteralPath $temporaryPath) {
       Remove-Item -LiteralPath $temporaryPath -Force
+    }
+    if (Test-Path -LiteralPath $backupPath) {
+      Remove-Item -LiteralPath $backupPath -Force
     }
     $envelopeJson = $null
   }
