@@ -45,3 +45,25 @@ test('learning records do not queue covered answers without a follow-up signal',
   assert.equal(record.candidate, null);
   assert.deepEqual(record.knowledgeIds, ['screen-selection']);
 });
+
+test('live facts queue only unavailable evidence and never become static knowledge gaps', () => {
+  const unavailable = buildLearningRecord({
+    requestId: 'request-live-unavailable',
+    provider: 'test',
+    messages: [{ role: 'user', content: 'Какие способы оплаты доступны?' }],
+    answer: 'Чтобы дать точный ответ, передадим этот вопрос менеджеру магазина.',
+    knowledge: [],
+    catalogDiagnostics: { code: 'SKIPPED_BY_ROUTE' },
+  });
+  const available = buildLearningRecord({
+    requestId: 'request-live-available',
+    provider: 'test',
+    messages: [{ role: 'user', content: 'Есть ли модель в наличии?' }],
+    answer: 'Модель есть в наличии.',
+    knowledge: [],
+    catalogDiagnostics: { code: 'OK' },
+  });
+
+  assert.equal(unavailable.candidate?.reason, 'live-evidence-unavailable');
+  assert.equal(available.candidate, null);
+});

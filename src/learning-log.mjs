@@ -3,6 +3,7 @@ import { dirname } from 'node:path';
 
 const MAX_TEXT_LENGTH = 1200;
 const FOLLOW_UP_RE = /менеджер|уточн(?:ить|ите)|не мож[уы]|немає даних|не має даних|підтверд/iu;
+const LIVE_FACT_RE = /(?:ц[іе]н|стоимост|кошту|наявност|наличи|в наличии|есть ли|способ\w*.{0,24}(?:оплат|достав)|(?:оплат|достав)\w*.{0,24}способ|достав\w*.{0,24}(?:завтра|сьогодні|сегодня)|(?:строк|срок)\w*.{0,24}достав)/iu;
 
 export async function appendLearningRecord(logPath, input, { now = () => new Date() } = {}) {
   const record = buildLearningRecord(input, { now });
@@ -50,6 +51,9 @@ function latestUserMessage(messages) {
 
 function learningReason({ question, answer, knowledgeIds }) {
   if (!question || !answer) return 'incomplete-record';
+  if (LIVE_FACT_RE.test(question)) {
+    return FOLLOW_UP_RE.test(answer) ? 'live-evidence-unavailable' : '';
+  }
   if (knowledgeIds.length === 0) return 'no-knowledge-match';
   return FOLLOW_UP_RE.test(answer) ? 'needs-manager-review' : '';
 }
