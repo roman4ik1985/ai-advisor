@@ -4,6 +4,29 @@ Independent local source-test status: **PASSED** on 2026-08-05. This remains a
 developer handoff, not a staging/production-readiness or external
 privacy-smoke statement.
 
+## 0. Independent staging endpoint verification (2026-08-06)
+
+**Conditional PASS for the staging API boundary only.** With an allowed
+`https://ledprojector.com.ua` Origin, the isolated
+`https://ai-staging.ledprojector.com.ua` runtime returned public analytics
+configuration with `enabled=true`, `environment=staging`, schema version `1`,
+and widget version `0.1.0`; it returned `202 {"ok":true}` for one minimal
+synthetic `widget_shown` envelope. The request included only the event name,
+random lifecycle UUID, and allowlisted properties; no token was exposed.
+
+A second envelope containing a synthetic email-shaped value in a safe-version
+field was rejected with `400 INVALID_ANALYTICS_EVENT`, demonstrating the
+server-side fail-closed gate before capture. The API returned CORS only for the
+storefront origin and marked the configuration response `Cache-Control:
+no-store`.
+
+This does **not** verify PostHog project settings, Live Events, the
+server-to-PostHog transport payload, person-profile creation, or storefront
+browser Network traffic. The isolated `/dev/` storefront is currently behind
+HTTP Basic Auth, so that browser acceptance could not be performed in this
+session. Production was not queried beyond its health endpoint and was not
+changed.
+
 ## 1. Implementation summary
 
 The source package adds a disabled-by-default, server-proxied PostHog pilot for
