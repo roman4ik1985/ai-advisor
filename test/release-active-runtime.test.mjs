@@ -39,7 +39,7 @@ test('SYSTEM secret loader release is minimal and blocks apply behind a boolean-
     'scripts/run-api-task.ps1',
     'scripts/system-secret-store.ps1',
   ]);
-  assert.match(script, /\[ValidateSet\('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime', 'KnowledgeRuntime', 'SalesDriveRuntime', 'PolicyKnowledgeRuntime'\)\]/);
+  assert.match(script, /\[ValidateSet\('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime', 'KnowledgeRuntime', 'SalesDriveRuntime', 'PolicyKnowledgeRuntime', 'ApiProviderRuntime'\)\]/);
   assert.match(script, /Test-SystemSecretStoreReleaseReadiness/);
   assert.match(script, /SYSTEM_SECRET_RELEASE_BLOCKED/);
   assert.ok(
@@ -77,6 +77,16 @@ test('policy knowledge runtime release contains only knowledge-policy routing an
   const paths = [...profileMatch[1].matchAll(/'([^']+)'/g)].map((match) => match[1].replaceAll('\\', '/'));
   assert.deepEqual(paths, ['intent-router.mjs', 'request-pipeline.mjs', 'live-response-renderer.mjs']);
   assert.match(script, /manifest\.profile -notin @\([^)]*'PolicyKnowledgeRuntime'/);
+});
+
+test('API provider runtime release contains only the server and API provider', async () => {
+  const script = await readFile(scriptUrl, 'utf8');
+  const profileMatch = script.match(/ApiProviderRuntime\s*=\s*@\(([\s\S]*?)\n\s*\)/);
+  assert.ok(profileMatch, 'ApiProviderRuntime profile must exist');
+
+  const paths = [...profileMatch[1].matchAll(/'([^']+)'/g)].map((match) => match[1].replaceAll('\\', '/'));
+  assert.deepEqual(paths, ['server.mjs', 'src/providers/api-provider.mjs']);
+  assert.match(script, /manifest\.profile -notin @\([^)]*'ApiProviderRuntime'/);
 });
 
 test('Telegram customer runtime release has the complete server-side import closure and no configuration or secret material', async () => {

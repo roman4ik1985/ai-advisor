@@ -2,6 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
+import { ApiProviderUnavailableError } from '../src/providers/api-provider.mjs';
+
+test('API provider availability failures map to the public 503 contract', () => {
+  const error = new ApiProviderUnavailableError();
+  assert.equal(error.code, 'AI_PROVIDER_UNAVAILABLE');
+  assert.equal(error.message, 'Responses API is temporarily unavailable.');
+});
 
 test('HTTP errors use the standard contract and 429 includes Retry-After', async (context) => {
   const port = await getAvailablePort();

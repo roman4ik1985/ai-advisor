@@ -7,7 +7,7 @@ import { buildCatalogSearchUrl, parseCatalogHtml, searchCatalog } from '../src/c
 import { searchKnowledge } from '../src/knowledge.mjs';
 import { validateKnowledgeEntries } from '../src/knowledge-validation.mjs';
 import { buildCliArgs } from '../src/providers/cli-provider.mjs';
-import { askViaApi, extractResponseText } from '../src/providers/api-provider.mjs';
+import { ApiProviderUnavailableError, askViaApi, extractResponseText } from '../src/providers/api-provider.mjs';
 import { BackpressureError, ConcurrencyLimiter, FixedWindowRateLimiter } from '../src/runtime-guards.mjs';
 import { getRateLimitClientId } from '../src/client-identity.mjs';
 
@@ -222,6 +222,27 @@ test('Responses API keeps trusted instructions separate from visitor context', a
     text: JSON.stringify({ conversation: [{ role: 'user', content: 'hello' }] }),
   });
   assert.equal(request.body.store, false);
+});
+
+test('Responses API converts upstream failures into a safe availability error', async () => {
+  const request = {
+    instructions: 'trusted rules',
+    input: { conversation: [{ role: 'user', content: 'hello' }] },
+  };
+  const config = { apiKey: 'test-key', apiModel: 'test-model', apiReasoningEffort: 'low' };
+
+  for (const fetchImpl of [
+    async () => { throw new Error('network details must not escape'); },
+    async () => ({ ok: false, status: 401, json: async () => ({ error: { message: 'upstream secret details' } }) }),
+    async () => ({ ok: true, status: 200, json: async () => { throw new Error('not json'); } }),
+  ]) {
+    await assert.rejects(
+      askViaApi(request, config, 'test-visitor', fetchImpl),
+      (error) => error instanceof ApiProviderUnavailableError
+        && error.code === 'AI_PROVIDER_UNAVAILABLE'
+        && error.message === 'Responses API is temporarily unavailable.',
+    );
+  }
 });
 
 test('rate limiter returns Retry-After timing and cleans expired buckets', () => {

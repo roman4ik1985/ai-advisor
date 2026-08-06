@@ -294,6 +294,9 @@ const server = createServer(async (request, response) => {
       });
     } catch (error) {
       console.error(`[chat:${config.provider}:${requestId}]`, error.message);
+      if (error.code === 'AI_PROVIDER_UNAVAILABLE') {
+        return sendError(response, 503, 'Консультант временно недоступен. Попробуйте ещё раз.', error.code, requestId);
+      }
       if (error.code === 'CLI_USAGE_LIMIT' || error.code === 'CLI_AUTH_REQUIRED') {
         return sendError(response, 503, error.message, error.code, requestId);
       }
