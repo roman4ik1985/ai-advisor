@@ -40,7 +40,7 @@ $values = if ($exists) {
 }
 
 try {
-  foreach ($name in @($Set | Sort-Object -Unique)) {
+  foreach ($name in @($Set)) {
     if ((Get-SystemSecretAllowedNames) -notcontains $name) {
       throw 'SYSTEM_SECRET_NAME_NOT_ALLOWED'
     }

@@ -35,6 +35,8 @@ test('SYSTEM launcher removes env-file loading and injects only an allowlisted c
   assert.doesNotMatch(library.match(/SystemSecretChildEnvironmentNames\s*=\s*@\(([\s\S]*?)\n\)/u)?.[1] || '', /NODE_OPTIONS/iu);
   assert.match(provisioning, /Read-Host[^\n]+-AsSecureString/);
   assert.doesNotMatch(provisioning, /SetEnvironmentVariable|\.env/iu);
+  assert.match(provisioning, /foreach \(\$name in @\(\$Set\)\)/);
+  assert.doesNotMatch(provisioning, /\$Set \| Sort-Object/);
 });
 
 test('PostHog pilot values and staging task isolation are explicitly supported', async () => {
