@@ -1,4 +1,8 @@
+import { appendFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
 const DEFAULT_TIMEOUT_MS = 8_000;
+const DIAGNOSTIC_LOG_FILE = 'ai-advisor-salesdrive-diagnostics.jsonl';
 const API_PATHS = Object.freeze({
   deliveryMethods: '/api/delivery-methods/',
   paymentMethods: '/api/payment-methods/',
@@ -12,6 +16,7 @@ export function createSalesdriveApiClient({
   now = () => new Date(),
   timeoutMs = DEFAULT_TIMEOUT_MS,
   logger = console,
+  diagnosticWriter = appendSalesdriveDiagnostic,
 } = {}) {
   const normalizedSubdomain = normalizeSubdomain(subdomain);
   const configured = Boolean(normalizedSubdomain && String(apiKey || '').trim());
@@ -55,7 +60,15 @@ export function createSalesdriveApiClient({
         fetchedAt: now().toISOString(),
         freshness: 'FRESH',
       };
-      if (!items.length) warnDiagnostic(logger, result.diagnostics);
+      if (!items.length) {
+        warnDiagnostic(logger, result.diagnostics);
+        await writeDiagnostic({
+          timestamp: now().toISOString(),
+          dictionary: kind,
+          code: 'EMPTY_RESULTS',
+          httpStatus: null,
+        });
+      }
       return result;
     } catch (error) {
       return reportUnavailable(
@@ -67,10 +80,24 @@ export function createSalesdriveApiClient({
     }
   }
 
-  function reportUnavailable(kind, code, details = {}) {
+  async function reportUnavailable(kind, code, details = {}) {
     const result = unavailable(code, { dictionary: kind, ...details });
     warnDiagnostic(logger, result.diagnostics);
+    await writeDiagnostic({
+      timestamp: now().toISOString(),
+      dictionary: kind,
+      code,
+      httpStatus: result.diagnostics.httpStatus ?? null,
+    });
     return result;
+  }
+
+  async function writeDiagnostic(record) {
+    try {
+      await diagnosticWriter(record);
+    } catch {
+      // Diagnostics must not weaken the fail-closed resolver path.
+    }
   }
 
   return { configured, listDeliveryMethods, listPaymentMethods, listStatuses };
@@ -109,4 +136,9 @@ function warnDiagnostic(logger, diagnostics) {
     ? 'NONE'
     : diagnostics.httpStatus;
   logger.warn(`[salesdrive-api] dictionary=${diagnostics.dictionary} code=${diagnostics.code} status=${status}`);
+}
+
+async function appendSalesdriveDiagnostic(record) {
+  const logPath = join(process.cwd(), 'logs', DIAGNOSTIC_LOG_FILE);
+  await appendFile(logPath, `${JSON.stringify(record)}\n`, 'utf8');
 }

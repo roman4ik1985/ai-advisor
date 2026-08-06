@@ -26,20 +26,33 @@ test('SalesDrive API client allows only configured GET dictionary calls and proj
 
 test('SalesDrive API client fails closed without credentials', async () => {
   const warnings = [];
-  const client = createSalesdriveApiClient({ subdomain: 'ledprojector', logger: { warn: (message) => warnings.push(message) } });
+  const diagnostics = [];
+  const client = createSalesdriveApiClient({
+    subdomain: 'ledprojector',
+    logger: { warn: (message) => warnings.push(message) },
+    diagnosticWriter: async (record) => diagnostics.push(record),
+  });
   assert.deepEqual(await client.listDeliveryMethods(), {
     items: [], diagnostics: { code: 'SALES_DRIVE_API_NOT_CONFIGURED', source: 'salesdrive_api', dictionary: 'deliveryMethods' }, source: 'salesdrive_api', fetchedAt: null, freshness: 'UNAVAILABLE',
   });
   assert.deepEqual(warnings, ['[salesdrive-api] dictionary=deliveryMethods code=SALES_DRIVE_API_NOT_CONFIGURED status=NONE']);
+  assert.deepEqual(diagnostics, [{
+    timestamp: diagnostics[0].timestamp,
+    dictionary: 'deliveryMethods',
+    code: 'SALES_DRIVE_API_NOT_CONFIGURED',
+    httpStatus: null,
+  }]);
 });
 
 test('SalesDrive API client marks timeout and HTTP failure unavailable', async () => {
   const warnings = [];
+  const diagnostics = [];
   const httpFailure = createSalesdriveApiClient({
     subdomain: 'ledprojector',
     apiKey: 'test-key',
     fetchImpl: async () => new Response('', { status: 503 }),
     logger: { warn: (message) => warnings.push(message) },
+    diagnosticWriter: async (record) => diagnostics.push(record),
   });
   const httpResult = await httpFailure.listDeliveryMethods();
   assert.equal(httpResult.freshness, 'UNAVAILABLE');
@@ -55,6 +68,7 @@ test('SalesDrive API client marks timeout and HTTP failure unavailable', async (
     apiKey: 'test-key',
     timeoutMs: 1,
     logger: { warn: (message) => warnings.push(message) },
+    diagnosticWriter: async (record) => diagnostics.push(record),
     fetchImpl: async (_url, { signal }) => new Promise((_resolve, reject) => {
       signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })));
     }),
@@ -65,5 +79,9 @@ test('SalesDrive API client marks timeout and HTTP failure unavailable', async (
   assert.deepEqual(warnings, [
     '[salesdrive-api] dictionary=deliveryMethods code=SALES_DRIVE_API_HTTP_ERROR status=503',
     '[salesdrive-api] dictionary=deliveryMethods code=SALES_DRIVE_API_TIMEOUT status=NONE',
+  ]);
+  assert.deepEqual(diagnostics.map(({ dictionary, code, httpStatus }) => ({ dictionary, code, httpStatus })), [
+    { dictionary: 'deliveryMethods', code: 'SALES_DRIVE_API_HTTP_ERROR', httpStatus: 503 },
+    { dictionary: 'deliveryMethods', code: 'SALES_DRIVE_API_TIMEOUT', httpStatus: null },
   ]);
 });
