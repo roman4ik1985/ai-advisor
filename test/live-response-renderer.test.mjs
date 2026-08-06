@@ -209,48 +209,37 @@ test('never renders stale price, inventory, delivery or payment evidence', () =>
   }), null);
 });
 
-test('pipeline renders fresh payment methods without model and fails closed when unavailable', async () => {
+test('pipeline answers payment methods from reviewed knowledge without SalesDrive', async () => {
   let supportCalls = 0;
   const base = {
     messages: [{ role: 'user', content: 'Какие способы оплаты доступны?' }],
     queryCatalog: async () => { throw new Error('catalog not expected'); },
-    queryKnowledge: async () => { throw new Error('knowledge not expected'); },
-    buildPrompt: () => 'unused',
-    askSupport: async () => { supportCalls += 1; return 'model answer'; },
+    querySalesdrivePayment: async () => { throw new Error('SalesDrive payment dictionary not expected'); },
+    queryKnowledge: async () => [{
+      id: 'payment-methods',
+      title: 'Способи оплати',
+      text: 'Доступна оплата карткою та LiqPay.',
+      sourceUrl: 'https://ledprojector.com.ua/oplata-1',
+      reviewedAt: '2026-08-06',
+    }],
+    buildPrompt: ({ knowledge }) => {
+      assert.equal(knowledge[0]?.id, 'payment-methods');
+      return 'knowledge prompt';
+    },
+    askSupport: async () => { supportCalls += 1; return 'Доступна оплата карткою та LiqPay.'; },
     askVerifier: async () => { throw new Error('verifier not expected'); },
     now: () => new Date('2026-07-29T00:01:00Z'),
   };
-  const fresh = await executeRequestPipeline({
+  const result = await executeRequestPipeline({
     ...base,
     question: 'Какие способы оплаты доступны?',
-    querySalesdrivePayment: async () => ({
-      items: [{ id: '1', label: 'Картой' }],
-      diagnostics: { code: 'OK' },
-      source: 'salesdrive_api',
-      fetchedAt: '2026-07-29T00:00:00Z',
-      freshness: 'FRESH',
-    }),
   });
-  assert.equal(supportCalls, 0);
-  assert.match(fresh.answer, /Доступные способы оплаты: Картой/u);
-  assert.equal(fresh.freshness.live.payment.status, 'AVAILABLE');
-  assert.deepEqual(fresh.catalog, []);
-  assert.equal(fresh.catalogDiagnostics.code, 'SKIPPED_BY_ROUTE');
-
-  const unavailable = await executeRequestPipeline({
-    ...base,
-    question: 'Какие способы оплаты доступны?',
-    querySalesdrivePayment: async () => ({
-      items: [],
-      diagnostics: { code: 'SALES_DRIVE_API_TIMEOUT' },
-      source: 'salesdrive_api',
-      fetchedAt: null,
-      freshness: 'UNAVAILABLE',
-    }),
-  });
-  assert.equal(supportCalls, 0);
-  assert.deepEqual(unavailable.validation.reasons, ['LIVE_PAYMENT_UNAVAILABLE']);
-  assert.match(unavailable.answer, /^Чтобы дать точный ответ/u);
+  assert.equal(supportCalls, 1);
+  assert.match(result.answer, /оплата карткою та LiqPay/u);
+  assert.equal(result.route.intent, 'store_faq');
+  assert.equal(result.freshness.live.payment.status, 'NOT_REQUIRED');
+  assert.deepEqual(result.catalog, []);
+  assert.equal(result.catalogDiagnostics.code, 'SKIPPED_BY_ROUTE');
 });
 
 test('pipeline returns confirmed inventory without calling the model', async () => {

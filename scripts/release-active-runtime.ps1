@@ -1,6 +1,6 @@
 param(
   [string]$ActiveRoot = 'F:\Services\AI Advisor',
-  [ValidateSet('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime', 'KnowledgeRuntime', 'SalesDriveRuntime')]
+  [ValidateSet('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime', 'KnowledgeRuntime', 'SalesDriveRuntime', 'PolicyKnowledgeRuntime')]
   [string]$Profile = 'P3P4Runtime',
   [switch]$Apply,
   [string]$RollbackFrom
@@ -54,6 +54,9 @@ $releaseProfiles = @{
     'salesdrive-api.mjs',
     'src\learning-log.mjs'
   )
+  PolicyKnowledgeRuntime = @(
+    'intent-router.mjs'
+  )
 }
 
 function Resolve-ContainedPath {
@@ -87,7 +90,7 @@ if ($Apply -and $RollbackFrom) {
 if ($RollbackFrom) {
   $manifestPath = Resolve-ContainedPath -Root $backupRoot -Path $RollbackFrom -MustExist
   $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-  if ($manifest.schemaVersion -ne 1 -or $manifest.profile -notin @('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime', 'KnowledgeRuntime', 'SalesDriveRuntime')) {
+  if ($manifest.schemaVersion -ne 1 -or $manifest.profile -notin @('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime', 'KnowledgeRuntime', 'SalesDriveRuntime', 'PolicyKnowledgeRuntime')) {
     throw "Unsupported rollback manifest: $manifestPath"
   }
   if ([System.IO.Path]::GetFullPath([string]$manifest.activeRoot).TrimEnd('\') -ne $ActiveRoot) {

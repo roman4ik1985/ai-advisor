@@ -39,7 +39,7 @@ test('SYSTEM secret loader release is minimal and blocks apply behind a boolean-
     'scripts/run-api-task.ps1',
     'scripts/system-secret-store.ps1',
   ]);
-  assert.match(script, /\[ValidateSet\('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime', 'KnowledgeRuntime', 'SalesDriveRuntime'\)\]/);
+  assert.match(script, /\[ValidateSet\('P3P4Runtime', 'SYSTEMSecretLoader', 'TelegramCustomerRuntime', 'KnowledgeRuntime', 'SalesDriveRuntime', 'PolicyKnowledgeRuntime'\)\]/);
   assert.match(script, /Test-SystemSecretStoreReleaseReadiness/);
   assert.match(script, /SYSTEM_SECRET_RELEASE_BLOCKED/);
   assert.ok(
@@ -67,6 +67,16 @@ test('SalesDrive runtime release contains only safe diagnostics and learning cla
   assert.deepEqual(paths, ['salesdrive-api.mjs', 'src/learning-log.mjs']);
   assert.doesNotMatch(profileMatch[1], /server|\.env|secret|credential|public/i);
   assert.match(script, /manifest\.profile -notin @\([^)]*'SalesDriveRuntime'/);
+});
+
+test('policy knowledge runtime release contains only intent routing', async () => {
+  const script = await readFile(scriptUrl, 'utf8');
+  const profileMatch = script.match(/PolicyKnowledgeRuntime\s*=\s*@\(([\s\S]*?)\n\s*\)/);
+  assert.ok(profileMatch, 'PolicyKnowledgeRuntime profile must exist');
+
+  const paths = [...profileMatch[1].matchAll(/'([^']+)'/g)].map((match) => match[1].replaceAll('\\', '/'));
+  assert.deepEqual(paths, ['intent-router.mjs']);
+  assert.match(script, /manifest\.profile -notin @\([^)]*'PolicyKnowledgeRuntime'/);
 });
 
 test('Telegram customer runtime release has the complete server-side import closure and no configuration or secret material', async () => {

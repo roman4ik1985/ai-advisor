@@ -25,7 +25,8 @@ export function classifyIntent({ question = '', messages = [] } = {}) {
 
   if (ESCALATION_PATTERN.test(text)) return 'manager_handoff';
   if (FINANCING_POLICY_PATTERN.test(text)) return 'store_faq';
-  if (LIVE_PATTERN.test(text) || PRICE_PATTERN.test(text) || PAYMENT_METHODS_PATTERN.test(text)) return 'live_fact';
+  if (PAYMENT_METHODS_PATTERN.test(text) || DELIVERY_METHODS_PATTERN.test(text)) return 'store_faq';
+  if (LIVE_PATTERN.test(text) || PRICE_PATTERN.test(text)) return 'live_fact';
   if (/(?:гарант|оплат|рассроч|кредит|повернен|обмен)/u.test(text)) return 'store_faq';
   if (ADVICE_PATTERN.test(text)) return 'product_advice';
   return 'product_lookup';
@@ -58,14 +59,17 @@ export function buildRouteDecision({ question = '', messages = [] } = {}) {
 
   const requiredResolvers = new Set();
   const policy = getRoutePolicy(intent);
-  const liveDictionaryOnly = (deliveryMethodsOnly || needsPayment) && !needsInventory && !needsPrice;
-  if (policy.catalog && !liveDictionaryOnly) requiredResolvers.add('catalog');
+  const methodInformationOnly = (needsPayment || deliveryMethodsOnly)
+    && (!needsDelivery || deliveryMethodsOnly)
+    && !needsInventory
+    && !needsPrice;
+  if (policy.catalog && !methodInformationOnly) requiredResolvers.add('catalog');
   if (policy.knowledge) requiredResolvers.add('knowledge');
   if (route === 'COMPLEX') requiredResolvers.add('knowledge');
   if (needsPrice) requiredResolvers.add('price');
   if (needsInventory) requiredResolvers.add('inventory');
-  if (needsDelivery) requiredResolvers.add('delivery');
-  if (needsPayment) requiredResolvers.add('payment');
+  if (needsDelivery && !methodInformationOnly) requiredResolvers.add('delivery');
+  if (needsPayment && !methodInformationOnly) requiredResolvers.add('payment');
 
   return {
     route,
