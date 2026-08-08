@@ -24,6 +24,23 @@ $stdoutPath = Join-Path $logDirectory 'ai-advisor-api.out.log'
 $stderrPath = Join-Path $logDirectory 'ai-advisor-api.err.log'
 $lifecycleLog = Join-Path $logDirectory 'ai-advisor-api-task.log'
 
+# The SYSTEM secret store owns protected values. Read only the two explicit,
+# non-secret learning settings from .env so the child does not receive the
+# rest of the dotenv file.
+$learningEnvironment = @{}
+$dotenvPath = Join-Path $projectRoot '.env'
+if (Test-Path -LiteralPath $dotenvPath -PathType Leaf) {
+  foreach ($line in Get-Content -LiteralPath $dotenvPath) {
+    if ($line -match '^\s*(LEARNING_LOG_ENABLED|LEARNING_LOG_FILE)\s*=\s*(.*?)\s*$') {
+      $value = $Matches[2].Trim()
+      if ($value.Length -ge 2 -and (($value.StartsWith('"') -and $value.EndsWith('"')) -or ($value.StartsWith("'") -and $value.EndsWith("'")))) {
+        $value = $value.Substring(1, $value.Length - 2)
+      }
+      $learningEnvironment[$Matches[1]] = $value
+    }
+  }
+}
+
 Add-Content -LiteralPath $lifecycleLog -Encoding utf8 -Value (
   "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') starting API task on port $Port"
 )
@@ -72,6 +89,9 @@ try {
   }
   foreach ($name in @($secretValues.Keys)) {
     $startInfo.EnvironmentVariables[[string]$name] = [string]$secretValues[$name]
+  }
+  foreach ($name in @($learningEnvironment.Keys)) {
+    $startInfo.EnvironmentVariables[[string]$name] = [string]$learningEnvironment[$name]
   }
   $startInfo.EnvironmentVariables['PORT'] = [string]$Port
 

@@ -8,14 +8,17 @@ const libraryUrl = new URL('../scripts/system-secret-store.ps1', import.meta.url
 const provisioningUrl = new URL('../scripts/set-system-secret-store.ps1', import.meta.url);
 const launcherUrl = new URL('../scripts/run-api-task.ps1', import.meta.url);
 
-test('SYSTEM launcher removes env-file loading and injects only an allowlisted child environment', async () => {
+test('SYSTEM launcher avoids full dotenv loading and injects only approved child settings', async () => {
   const [library, provisioning, launcher] = await Promise.all([
     readFile(libraryUrl, 'utf8'),
     readFile(provisioningUrl, 'utf8'),
     readFile(launcherUrl, 'utf8'),
   ]);
 
-  assert.doesNotMatch(launcher, /--env-file|['"]\.env(?:['"]|\b)/iu);
+  assert.doesNotMatch(launcher, /--env-file/iu);
+  assert.match(launcher, /LEARNING_LOG_ENABLED\|LEARNING_LOG_FILE/);
+  assert.match(launcher, /Join-Path \$projectRoot '\.env'/);
+  assert.match(launcher, /foreach \(\$name in @\(\$learningEnvironment\.Keys\)\)/);
   assert.match(launcher, /Read-SystemSecretStore/);
   assert.match(launcher, /-RequireSystemIdentity/);
   assert.match(launcher, /EnvironmentVariables\.Clear/);
